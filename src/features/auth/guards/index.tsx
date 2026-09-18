@@ -28,7 +28,9 @@ export function RequireAuth() {
 
 export function RequireRole({ roles }: { roles: UserRole[] }) {
   const user = useAuthStore((state) => state.user)
-  return user && roles.includes(user.role) ? <Outlet /> : <Navigate to="/forbidden" replace />
+  const validRole = Boolean(user && roles.includes(user.role))
+  const validAdminTenant = !roles.includes('SUPER_ADMIN') || user?.restaurantId === null
+  return validRole && validAdminTenant ? <Outlet /> : <Navigate to="/forbidden" replace />
 }
 
 export function RequirePermission({ permission }: { permission: string }) {

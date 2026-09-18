@@ -8,7 +8,6 @@ const authPaths = ['/auth/login', '/auth/register-restaurant', '/auth/refresh', 
 const nonRefreshCodes = new Set(['FORBIDDEN', 'SUBSCRIPTION_NOT_ACTIVE', 'FEATURE_NOT_ENTITLED', 'TENANT_ACCESS_DENIED'])
 
 export const api = axios.create({ baseURL: env.apiBaseUrl, headers: { Accept: 'application/json', 'Content-Type': 'application/json' } })
-export const rawApi = axios.create({ baseURL: env.apiBaseUrl, headers: { Accept: 'application/json', 'Content-Type': 'application/json' } })
 
 api.interceptors.request.use((config) => {
   const token = getAccessToken()

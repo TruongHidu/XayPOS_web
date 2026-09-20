@@ -16,3 +16,12 @@ export function defaultRouteForUser(user: Pick<AuthUser, 'role' | 'restaurantId'
   if (user.role === 'KITCHEN' && user.restaurantId !== null) return '/cashier/kitchen'
   return '/forbidden'
 }
+
+export function postLoginRoute(user: Pick<AuthUser, 'role' | 'restaurantId'>, requested: string | null | undefined): string {
+  const returnUrl = safeReturnUrl(requested)
+  if (!returnUrl) return defaultRouteForUser(user)
+  const path = new URL(returnUrl, window.location.origin).pathname
+  const isSystemAdminPath = user.role === 'SUPER_ADMIN' && user.restaurantId === null && (path === '/admin' || path.startsWith('/admin/'))
+  const isTenantPath = user.role !== 'SUPER_ADMIN' && user.restaurantId !== null && (path === '/cashier' || path.startsWith('/cashier/'))
+  return isSystemAdminPath || isTenantPath ? returnUrl : defaultRouteForUser(user)
+}

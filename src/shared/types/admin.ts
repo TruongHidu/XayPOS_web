@@ -24,11 +24,12 @@ export interface AdminPackageResponse {
 }
 
 export type SubscriptionStatus = 'PENDING' | 'ACTIVE' | 'EXPIRED' | 'CANCELLED'
+export type PackageAssignmentState = 'AVAILABLE' | 'PENDING' | 'ACTIVE'
 
 export type RestaurantStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
 export type AdminSortDirection = 'asc' | 'desc'
 
-export interface EffectiveSubscriptionSummary {
+export interface AdminSubscriptionBriefResponse {
   id: string
   packageCode: string
   status: SubscriptionStatus
@@ -48,7 +49,8 @@ export interface RestaurantResponse {
   status: RestaurantStatus
   createdAt: string
   updatedAt: string
-  effectiveSubscription: EffectiveSubscriptionSummary | null
+  effectiveSubscription: AdminSubscriptionBriefResponse | null
+  packageAssignmentState: PackageAssignmentState
 }
 
 export interface RestaurantOwner { id: string; name: string; email: string; phone: string | null; active: boolean }
@@ -56,7 +58,7 @@ export interface RestaurantDetailResponse extends RestaurantResponse {
   owners: RestaurantOwner[]
   totalUsers: number
   activeUsers: number
-  latestSubscription: SubscriptionResponse | null
+  latestSubscription: AdminSubscriptionBriefResponse | null
 }
 
 export interface RestaurantListCriteria {

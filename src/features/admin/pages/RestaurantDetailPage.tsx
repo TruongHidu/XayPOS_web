@@ -9,9 +9,18 @@ import { retryAdminQuery } from '../api/queryPolicy'
 import { restaurantStatusSchema } from '../schemas'
 import { useAuthStore } from '../../auth/store/authStore'
 import { normalizeApiError } from '../../../shared/errors/normalizeApiError'
-import { EmptyState, ErrorState, FieldError, LoadingSkeleton, Modal, PageHeader, Toast } from '../../../shared/components/AdminUi'
-import { formatDateTime, formatMoney } from '../../../shared/utils/adminFormatting'
+import {
+  EmptyState,
+  ErrorState,
+  FieldError,
+  LoadingSkeleton,
+  Modal,
+  PageHeader,
+  Toast,
+} from '../../../shared/components/AdminUi'
+import { formatDateTime } from '../../../shared/utils/adminFormatting'
 import { RestaurantStatusBadge } from './RestaurantsPage'
+import { PackageAssignmentBadge, RestaurantSubscriptionActions } from '../components/RestaurantSubscriptionActions'
 import type { RestaurantStatus } from '../../../shared/types/admin'
 
 type StatusFormValues = { status: RestaurantStatus; reason: string }
@@ -21,20 +30,264 @@ export function RestaurantDetailPage() {
   const canManage = Boolean(useAuthStore((state) => state.user?.permissions.includes('RESTAURANT_MANAGE')))
   const [changingStatus, setChangingStatus] = useState(false)
   const [toast, setToast] = useState<{ message: string; tone: 'success' | 'error' } | null>(null)
-  const query = useQuery({ queryKey: adminKeys.restaurant(restaurantId), queryFn: () => restaurantsApi.getById(restaurantId), enabled: Boolean(restaurantId), retry: retryAdminQuery })
+  const query = useQuery({
+    queryKey: adminKeys.restaurant(restaurantId),
+    queryFn: () => restaurantsApi.getById(restaurantId),
+    enabled: Boolean(restaurantId),
+    retry: retryAdminQuery,
+  })
   if (query.isLoading) return <LoadingSkeleton rows={7} />
   if (query.isError) return <ErrorState error={query.error} onRetry={() => void query.refetch()} />
-  if (!query.data) return <EmptyState title="Không tìm thấy nhà hàng" description="Nhà hàng không tồn tại hoặc đã bị xóa khỏi dữ liệu backend." />
+  if (!query.data)
+    return (
+      <EmptyState
+        title="Không tìm thấy nhà hàng"
+        description="Nhà hàng không tồn tại hoặc đã bị xóa khỏi dữ liệu backend."
+      />
+    )
   const restaurant = query.data
-  return <><PageHeader eyebrow="System / Restaurant detail" title={restaurant.name} description={`Chi tiết nhà hàng ${restaurant.code}.`} actions={<div className="page-actions"><Link className="button button-ghost" to="/admin/restaurants">← Restaurants</Link>{canManage && <button className="button button-primary" type="button" onClick={() => setChangingStatus(true)}>Đổi trạng thái</button>}</div>} />{toast && <Toast message={toast.message} tone={toast.tone} />}<div className="detail-grid"><section className="card detail-card"><div className="detail-title"><code className="code-pill">{restaurant.code}</code><RestaurantStatusBadge status={restaurant.status} /></div><h3>{restaurant.name}</h3><p className="muted">{restaurant.legalName || 'Chưa có legal name'} · {restaurant.phone || 'Chưa có số điện thoại'}</p><div className="detail-facts"><Fact label="Timezone" value={restaurant.timezone} /><Fact label="Currency" value={restaurant.currencyCode} /><Fact label="Created" value={formatDateTime(restaurant.createdAt)} /></div></section><section className="card detail-card"><div className="section-heading"><div><div className="eyebrow">Users</div><h3>Người dùng</h3></div></div><div className="detail-facts"><Fact label="Tổng user" value={String(restaurant.totalUsers)} /><Fact label="User active" value={String(restaurant.activeUsers)} /><Fact label="OWNER" value={String(restaurant.owners.length)} /></div>{restaurant.owners.length === 0 ? <EmptyState title="Chưa có OWNER" description="Backend chưa trả về tài khoản OWNER cho nhà hàng này." /> : <div className="owner-list">{restaurant.owners.map((owner) => <div className="owner-item" key={owner.id}><div><strong>{owner.name}</strong><span className="muted">{owner.email} · {owner.phone || '—'}</span></div><span className={`status-badge ${owner.active ? 'status-active' : 'status-inactive'}`}>{owner.active ? 'Active' : 'Inactive'}</span></div>)}</div>}</section></div><section className="card detail-card subscription-summary"><div className="section-heading"><div><div className="eyebrow">Subscription</div><h3>Subscription hiệu lực</h3></div><Link className="button button-ghost button-small" to={`/admin/restaurants/${encodeURIComponent(restaurant.id)}/subscriptions`}>Xem lịch sử</Link></div>{restaurant.effectiveSubscription ? <div className="result-grid"><Fact label="Package" value={restaurant.effectiveSubscription.packageCode} /><Fact label="Status" value={restaurant.effectiveSubscription.status} /><Fact label="Hết hạn" value={formatDateTime(restaurant.effectiveSubscription.endAt)} /></div> : <EmptyState title="Chưa có gói hiệu lực" description="Nhà hàng hiện không có effective subscription." />}{restaurant.latestSubscription && <p className="form-hint">Latest subscription: <Link to={`/admin/restaurants/${encodeURIComponent(restaurant.id)}/subscriptions/${encodeURIComponent(restaurant.latestSubscription.id)}`}>{restaurant.latestSubscription.id}</Link> · {formatMoney(restaurant.latestSubscription.priceAmount, restaurant.latestSubscription.currencyCode)}</p>}</section>{changingStatus && <RestaurantStatusModal restaurantId={restaurant.id} currentStatus={restaurant.status} canManage={canManage} onClose={() => setChangingStatus(false)} onSuccess={(message) => { setChangingStatus(false); setToast({ message, tone: 'success' }) }} onError={(message) => setToast({ message, tone: 'error' })} />}</>
+
+  return (
+    <>
+      <PageHeader
+        eyebrow="System / Restaurant detail"
+        title={restaurant.name}
+        description={`Chi tiết nhà hàng ${restaurant.code}.`}
+        actions={
+          <div className="page-actions">
+            <Link className="button button-ghost" to="/admin/restaurants">
+              ← Restaurants
+            </Link>
+            {canManage && (
+              <button className="button button-primary" type="button" onClick={() => setChangingStatus(true)}>
+                Đổi trạng thái
+              </button>
+            )}
+          </div>
+        }
+      />
+      {toast && <Toast message={toast.message} tone={toast.tone} />}
+      <div className="detail-grid">
+        <section className="card detail-card">
+          <div className="detail-title">
+            <code className="code-pill">{restaurant.code}</code>
+            <RestaurantStatusBadge status={restaurant.status} />
+          </div>
+          <h3>{restaurant.name}</h3>
+          <p className="muted">
+            {restaurant.legalName || 'Chưa có legal name'} · {restaurant.phone || 'Chưa có số điện thoại'}
+          </p>
+          <div className="detail-facts">
+            <Fact label="Timezone" value={restaurant.timezone} />
+            <Fact label="Currency" value={restaurant.currencyCode} />
+            <Fact label="Created" value={formatDateTime(restaurant.createdAt)} />
+          </div>
+        </section>
+        <section className="card detail-card">
+          <div className="section-heading">
+            <div>
+              <div className="eyebrow">Users</div>
+              <h3>Người dùng</h3>
+            </div>
+          </div>
+          <div className="detail-facts">
+            <Fact label="Tổng user" value={String(restaurant.totalUsers)} />
+            <Fact label="User active" value={String(restaurant.activeUsers)} />
+            <Fact label="OWNER" value={String(restaurant.owners.length)} />
+          </div>
+          {restaurant.owners.length === 0 ? (
+            <EmptyState title="Chưa có OWNER" description="Backend chưa trả về tài khoản OWNER cho nhà hàng này." />
+          ) : (
+            <div className="owner-list">
+              {restaurant.owners.map((owner) => (
+                <div className="owner-item" key={owner.id}>
+                  <div>
+                    <strong>{owner.name}</strong>
+                    <span className="muted">
+                      {owner.email} · {owner.phone || '—'}
+                    </span>
+                  </div>
+                  <span className={`status-badge ${owner.active ? 'status-active' : 'status-inactive'}`}>
+                    {owner.active ? 'Active' : 'Inactive'}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      </div>
+      <section className="card detail-card subscription-summary">
+        <div className="section-heading">
+          <div>
+            <div className="eyebrow">Subscription</div>
+            <h3>Subscription hiệu lực</h3>
+          </div>
+          <div className="page-actions">
+            <PackageAssignmentBadge state={restaurant.packageAssignmentState} />
+            <Link
+              className="button button-ghost button-small"
+              to={`/admin/restaurants/${encodeURIComponent(restaurant.id)}/subscriptions`}
+            >
+              Xem lịch sử
+            </Link>
+          </div>
+        </div>
+        {restaurant.effectiveSubscription ? (
+          <div className="result-grid">
+            <Fact label="Package" value={restaurant.effectiveSubscription.packageCode} />
+            <Fact label="Status" value={restaurant.effectiveSubscription.status} />
+            <Fact label="Bắt đầu" value={formatDateTime(restaurant.effectiveSubscription.startAt)} />
+            <Fact label="Hết hạn" value={formatDateTime(restaurant.effectiveSubscription.endAt)} />
+          </div>
+        ) : (
+          <EmptyState
+            title={
+              restaurant.packageAssignmentState === 'AVAILABLE'
+                ? 'Chưa có gói'
+                : 'Chưa có gói hiệu lực ở thời điểm hiện tại'
+            }
+            description={
+              restaurant.packageAssignmentState === 'ACTIVE'
+                ? 'Nhà hàng có subscription ACTIVE bắt đầu trong tương lai. Không thể gán hoặc đổi gói lúc này.'
+                : restaurant.packageAssignmentState === 'PENDING'
+                  ? 'Nhà hàng có một gói đang chờ kích hoạt.'
+                  : 'Nhà hàng có thể được gán một package mới.'
+            }
+          />
+        )}
+        {restaurant.latestSubscription && (
+          <p className="form-hint">
+            Subscription gần nhất:{' '}
+            <Link
+              to={`/admin/restaurants/${encodeURIComponent(restaurant.id)}/subscriptions/${encodeURIComponent(restaurant.latestSubscription.id)}`}
+            >
+              {restaurant.latestSubscription.id}
+            </Link>{' '}
+            · {restaurant.latestSubscription.packageCode} · {restaurant.latestSubscription.status}
+          </p>
+        )}
+        <RestaurantSubscriptionActions
+          restaurant={restaurant}
+          onNotify={(message, tone) => setToast({ message, tone })}
+        />
+      </section>
+      {changingStatus && (
+        <RestaurantStatusModal
+          restaurantId={restaurant.id}
+          currentStatus={restaurant.status}
+          canManage={canManage}
+          onClose={() => setChangingStatus(false)}
+          onSuccess={(message) => {
+            setChangingStatus(false)
+            setToast({ message, tone: 'success' })
+          }}
+          onError={(message) => setToast({ message, tone: 'error' })}
+        />
+      )}
+    </>
+  )
 }
 
-function RestaurantStatusModal({ restaurantId, currentStatus, canManage, onClose, onSuccess, onError }: { restaurantId: string; currentStatus: RestaurantStatus; canManage: boolean; onClose: () => void; onSuccess: (message: string) => void; onError: (message: string) => void }) {
+function RestaurantStatusModal({
+  restaurantId,
+  currentStatus,
+  canManage,
+  onClose,
+  onSuccess,
+  onError,
+}: {
+  restaurantId: string
+  currentStatus: RestaurantStatus
+  canManage: boolean
+  onClose: () => void
+  onSuccess: (message: string) => void
+  onError: (message: string) => void
+}) {
   const queryClient = useQueryClient()
-  const options: RestaurantStatus[] = ['ACTIVE', 'INACTIVE', 'SUSPENDED'].filter((status) => status !== currentStatus) as RestaurantStatus[]
-  const { register, handleSubmit, setError, formState: { errors, isSubmitting } } = useForm<StatusFormValues>({ resolver: zodResolver(restaurantStatusSchema), defaultValues: { status: options[0], reason: '' } })
-  const mutation = useMutation({ mutationFn: (values: StatusFormValues) => { if (!canManage) return Promise.reject(new Error('FORBIDDEN')); if (values.status === currentStatus) return Promise.reject(new Error('NO_CHANGE')); if (currentStatus === 'ACTIVE' && values.status !== 'ACTIVE' && !window.confirm('Chuyển nhà hàng khỏi ACTIVE sẽ revoke refresh token tenant. Bạn có muốn tiếp tục?')) return Promise.reject(new Error('CANCELLED')); return restaurantsApi.updateStatus(restaurantId, { status: values.status, reason: values.reason.trim() }) }, onSuccess: async () => { await queryClient.invalidateQueries({ queryKey: adminKeys.restaurant(restaurantId) }); await queryClient.invalidateQueries({ queryKey: ['admin', 'restaurants'] }); await queryClient.invalidateQueries({ queryKey: adminKeys.dashboard.all }); await queryClient.invalidateQueries({ queryKey: ['admin', 'subscriptions'] }); onSuccess('Đã cập nhật trạng thái nhà hàng.') }, onError: (error) => { if (error instanceof Error && (error.message === 'CANCELLED' || error.message === 'NO_CHANGE')) return; const normalized = normalizeApiError(error); Object.entries(normalized.fieldErrors).forEach(([field, message]) => { if (field === 'status' || field === 'reason') setError(field, { message }) }); onError(normalized.message) } })
-  return <Modal title="Đổi trạng thái nhà hàng" onClose={onClose}><form className="modal-form" onSubmit={(event) => void handleSubmit((values) => mutation.mutate(values))(event)} noValidate><div className="field"><label htmlFor="restaurant-status">Trạng thái mới</label><select id="restaurant-status" {...register('status')}>{options.map((status) => <option value={status} key={status}>{status}</option>)}</select><FieldError message={errors.status?.message} /></div><div className="field"><label htmlFor="restaurant-reason">Reason</label><textarea id="restaurant-reason" rows={4} {...register('reason')} placeholder="Lý do thay đổi trạng thái" /><FieldError message={errors.reason?.message} /></div><p className="form-hint">Re-activate không tự phát token mới cho tenant. Không có thao tác hard-delete nhà hàng.</p><div className="modal-actions"><button className="button button-ghost" type="button" onClick={onClose}>Hủy</button><button className="button button-primary" type="submit" disabled={isSubmitting || mutation.isPending}>{mutation.isPending ? 'Đang cập nhật…' : 'Cập nhật trạng thái'}</button></div></form></Modal>
+  const options: RestaurantStatus[] = ['ACTIVE', 'INACTIVE', 'SUSPENDED'].filter(
+    (status) => status !== currentStatus,
+  ) as RestaurantStatus[]
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<StatusFormValues>({
+    resolver: zodResolver(restaurantStatusSchema),
+    defaultValues: { status: options[0], reason: '' },
+  })
+  const mutation = useMutation({
+    mutationFn: (values: StatusFormValues) => {
+      if (!canManage) return Promise.reject(new Error('FORBIDDEN'))
+      if (values.status === currentStatus) return Promise.reject(new Error('NO_CHANGE'))
+      if (
+        currentStatus === 'ACTIVE' &&
+        values.status !== 'ACTIVE' &&
+        !window.confirm('Chuyển nhà hàng khỏi ACTIVE sẽ revoke refresh token tenant. Bạn có muốn tiếp tục?')
+      )
+        return Promise.reject(new Error('CANCELLED'))
+      return restaurantsApi.updateStatus(restaurantId, { status: values.status, reason: values.reason.trim() })
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: adminKeys.restaurant(restaurantId) })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'restaurants'] })
+      await queryClient.invalidateQueries({ queryKey: adminKeys.dashboard.all })
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'subscriptions'] })
+      onSuccess('Đã cập nhật trạng thái nhà hàng.')
+    },
+    onError: (error) => {
+      if (error instanceof Error && (error.message === 'CANCELLED' || error.message === 'NO_CHANGE')) return
+      const normalized = normalizeApiError(error)
+      Object.entries(normalized.fieldErrors).forEach(([field, message]) => {
+        if (field === 'status' || field === 'reason') setError(field, { message })
+      })
+      onError(normalized.message)
+    },
+  })
+  return (
+    <Modal title="Đổi trạng thái nhà hàng" onClose={onClose}>
+      <form
+        className="modal-form"
+        onSubmit={(event) => void handleSubmit((values) => mutation.mutate(values))(event)}
+        noValidate
+      >
+        <div className="field">
+          <label htmlFor="restaurant-status">Trạng thái mới</label>
+          <select id="restaurant-status" {...register('status')}>
+            {options.map((status) => (
+              <option value={status} key={status}>
+                {status}
+              </option>
+            ))}
+          </select>
+          <FieldError message={errors.status?.message} />
+        </div>
+        <div className="field">
+          <label htmlFor="restaurant-reason">Reason</label>
+          <textarea id="restaurant-reason" rows={4} {...register('reason')} placeholder="Lý do thay đổi trạng thái" />
+          <FieldError message={errors.reason?.message} />
+        </div>
+        <p className="form-hint">
+          Re-activate không tự phát token mới cho tenant. Không có thao tác hard-delete nhà hàng.
+        </p>
+        <div className="modal-actions">
+          <button className="button button-ghost" type="button" onClick={onClose}>
+            Hủy
+          </button>
+          <button className="button button-primary" type="submit" disabled={isSubmitting || mutation.isPending}>
+            {mutation.isPending ? 'Đang cập nhật…' : 'Cập nhật trạng thái'}
+          </button>
+        </div>
+      </form>
+    </Modal>
+  )
 }
 
-function Fact({ label, value }: { label: string; value: string }) { return <div><span className="eyebrow">{label}</span><strong>{value}</strong></div> }
+function Fact({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <span className="eyebrow">{label}</span>
+      <strong>{value}</strong>
+    </div>
+  )
+}

@@ -4,7 +4,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import { loginSchema, type LoginFormValues } from '../api/authSchemas'
-import { defaultRouteForUser, safeReturnUrl } from '../../../shared/utils/routing'
+import { postLoginRoute } from '../../../shared/utils/routing'
 import { normalizeApiError } from '../../../shared/errors/normalizeApiError'
 import { env } from '../../../shared/config/env'
 
@@ -20,8 +20,8 @@ export function LoginPage() {
     setGeneralError(null)
     try {
       const response = await signIn(values)
-      const returnUrl = safeReturnUrl(new URLSearchParams(location.search).get('returnUrl'))
-      navigate(returnUrl ?? defaultRouteForUser(response.user), { replace: true })
+      const requested = new URLSearchParams(location.search).get('returnUrl')
+      navigate(postLoginRoute(response.user, requested), { replace: true })
     } catch (error) {
       const normalized = normalizeApiError(error)
       Object.entries(normalized.fieldErrors).forEach(([field, message]) => {

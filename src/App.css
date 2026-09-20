@@ -97,6 +97,9 @@ tbody tr:last-child td { border-bottom: 0; }
 .status-badge { display: inline-flex; align-items: center; gap: 6px; border-radius: 999px; padding: 5px 9px; font-size: 11px; font-weight: 800; }
 .status-active { color: #276749; background: #e6fffa; }
 .status-inactive { color: #9b2c2c; background: #fff5f5; }
+.assignment-available { color: #486581; background: #f0f4f8; }
+.assignment-pending { color: #8d5b00; background: #fff3c4; }
+.assignment-active { color: #276749; background: #e6fffa; }
 .status-dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .skeleton-stack { display: grid; gap: 12px; padding: 18px; }
 .skeleton-row { height: 47px; border-radius: 8px; background: linear-gradient(90deg, #f0f4f8 25%, #e4e7eb 50%, #f0f4f8 75%); background-size: 200% 100%; animation: shimmer 1.2s infinite; }
@@ -139,6 +142,9 @@ tbody tr:last-child td { border-bottom: 0; }
 pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; color: #486581; background: #f8fafc; border-radius: 6px; padding: 8px; margin: 10px 0 0; }
 .domain-note { margin: 18px 0 0; }
 .operation-tabs { margin: 20px 0; }
+.subscription-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+.row-actions .subscription-actions { justify-content: flex-end; margin-top: 0; }
+.subscription-summary > .subscription-actions { padding-top: 18px; border-top: 1px solid #e4e7eb; }
 .result-card { margin-top: 20px; }
 .copy-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 22px; padding-top: 16px; border-top: 1px solid #e4e7eb; font-size: 12px; }
 .copy-row code { color: #1565a8; word-break: break-all; }

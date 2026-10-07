@@ -20,6 +20,7 @@ export interface AdminPackageResponse {
   currencyCode: string
   billingCycleMonths: number
   active: boolean
+  maxStaff: number | null
   features: FeatureEntitlement[]
 }
 
@@ -53,11 +54,17 @@ export interface RestaurantResponse {
   packageAssignmentState: PackageAssignmentState
 }
 
-export interface RestaurantOwner { id: string; name: string; email: string; phone: string | null; active: boolean }
+export interface RestaurantOwner {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  active: boolean
+}
 export interface RestaurantDetailResponse extends RestaurantResponse {
   owners: RestaurantOwner[]
-  totalUsers: number
-  activeUsers: number
+  address: string | null
+  userCounts: { total: number; active: number }
   latestSubscription: AdminSubscriptionBriefResponse | null
 }
 
@@ -70,12 +77,58 @@ export interface RestaurantListCriteria {
   direction: AdminSortDirection
 }
 
-export interface UpdateRestaurantStatusRequest { status: RestaurantStatus; reason: string }
+export interface AdminRoleSummary {
+  id: string
+  code: string
+  name: string
+  active: boolean
+}
+export interface AdminRestaurantUser {
+  id: string
+  name: string
+  email: string
+  phone: string | null
+  active: boolean
+  role: AdminRoleSummary
+  lastLoginAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+export interface RestaurantUserCriteria {
+  q: string
+  roleCode: string
+  active: '' | 'true' | 'false'
+  page: number
+  size: number
+  sortBy: 'createdAt' | 'name' | 'email' | 'lastLoginAt'
+  direction: AdminSortDirection
+}
+
+export interface UpdateRestaurantStatusRequest {
+  status: RestaurantStatus
+  reason: string
+}
 
 export interface DashboardSummary {
   generatedAt: string
-  restaurants: { total: number; active: number; inactive: number; suspended: number; newLast30Days: number; activeWithoutEffectiveSubscription: number }
-  subscriptions: { total: number; pending: number; activeStatus: number; effectiveNow: number; staleActive: number; expired: number; cancelled: number; expiringWithin7Days: number }
+  restaurants: {
+    total: number
+    active: number
+    inactive: number
+    suspended: number
+    newLast30Days: number
+    activeWithoutEffectiveSubscription: number
+  }
+  subscriptions: {
+    total: number
+    pending: number
+    activeStatus: number
+    effectiveNow: number
+    staleActive: number
+    expired: number
+    cancelled: number
+    expiringWithin7Days: number
+  }
   packages: { total: number; active: number; inactive: number }
   features: { total: number; active: number; inactive: number }
 }
@@ -101,7 +154,12 @@ export interface SubscriptionListCriteria {
   direction: AdminSortDirection
 }
 
-export interface RestaurantSubscriptionCriteria { status: SubscriptionStatus | ''; packageCode: string; page: number; size: number }
+export interface RestaurantSubscriptionCriteria {
+  status: SubscriptionStatus | ''
+  packageCode: string
+  page: number
+  size: number
+}
 
 export type AuditScope = 'ALL' | 'SYSTEM' | 'TENANT'
 export interface AuditLogResponse {
@@ -150,10 +208,54 @@ export interface SubscriptionResponse {
   features: FeatureEntitlement[]
 }
 
-export interface CreateFeatureRequest { code: string; name: string; description?: string | null }
-export interface UpdateFeatureRequest { name: string; description?: string | null; active: boolean }
-export interface CreatePackageRequest { code: string; name: string; description?: string | null; priceAmount: number; currencyCode: string; billingCycleMonths: number }
-export interface UpdatePackageRequest { name: string; description?: string | null; priceAmount: number; currencyCode: string; billingCycleMonths: number; active: boolean }
-export interface PackageFeatureRequest { limits: Record<string, unknown> }
-export interface CreateSubscriptionRequest { packageCode: string; startAt: string; endAt: string; autoRenew: boolean; priceAmount: number; currencyCode: string }
-export interface ChangePackageRequest { packageCode: string; endAt: string; autoRenew: boolean; priceAmount: number; currencyCode: string }
+export interface CreateFeatureRequest {
+  code: string
+  name: string
+  description?: string | null
+}
+export interface UpdateFeatureRequest {
+  name: string
+  description?: string | null
+  active: boolean
+}
+export interface PackageFeatureSelectionRequest {
+  code: string
+}
+export interface CreatePackageRequest {
+  maxStaff: number | null
+  features: PackageFeatureSelectionRequest[]
+  code: string
+  name: string
+  description?: string | null
+  priceAmount: number
+  currencyCode: string
+  billingCycleMonths: number
+}
+export interface UpdatePackageRequest {
+  maxStaff: number | null
+  features: PackageFeatureSelectionRequest[]
+  name: string
+  description?: string | null
+  priceAmount: number
+  currencyCode: string
+  billingCycleMonths: number
+  active: boolean
+}
+export interface PackageFeatureRequest {
+  limits: Record<string, unknown>
+}
+export interface CreateSubscriptionRequest {
+  packageCode: string
+  startAt: string
+  endAt: string
+  autoRenew: boolean
+  priceAmount: number
+  currencyCode: string
+}
+export interface ChangePackageRequest {
+  packageCode: string
+  endAt: string
+  autoRenew: boolean
+  priceAmount: number
+  currencyCode: string
+}

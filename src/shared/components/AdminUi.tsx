@@ -11,7 +11,7 @@ export function EmptyState({ title, description }: { title: string; description:
 
 export function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => void }) {
   const normalized = normalizeApiError(error)
-  const title = normalized.status === 404 || normalized.code.endsWith('_NOT_FOUND') ? 'Không tìm thấy dữ liệu' : 'Không thể tải dữ liệu'
+  const title = normalized.status === 403 ? 'Bạn không có quyền truy cập' : normalized.status === 404 || normalized.code.endsWith('_NOT_FOUND') ? 'Không tìm thấy dữ liệu' : 'Không thể tải dữ liệu'
   return <div className="error-state" role="alert"><strong>{title}</strong><p>{normalized.message}</p><button className="button button-ghost dark-button" type="button" onClick={onRetry}>Thử lại</button></div>
 }
 

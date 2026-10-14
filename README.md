@@ -1,5 +1,15 @@
 # POS SaaS Web — System Admin
 
+Cashier Order: `/cashier/pos` gọi món tại bàn/mang đi; `/cashier/orders`
+xem và vận hành đơn theo quyền. Xem [tài liệu Cashier Order](docs/cashier-order.md)
+về API, feature, idempotency, version và các giới hạn MVP.
+
+Prompt dựng giao diện web Cashier gọi món và thanh toán theo ảnh tham chiếu:
+[pos-ui-implementation-prompt.md](docs/pos-ui-implementation-prompt.md).
+API cashier đã hỗ trợ SUBMIT từ bàn, active-order, gọi thêm có idempotency;
+adapter payment đã có để nối vào giao diện thu tiền. Các adapter KDS/complete/close
+đã có nhưng nằm ngoài phạm vi prompt giao diện Cashier.
+
 React + TypeScript SPA cho `SUPER_ADMIN`, cùng auth shell cho tenant POS và public QR flow. Phần System Admin dùng API thật, React Query cho server state và URL làm nguồn trạng thái cho các bộ lọc danh sách.
 
 ## Chạy local
@@ -39,14 +49,14 @@ npm run build
 
 API được tách theo domain tại `src/features/admin/api`, không có `AdminService` tổng hợp và component không gọi Axios trực tiếp.
 
-| Module | Endpoint chính |
-| --- | --- |
-| `adminDashboardApi` | `GET /admin/dashboard/summary` |
-| `restaurantsApi` | `GET /admin/restaurants`, `GET /admin/restaurants/{id}`, `PATCH /admin/restaurants/{id}/status` |
-| `adminSubscriptionsApi` | `GET /admin/subscriptions`, list/detail theo restaurant, create/activate/change-package/cancel |
-| `featuresApi` | list/detail/create/update feature |
-| `packagesApi` | list/detail/create/update và add/remove feature mapping |
-| `auditApi` | `GET /admin/audit-logs` |
+| Module                  | Endpoint chính                                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `adminDashboardApi`     | `GET /admin/dashboard/summary`                                                                  |
+| `restaurantsApi`        | `GET /admin/restaurants`, `GET /admin/restaurants/{id}`, `PATCH /admin/restaurants/{id}/status` |
+| `adminSubscriptionsApi` | `GET /admin/subscriptions`, list/detail theo restaurant, create/activate/change-package/cancel  |
+| `featuresApi`           | list/detail/create/update feature                                                               |
+| `packagesApi`           | list/detail/create/update và add/remove feature mapping                                         |
+| `auditApi`              | `GET /admin/audit-logs`                                                                         |
 
 Mọi query key nằm trong `adminKeys.ts`; mutation thành công invalidate các list/detail/dashboard liên quan. Query retry chỉ áp dụng cho network/5xx, không retry lỗi validation, 403 hay 404.
 

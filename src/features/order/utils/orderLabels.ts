@@ -1,0 +1,18 @@
+export const orderLabels: Record<string, string> = {
+  OPEN: 'Chưa xác nhận',
+  CONFIRMED: 'Đã xác nhận',
+  PREPARING: 'Đang chế biến',
+  READY: 'Sẵn sàng',
+  SERVED: 'Đã phục vụ',
+  COMPLETED: 'Hoàn tất',
+  CANCELLED: 'Đã hủy',
+  PENDING: 'Chờ xử lý',
+  COOKING: 'Đang chế biến',
+  UNPAID: 'Chưa thanh toán',
+  PARTIALLY_PAID: 'Thanh toán một phần',
+  PAID: 'Đã thanh toán',
+  PARTIALLY_REFUNDED: 'Hoàn một phần',
+  REFUNDED: 'Đã hoàn tiền',
+  DINE_IN: 'Tại bàn',
+  TAKEAWAY: 'Mang đi',
+}

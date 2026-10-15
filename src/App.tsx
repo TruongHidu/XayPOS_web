@@ -7,6 +7,7 @@ import { AdminShell } from './portals/admin/AdminShell'
 import { CashierShell } from './portals/cashier/CashierShell'
 import { QrMenuPage } from './portals/qr-menu/QrMenuPage'
 import { QrMenuLayout } from './portals/qr-menu/QrMenuLayout'
+import { QrRequestPage } from './portals/qr-menu/QrRequestPage'
 import { AdminDashboardPage } from './features/admin/pages/AdminDashboardPage'
 import { FeaturePage } from './features/admin/pages/FeaturePage'
 import { FeatureDetailPage } from './features/admin/pages/FeatureDetailPage'
@@ -79,6 +80,9 @@ export default function App() {
       {/* === PUBLIC QR MENU — outside AuthBootstrap === */}
       <Route element={<QrMenuLayout />}>
         <Route path="/qr/:qrToken" element={<QrMenuPage />} />
+        <Route path="/menu/:menuToken" element={<QrMenuPage />} />
+        <Route path="/qr/:qrToken/requests/:requestId" element={<QrRequestPage />} />
+        <Route path="/menu/:menuToken/requests/:requestId" element={<QrRequestPage />} />
       </Route>
 
       {/* === AUTH BOUNDARY — bootstraps session for all non-QR routes === */}

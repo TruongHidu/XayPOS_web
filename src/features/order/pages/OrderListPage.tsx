@@ -4,12 +4,13 @@ import { useOrders } from '../hooks/useOrders'
 import { orderCriteriaSchema, orderStatusSchema, serviceTypeSchema } from '../schemas'
 import type { Order, OrderCriteria, OrderSummary } from '../types'
 import { useOrderAccess } from '../hooks/useOrderAccess'
-import { canOrder, canPayment, canSubmitType } from '../policies/orderAccessPolicy'
+import { canOrder, canSubmitType, canMarkServed, canCompleteOrder } from '../policies/orderAccessPolicy'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { OrderFeedback, OrderPager } from '../components/OrderUi'
 import { orderLabels } from '../utils/orderLabels'
 import { PaymentModal } from '../../payment/components/PaymentModal'
 import { OrderAddItems } from '../components/OrderAddItems'
+import { OrderDetailModal } from '../components/OrderDetailModal'
 import { ordersApi } from '../api/ordersApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { orderKeys } from '../api/orderKeys'
@@ -46,10 +47,12 @@ function OrderCardItem({
   order,
   onPay,
   onAddItems,
+  onOpenDetail,
 }: {
   order: OrderSummary
   onPay?: (orderId: string) => void
   onAddItems?: (orderId: string) => void
+  onOpenDetail?: (orderId: string) => void
 }) {
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
@@ -59,8 +62,10 @@ function OrderCardItem({
   const isDineIn = order.serviceType === 'DINE_IN'
   const isPaid = order.paymentStatus === 'PAID'
   const isUnpaid = order.paymentStatus === 'UNPAID'
-  const canPayOrder = isUnpaid && canPayment(access) && !['COMPLETED', 'CANCELLED'].includes(order.status)
+  const canPayOrder = isUnpaid && !['COMPLETED', 'CANCELLED'].includes(order.status)
   const canAppend = canSubmitType(access, order.serviceType) && isUnpaid && ['CONFIRMED', 'PREPARING', 'READY', 'SERVED'].includes(order.status)
+  const canMarkAllServed = (canMarkServed(access) || access.user?.role === 'OWNER' || canOrder(access, 'ORDER_UPDATE')) && ['CONFIRMED', 'PREPARING', 'READY'].includes(order.status)
+  const canComplete = isPaid && order.status === 'SERVED' && (canCompleteOrder(access, order.serviceType) || access.user?.role === 'OWNER')
 
   const handleConfirm = async (e: React.MouseEvent) => {
     e.preventDefault()
@@ -78,11 +83,58 @@ function OrderCardItem({
     }
   }
 
+  const handleMarkServed = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!scope || busy) return
+    setBusy(true)
+    setActionError(null)
+    try {
+      await ordersApi.markAllServed(scope, order.id, order.version)
+      void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
+    } catch (err) {
+      setActionError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  const handleComplete = async (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    if (!scope || busy) return
+    setBusy(true)
+    setActionError(null)
+    try {
+      await ordersApi.complete(scope, order.id, order.version)
+      void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
+      if (order.serviceType === 'DINE_IN') {
+        void client.invalidateQueries({ queryKey: orderKeys.tables(scope) })
+        void client.invalidateQueries({ queryKey: orderKeys.sessions(scope) })
+        void client.invalidateQueries({ queryKey: orderKeys.activeOrders(scope) })
+      }
+    } catch (err) {
+      setActionError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <article className={`pos-order-card status-${order.status.toLowerCase()} pay-${order.paymentStatus.toLowerCase()}`}>
       <div className="pos-card-topbar">
         <div className="pos-card-code-time">
-          <Link to={'/cashier/orders/' + order.id} className="pos-card-code">
+          <Link
+            to={'/cashier/orders/' + order.id}
+            className="pos-card-code"
+            onClick={(e) => {
+              if (onOpenDetail) {
+                e.preventDefault()
+                onOpenDetail(order.id)
+              }
+            }}
+          >
+            <span className="pos-hash">#</span>
             <strong>{order.orderCode}</strong>
           </Link>
           <span className="pos-card-time" title={order.createdAt}>
@@ -113,7 +165,7 @@ function OrderCardItem({
           {order.status === 'CONFIRMED' && '⏳ Đã xác nhận'}
           {order.status === 'PREPARING' && '🍳 Đang nấu'}
           {order.status === 'READY' && '🛎 Món sẵn sàng'}
-          {order.status === 'SERVED' && '🍽 Đã giao món'}
+          {order.status === 'SERVED' && '🍽 Đã lên món'}
           {order.status === 'COMPLETED' && '✓ Hoàn tất'}
           {order.status === 'CANCELLED' && '✕ Đã hủy'}
         </span>
@@ -139,10 +191,7 @@ function OrderCardItem({
       {actionError ? <OrderFeedback error={actionError} /> : null}
 
       <div className="pos-card-actions-row">
-        <Link to={'/cashier/orders/' + order.id} className="button button-small button-ghost">
-          Chi tiết
-        </Link>
-
+        {/* Xác nhận đơn nháp OPEN */}
         {order.status === 'OPEN' && canOrder(access, 'ORDER_UPDATE') && (
           <button
             type="button"
@@ -154,6 +203,56 @@ function OrderCardItem({
           </button>
         )}
 
+        {/* Lên món: Cập nhật tất cả món thành served */}
+        {canMarkAllServed && (
+          <button
+            type="button"
+            className="button button-small button-primary pos-card-served-btn"
+            disabled={busy}
+            onClick={handleMarkServed}
+          >
+            {busy ? 'Đang cập nhật...' : '✓ Đã lên món'}
+          </button>
+        )}
+
+        {/* Hoàn tất đơn khi đã lên món và đã thanh toán */}
+        {canComplete && (
+          <button
+            type="button"
+            className="button button-small button-primary pos-card-complete-btn"
+            disabled={busy}
+            onClick={handleComplete}
+          >
+            {busy ? 'Đang hoàn tất...' : '✓ Hoàn tất'}
+          </button>
+        )}
+
+        {/* Thu tiền / Thanh toán cho đơn chưa thanh toán */}
+        {canPayOrder && onPay && (
+          <button
+            type="button"
+            className="button button-small button-primary pos-card-pay-btn"
+            onClick={(e) => {
+              e.preventDefault()
+              onPay(order.id)
+            }}
+          >
+            💰 Thanh toán
+          </button>
+        )}
+
+        {/* Nút Chi tiết mở modal */}
+        <button
+          type="button"
+          className="button button-small button-ghost pos-card-detail-btn"
+          onClick={(e) => {
+            e.preventDefault()
+            onOpenDetail?.(order.id)
+          }}
+        >
+          Chi tiết
+        </button>
+
         {canAppend && onAddItems && (
           <button
             type="button"
@@ -164,19 +263,6 @@ function OrderCardItem({
             }}
           >
             + Gọi thêm
-          </button>
-        )}
-
-        {canPayOrder && onPay && (
-          <button
-            type="button"
-            className="button button-small button-primary pos-card-pay-btn"
-            onClick={(e) => {
-              e.preventDefault()
-              onPay(order.id)
-            }}
-          >
-            💵 Thu tiền
           </button>
         )}
       </div>
@@ -226,6 +312,7 @@ export function OrderListPage() {
   const [payOrderId, setPayOrderId] = useState<string | null>(null)
   const [addItemsOrderId, setAddItemsOrderId] = useState<string | null>(null)
   const [selectedOrderFull, setSelectedOrderFull] = useState<Order | null>(null)
+  const [detailOrderId, setDetailOrderId] = useState<string | null>(null)
 
   const isHistoryMode = criteria.status === 'COMPLETED' || criteria.status === 'CANCELLED'
   const isTableSessionFiltered = !!criteria.tableSessionId
@@ -280,33 +367,42 @@ export function OrderListPage() {
     }
   }
 
-  // Partitioned items for columns
+  // Partitioned items for columns:
+  // Column 1 (Chờ xác nhận): Chỉ đơn OPEN
+  // Column 2 (Đang nấu): Đơn CONFIRMED, PREPARING và READY (món đã sẵn sàng vẫn ở Đang nấu)
+  // Column 3 (Đã lên món): Chỉ đơn SERVED
   let pendingOrders: OrderSummary[] = []
   let cookingOrders: OrderSummary[] = []
   let readyOrders: OrderSummary[] = []
 
   if (isTableSessionFiltered) {
     const items = sessionOrdersQuery.data?.content ?? []
-    pendingOrders = items.filter((o) => o.status === 'OPEN' || o.status === 'CONFIRMED')
-    cookingOrders = items.filter((o) => o.status === 'PREPARING')
-    readyOrders = items.filter((o) => o.status === 'READY' || o.status === 'SERVED')
+    pendingOrders = items.filter((o) => o.status === 'OPEN')
+    cookingOrders = items.filter((o) => o.status === 'CONFIRMED' || o.status === 'PREPARING' || o.status === 'READY')
+    readyOrders = items.filter((o) => o.status === 'SERVED')
   } else {
-    pendingOrders = [...(openQuery.data?.content ?? []), ...(confirmedQuery.data?.content ?? [])]
-    cookingOrders = preparingQuery.data?.content ?? []
-    readyOrders = [...(readyQuery.data?.content ?? []), ...(servedQuery.data?.content ?? [])]
+    pendingOrders = openQuery.data?.content ?? []
+    cookingOrders = [
+      ...(confirmedQuery.data?.content ?? []),
+      ...(preparingQuery.data?.content ?? []),
+      ...(readyQuery.data?.content ?? []),
+    ]
+    readyOrders = servedQuery.data?.content ?? []
   }
 
   const pendingCount = isTableSessionFiltered
     ? pendingOrders.length
-    : (openQuery.data?.totalElements ?? 0) + (confirmedQuery.data?.totalElements ?? 0)
+    : (openQuery.data?.totalElements ?? 0)
 
   const cookingCount = isTableSessionFiltered
     ? cookingOrders.length
-    : (preparingQuery.data?.totalElements ?? 0)
+    : (confirmedQuery.data?.totalElements ?? 0) +
+      (preparingQuery.data?.totalElements ?? 0) +
+      (readyQuery.data?.totalElements ?? 0)
 
   const readyCount = isTableSessionFiltered
     ? readyOrders.length
-    : (readyQuery.data?.totalElements ?? 0) + (servedQuery.data?.totalElements ?? 0)
+    : (servedQuery.data?.totalElements ?? 0)
 
   const totalServingCount = pendingCount + cookingCount + readyCount
 
@@ -477,6 +573,7 @@ export function OrderListPage() {
                 order={order}
                 onPay={handleOpenPay}
                 onAddItems={handleOpenAddItems}
+                onOpenDetail={setDetailOrderId}
               />
             ))}
           </div>
@@ -502,31 +599,34 @@ export function OrderListPage() {
               className={`pos-col-tab ${activeMobileCol === 'pending' ? 'active' : ''}`}
               onClick={() => setActiveMobileCol('pending')}
             >
-              ⏳ Chờ xử lý ({pendingCount})
+              📦 Chờ xác nhận ({pendingCount})
             </button>
             <button
               type="button"
               className={`pos-col-tab ${activeMobileCol === 'cooking' ? 'active' : ''}`}
               onClick={() => setActiveMobileCol('cooking')}
             >
-              🍳 Đang nấu ({cookingCount})
+              ⏱ Đang nấu ({cookingCount})
             </button>
             <button
               type="button"
               className={`pos-col-tab ${activeMobileCol === 'ready' ? 'active' : ''}`}
               onClick={() => setActiveMobileCol('ready')}
             >
-              🛎 Sẵn sàng ({readyCount})
+              ✓ Đã lên món ({readyCount})
             </button>
           </nav>
 
           <div className="pos-kanban-board" data-mobile-col={activeMobileCol}>
-            {/* Column 1: Chờ xử lý (OPEN + CONFIRMED) */}
+            {/* Column 1: Chờ xác nhận (OPEN) */}
             <section className="pos-kanban-column col-pending" aria-label="Chờ xử lý">
               <header className="pos-column-header">
                 <div className="pos-column-title-group">
-                  <span className="pos-column-icon" aria-hidden="true">⏳</span>
-                  <h3>Chờ xử lý</h3>
+                  <span className="pos-column-icon" aria-hidden="true">📦</span>
+                  <div>
+                    <h3>Chờ xác nhận</h3>
+                    <p className="pos-column-subtitle">Đơn mới cần xử lý</p>
+                  </div>
                 </div>
                 <span className="pos-column-badge">{pendingCount}</span>
               </header>
@@ -538,23 +638,27 @@ export function OrderListPage() {
                     order={order}
                     onPay={handleOpenPay}
                     onAddItems={handleOpenAddItems}
+                    onOpenDetail={setDetailOrderId}
                   />
                 ))}
 
                 {pendingOrders.length === 0 && (
                   <div className="pos-column-empty">
-                    <span>⏱ Không có đơn chờ xử lý</span>
+                    <span>⏱ Không có đơn chờ xác nhận</span>
                   </div>
                 )}
               </div>
             </section>
 
-            {/* Column 2: Đang chế biến (PREPARING) */}
+            {/* Column 2: Đang nấu (CONFIRMED + PREPARING) */}
             <section className="pos-kanban-column col-cooking" aria-label="Đang chế biến">
               <header className="pos-column-header">
                 <div className="pos-column-title-group">
-                  <span className="pos-column-icon" aria-hidden="true">🍳</span>
-                  <h3>Đang chế biến</h3>
+                  <span className="pos-column-icon" aria-hidden="true">⏱</span>
+                  <div>
+                    <h3>Đang nấu</h3>
+                    <p className="pos-column-subtitle">Bếp đang chế biến</p>
+                  </div>
                 </div>
                 <span className="pos-column-badge">{cookingCount}</span>
               </header>
@@ -566,6 +670,7 @@ export function OrderListPage() {
                     order={order}
                     onPay={handleOpenPay}
                     onAddItems={handleOpenAddItems}
+                    onOpenDetail={setDetailOrderId}
                   />
                 ))}
 
@@ -577,12 +682,15 @@ export function OrderListPage() {
               </div>
             </section>
 
-            {/* Column 3: Sẵn sàng / Đã giao (READY + SERVED) */}
+            {/* Column 3: Đã lên món (READY + SERVED) */}
             <section className="pos-kanban-column col-ready" aria-label="Sẵn sàng / Đã giao">
               <header className="pos-column-header">
                 <div className="pos-column-title-group">
-                  <span className="pos-column-icon" aria-hidden="true">🛎</span>
-                  <h3>Sẵn sàng / Đã giao</h3>
+                  <span className="pos-column-icon" aria-hidden="true">✓</span>
+                  <div>
+                    <h3>Đã lên món</h3>
+                    <p className="pos-column-subtitle">Chờ thanh toán</p>
+                  </div>
                 </div>
                 <span className="pos-column-badge">{readyCount}</span>
               </header>
@@ -594,18 +702,36 @@ export function OrderListPage() {
                     order={order}
                     onPay={handleOpenPay}
                     onAddItems={handleOpenAddItems}
+                    onOpenDetail={setDetailOrderId}
                   />
                 ))}
 
                 {readyOrders.length === 0 && (
                   <div className="pos-column-empty">
-                    <span>🍽 Không có đơn sẵn sàng/đã giao</span>
+                    <span>🍽 Không có đơn chờ thanh toán</span>
                   </div>
                 )}
               </div>
             </section>
           </div>
         </>
+      )}
+
+      {/* Order Detail Modal */}
+      {detailOrderId && (
+        <OrderDetailModal
+          orderId={detailOrderId}
+          onClose={() => setDetailOrderId(null)}
+          onOpenPay={(id) => {
+            setDetailOrderId(null)
+            void handleOpenPay(id)
+          }}
+          onOpenAddItems={(id) => {
+            setDetailOrderId(null)
+            void handleOpenAddItems(id)
+          }}
+          onRefresh={handleRefresh}
+        />
       )}
 
       {/* Payment Modal */}
@@ -636,3 +762,4 @@ export function OrderListPage() {
     </div>
   )
 }
+

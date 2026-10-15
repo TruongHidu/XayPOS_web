@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { useOrderAccess } from '../../features/order/hooks/useOrderAccess'
@@ -14,6 +15,41 @@ export function CashierShell() {
   const signOut = useAuthStore((state) => state.signOut)
   const isPos = location.pathname.startsWith('/cashier/pos')
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem('pos_sidebar_collapsed') === 'true'
+    } catch {
+      return false
+    }
+  })
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev
+      try {
+        localStorage.setItem('pos_sidebar_collapsed', String(next))
+      } catch {
+        // ignore
+      }
+      return next
+    })
+  }
+
+  const roleLabel =
+    user?.role === 'OWNER'
+      ? 'Chủ quán'
+      : user?.role === 'MANAGER'
+        ? 'Quản lý'
+        : user?.role === 'CASHIER'
+          ? 'Thu ngân'
+          : user?.role === 'KITCHEN'
+            ? 'Bếp'
+            : user?.role === 'WAITER'
+              ? 'Phục vụ'
+              : (user?.role ?? '')
+
+  const avatarLetter = (user?.name || user?.role || 'U').trim().charAt(0).toUpperCase()
+
   const links = [
     { to: '/cashier/dashboard', label: 'Tổng quan', visible: true },
     { to: '/cashier/pos', label: 'Gọi món', visible: canOrder(access, 'ORDER_CREATE') },
@@ -22,7 +58,9 @@ export function CashierShell() {
   ]
 
   return (
-    <div className={`app-shell cashier-shell ${isPos ? 'is-pos-fullscreen' : ''}`}>
+    <div
+      className={`app-shell cashier-shell ${isPos ? 'is-pos-fullscreen' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
+    >
       {!isPos && (
         <aside className="sidebar">
           <NavLink className="brand" to="/cashier/dashboard">
@@ -54,15 +92,49 @@ export function CashierShell() {
       )}
       <div className="main-area">
         {!isPos && (
-          <header className="topbar">
-            <div>
-              <div className="eyebrow">{user?.restaurantCode ?? 'Restaurant'}</div>
-              <h1>{user?.restaurantName ?? 'Cashier portal'}</h1>
-            </div>
-            <div className="user-chip">
-              <span>{user?.name}</span>
+          <header className="topbar pos-shell-topbar">
+            <div className="pos-topbar-left">
               <button
-                className="button button-ghost"
+                type="button"
+                className="pos-sidebar-toggle-btn"
+                onClick={toggleSidebar}
+                title={sidebarCollapsed ? 'Hiện thanh menu' : 'Ẩn thanh menu'}
+                aria-label={sidebarCollapsed ? 'Hiện thanh menu' : 'Ẩn thanh menu'}
+              >
+                <svg
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <line x1="3" y1="6" x2="21" y2="6" />
+                  <line x1="3" y1="12" x2="15" y2="12" />
+                  <line x1="3" y1="18" x2="21" y2="18" />
+                  {sidebarCollapsed ? (
+                    <polyline points="18 9 21 12 18 15" />
+                  ) : (
+                    <polyline points="6 9 3 12 6 15" />
+                  )}
+                </svg>
+              </button>
+            </div>
+
+            <div className="pos-topbar-right">
+              <div className="pos-user-profile">
+                <div className="pos-user-avatar" title={user?.name ?? 'User'}>
+                  {avatarLetter}
+                </div>
+                <div className="pos-user-details">
+                  <span className="pos-user-name">{user?.name ?? 'Người dùng'}</span>
+                  <span className="pos-user-role">{roleLabel}</span>
+                </div>
+              </div>
+              <button
+                className="button button-ghost button-small pos-logout-btn"
                 type="button"
                 onClick={async () => {
                   await signOut()
@@ -75,7 +147,7 @@ export function CashierShell() {
           </header>
         )}
         <main className={`content ${isPos ? 'pos-content-fullscreen' : ''}`}>
-          <div key={scope}>
+          <div key={`${scope ?? ''}:${location.pathname}`} className="pos-page-transition">
             <Outlet />
           </div>
         </main>

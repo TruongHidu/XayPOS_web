@@ -548,12 +548,13 @@ describe('Cashier Order UI and lifecycle', () => {
 
     await screen.findByText('Thanh toán thành công')
     expect(paymentCall).not.toBeNull()
-    expect(paymentCall?.body).toMatchObject({
+    if (!paymentCall) throw new Error('paymentCall is null')
+    expect((paymentCall as { body: unknown; key: string | null }).body).toMatchObject({
       expectedOrderVersion: 5,
       paymentMethod: 'CASH',
       amount: 100000,
     })
-    expect(paymentCall?.key).toBeTruthy()
+    expect((paymentCall as { body: unknown; key: string | null }).key).toBeTruthy()
     expect(screen.getByRole('button', { name: /Phiếu thu/ })).toBeInTheDocument()
   })
 

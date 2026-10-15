@@ -10,6 +10,12 @@ API cashier đã hỗ trợ SUBMIT từ bàn, active-order, gọi thêm có idem
 adapter payment đã có để nối vào giao diện thu tiền. Các adapter KDS/complete/close
 đã có nhưng nằm ngoài phạm vi prompt giao diện Cashier.
 
+Prompt triển khai giao diện khách gọi món qua QR bàn hoặc menu mang đi:
+[customer-qr-order-implementation-prompt.md](docs/customer-qr-order-implementation-prompt.md).
+Đã triển khai `/qr/:qrToken`, `/menu/:menuToken` và trang receipt cho khách,
+gồm giỏ món, guest access và gửi yêu cầu chờ nhân viên duyệt. Xem
+[tài liệu triển khai và ảnh kiểm tra](docs/customer-qr-order.md).
+
 React + TypeScript SPA cho `SUPER_ADMIN`, cùng auth shell cho tenant POS và public QR flow. Phần System Admin dùng API thật, React Query cho server state và URL làm nguồn trạng thái cho các bộ lọc danh sách.
 
 ## Chạy local

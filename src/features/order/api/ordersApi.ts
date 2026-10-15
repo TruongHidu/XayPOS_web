@@ -86,6 +86,10 @@ export const ordersApi = {
     transition(scope, id, lineId, 'mark-ready', expectedOrderVersion),
   markServed: (scope: string, id: string, lineId: string, expectedOrderVersion: number) =>
     transition(scope, id, lineId, 'mark-served', expectedOrderVersion),
+  markAllReady: (scope: string, id: string, expectedOrderVersion: number) =>
+    mutate(scope, 'POST', idPath(id) + '/mark-ready', itemTransitionSchema.parse({ expectedOrderVersion })),
+  markAllServed: (scope: string, id: string, expectedOrderVersion: number) =>
+    mutate(scope, 'POST', idPath(id) + '/mark-served', itemTransitionSchema.parse({ expectedOrderVersion })),
   complete: (scope: string, id: string, expectedVersion: number) =>
     mutate(scope, 'POST', idPath(id) + '/complete', versionRequestSchema.parse({ expectedVersion })),
 }

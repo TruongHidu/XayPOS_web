@@ -82,6 +82,18 @@ export function CashierPosPage() {
     if (scope && scope === useOrderDraftStore.getState().scope && context) useOrderDraftStore.getState().start(context)
   }, [scope, context, draft.context, navigate])
 
+  useEffect(() => {
+    if (draft.result) {
+      if (import.meta.env.MODE !== 'test') {
+        const timer = setTimeout(() => {
+          draft.discard()
+          navigate('/cashier/orders')
+        }, 600)
+        return () => clearTimeout(timer)
+      }
+    }
+  }, [draft.result, navigate, draft])
+
   const select = (next: ServiceContext) => {
     const current = useOrderDraftStore.getState().context
     if (
@@ -138,6 +150,7 @@ export function CashierPosPage() {
   if (sessionId && !resourceId.safeParse(sessionId).success) return <div role="alert">Mã phiên bàn không hợp lệ.</div>
   if (tableId && !resourceId.safeParse(tableId).success) return <div role="alert">Mã bàn không hợp lệ.</div>
 
+
   if (!canCreateType(access, type))
     return (
       <div className="order-feedback" role="alert">
@@ -150,13 +163,33 @@ export function CashierPosPage() {
       <div className="cashier-order pos-workspace">
         <header className="pos-topbar-56">
           <div className="pos-topbar-left">
-            <button type="button" className="pos-btn-back" onClick={handleBack} aria-label="Quay lại">
-              ← Quay lại
+            <button
+              type="button"
+              className="pos-btn-back"
+              onClick={() => {
+                draft.discard()
+                navigate('/cashier/orders')
+              }}
+              aria-label="Quay lại"
+            >
+              ← Về danh sách đơn
             </button>
             <h1 className="pos-page-title">Bán hàng (POS)</h1>
           </div>
           <div className="order-panel-heading pos-created-actions">
-            <span className="order-eyebrow">Đơn đã được lưu</span>
+            <span className="order-eyebrow pos-success-toast">
+              ✓ Gọi món thành công! Đang chuyển đến màn hình đơn...
+            </span>
+            <button
+              className="button button-ghost"
+              type="button"
+              onClick={() => {
+                draft.discard()
+                navigate('/cashier/orders')
+              }}
+            >
+              Xem danh sách đơn
+            </button>
             <button
               className="button button-primary"
               type="button"

@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { moneySchema } from '../../shared/api/tenantSchemas'
 
 export const publicRestaurantSchema = z.object({
   name: z.string(),
@@ -21,6 +22,10 @@ export const publicQrMenuContextSchema = z.object({
   table: publicTableSchema,
   groups: z.array(publicMenuGroupSchema),
 })
+export const publicRestaurantMenuContextSchema = z.object({
+  restaurant: publicRestaurantSchema,
+  groups: z.array(publicMenuGroupSchema),
+})
 
 export const publicMenuItemGroupSchema = z.object({
   id: z.string(),
@@ -34,7 +39,7 @@ export const publicMenuItemSchema = z.object({
   description: z.string().nullable(),
   imageUrl: z.string().nullable(),
   baseUnit: z.string(),
-  salePrice: z.number(),
+  salePrice: moneySchema,
   availabilityStatus: z.enum(['AVAILABLE', 'OUT_OF_STOCK']),
 })
 

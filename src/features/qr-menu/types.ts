@@ -20,7 +20,7 @@ export interface PublicMenuGroup {
 /** Full context response from GET /public/menu/tables/{qrToken}. */
 export interface PublicQrMenuContext {
   restaurant: PublicRestaurant
-  table: PublicTable
+  table?: PublicTable
   groups: PublicMenuGroup[]
 }
 

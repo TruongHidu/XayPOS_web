@@ -1,5 +1,4 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
-import { useParams } from 'react-router-dom'
 import { usePublicQrMenuContext } from '../../features/qr-menu/hooks/usePublicQrMenuContext'
 import { usePublicQrMenuItems } from '../../features/qr-menu/hooks/usePublicQrMenuItems'
 import { useQrMenuFilters } from '../../features/qr-menu/hooks/useQrMenuFilters'
@@ -9,36 +8,64 @@ import { QrMenuFilters } from '../../features/qr-menu/components/QrMenuFilters'
 import { MenuItemList } from '../../features/qr-menu/components/MenuItemList'
 import { MenuItemDetail } from '../../features/qr-menu/components/MenuItemDetail'
 import { QrMenuPagination } from '../../features/qr-menu/components/QrMenuPagination'
-import { QrMenuStatus, QrMenuEmptySearch, QrMenuEmptyMenu, QrMenuLoading } from '../../features/qr-menu/components/QrMenuStatus'
+import {
+  QrMenuStatus,
+  QrMenuEmptySearch,
+  QrMenuEmptyMenu,
+  QrMenuLoading,
+} from '../../features/qr-menu/components/QrMenuStatus'
 import type { PublicMenuItem, PublicQrMenuError } from '../../features/qr-menu/types'
+import { useQrEntry } from '../../features/qr-order/hooks/useQrEntry'
+import { useQrGuestAccess } from '../../features/qr-order/hooks/useQrGuestAccess'
+import { qrDraftFrozen, useQrDraftStore } from '../../features/qr-order/store/qrOrderDraftStore'
+import { QrOrderCart } from '../../features/qr-order/components/QrOrderCart'
+import { QrOrderHistory } from '../../features/qr-order/components/QrOrderHistory'
+import { QrOrderLineEditor } from '../../features/qr-order/components/QrOrderLineEditor'
+import { formatMinor, previewLine } from '../../shared/utils/scaledDecimal'
 
 const QR_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/
 
 export function QrMenuPage() {
-  const { qrToken } = useParams<{ qrToken: string }>()
+  const entry = useQrEntry()
+  const qrToken = entry.token
+  const entryKey = entry.entryType + ':' + qrToken
+  const draft = useQrDraftStore()
+  const access = useQrGuestAccess()
+  const [panel, setPanel] = useState<'menu' | 'cart' | 'requests'>('menu')
+  const [added, setAdded] = useState<string | null>(null)
   const [selectedItem, setSelectedItem] = useState<PublicMenuItem | null>(null)
   const [groupRecoveryCount, setGroupRecoveryCount] = useState(0)
-  const prevTokenRef = useRef(qrToken)
+  const prevTokenRef = useRef(entryKey)
 
-  const filters = useQrMenuFilters(qrToken)
-  const contextQuery = usePublicQrMenuContext(qrToken)
-  const itemsQuery = usePublicQrMenuItems(qrToken, filters.query, contextQuery.isSuccess)
+  const filters = useQrMenuFilters(entryKey)
+  const contextQuery = usePublicQrMenuContext(qrToken, entry.entryType)
+  const itemsQuery = usePublicQrMenuItems(qrToken, filters.query, contextQuery.isSuccess, entry.entryType)
+  useEffect(() => {
+    if (itemsQuery.data) useQrDraftStore.getState().refreshItems(itemsQuery.data.content)
+  }, [itemsQuery.data])
+  useEffect(() => {
+    if (!added) return
+    const timer = window.setTimeout(() => setAdded(null), 3500)
+    return () => window.clearTimeout(timer)
+  }, [added])
 
   // Reset state when token changes
   useEffect(() => {
-    if (prevTokenRef.current !== qrToken) {
-      prevTokenRef.current = qrToken
+    if (prevTokenRef.current !== entryKey) {
+      prevTokenRef.current = entryKey
       setSelectedItem(null)
       setGroupRecoveryCount(0)
+      setPanel('menu')
+      setAdded(null)
     }
-  }, [qrToken])
+  }, [entryKey])
 
   // Handle group_not_found recovery (limit to 2 attempts)
   useEffect(() => {
     if (!itemsQuery.error || isCancelledError(itemsQuery.error)) return
     const mapped = mapQrMenuError(itemsQuery.error)
     if (mapped.type === 'group_not_found' && groupRecoveryCount < 2) {
-      setGroupRecoveryCount(prev => prev + 1)
+      setGroupRecoveryCount((prev) => prev + 1)
       filters.setGroupId(undefined)
       contextQuery.refetch()
     }
@@ -129,58 +156,89 @@ export function QrMenuPage() {
   }
 
   return (
-    <main className="qr-menu-page">
+    <main className="qr-menu-page qr-order-page">
       <div className="qr-menu-container">
         <QrMenuHeader restaurant={context.restaurant} table={context.table} />
 
-        <QrMenuFilters
-          groups={context.groups}
-          selectedGroupId={filters.query.groupId}
-          searchInput={filters.searchInput}
-          sortOptions={filters.sortOptions}
-          selectedSortIndex={filters.selectedSortIndex}
-          onGroupChange={filters.setGroupId}
-          onSearchChange={filters.setSearchInput}
-          onSortChange={filters.setSortIndex}
-        />
+        <nav className="qr-order-navigation" aria-label="Gọi món của bạn">
+          <button type="button" aria-pressed={panel === 'menu'} onClick={() => setPanel('menu')}>
+            Thực đơn
+          </button>
+          <button type="button" aria-pressed={panel === 'cart'} onClick={() => setPanel('cart')}>
+            Giỏ món <span>{draft.lines.length}</span>
+          </button>
+          <button type="button" aria-pressed={panel === 'requests'} onClick={() => setPanel('requests')}>
+            Yêu cầu của bạn {access.requestIds.length > 0 && <span>{access.requestIds.length}</span>}
+          </button>
+        </nav>
+        {added && (
+          <p className="qr-order-added" role="status">
+            {added}
+          </p>
+        )}
+        {panel === 'requests' ? (
+          <QrOrderHistory />
+        ) : (
+          <div className="qr-order-workspace" data-panel={panel}>
+            <section className="qr-order-catalog" aria-label="Thực đơn nhà hàng">
+              <QrMenuFilters
+                groups={context.groups}
+                selectedGroupId={filters.query.groupId}
+                searchInput={filters.searchInput}
+                sortOptions={filters.sortOptions}
+                selectedSortIndex={filters.selectedSortIndex}
+                onGroupChange={filters.setGroupId}
+                onSearchChange={filters.setSearchInput}
+                onSortChange={filters.setSortIndex}
+              />
 
-        {/* Items loading */}
-        {itemsQuery.isLoading && <QrMenuLoading />}
+              {/* Items loading */}
+              {itemsQuery.isLoading && <QrMenuLoading />}
 
-        {/* Items error (non-terminal) */}
-        {itemsError && !isTerminalError(itemsError) && (
-          <QrMenuStatus
-            error={itemsError}
-            onRetry={handleRetry}
-            onResetFilters={filters.resetFilters}
-          />
+              {/* Items error (non-terminal) */}
+              {itemsError && !isTerminalError(itemsError) && (
+                <QrMenuStatus error={itemsError} onRetry={handleRetry} onResetFilters={filters.resetFilters} />
+              )}
+
+              {/* Items loaded */}
+              {itemsQuery.data && !itemsError && (
+                <>
+                  {itemsQuery.data.content.length === 0 && hasActiveFilters && (
+                    <QrMenuEmptySearch onResetFilters={filters.resetFilters} />
+                  )}
+                  {itemsQuery.data.content.length === 0 && !hasActiveFilters && <QrMenuEmptyMenu />}
+                  {itemsQuery.data.content.length > 0 && (
+                    <>
+                      <MenuItemList
+                        items={itemsQuery.data.content}
+                        currencyCode={context.restaurant.currencyCode}
+                        onItemClick={setSelectedItem}
+                      />
+                      <QrMenuPagination
+                        page={itemsQuery.data.page}
+                        totalPages={itemsQuery.data.totalPages}
+                        totalElements={itemsQuery.data.totalElements}
+                        onPageChange={filters.setPage}
+                      />
+                    </>
+                  )}
+                </>
+              )}
+            </section>
+            <QrOrderCart currencyCode={context.restaurant.currencyCode} />
+          </div>
         )}
 
-        {/* Items loaded */}
-        {itemsQuery.data && !itemsError && (
-          <>
-            {itemsQuery.data.content.length === 0 && hasActiveFilters && (
-              <QrMenuEmptySearch onResetFilters={filters.resetFilters} />
-            )}
-            {itemsQuery.data.content.length === 0 && !hasActiveFilters && (
-              <QrMenuEmptyMenu />
-            )}
-            {itemsQuery.data.content.length > 0 && (
-              <>
-                <MenuItemList
-                  items={itemsQuery.data.content}
-                  currencyCode={context.restaurant.currencyCode}
-                  onItemClick={setSelectedItem}
-                />
-                <QrMenuPagination
-                  page={itemsQuery.data.page}
-                  totalPages={itemsQuery.data.totalPages}
-                  totalElements={itemsQuery.data.totalElements}
-                  onPageChange={filters.setPage}
-                />
-              </>
-            )}
-          </>
+        {panel === 'menu' && draft.lines.length > 0 && (
+          <button type="button" className="qr-order-mobile-cart qr-order-primary" onClick={() => setPanel('cart')}>
+            <span>Xem giỏ · {draft.lines.length} món</span>
+            <strong>
+              {formatMinor(
+                draft.lines.reduce((total, line) => total + previewLine(line.item.salePrice, line.quantity), 0n),
+                context.restaurant.currencyCode,
+              )}
+            </strong>
+          </button>
         )}
 
         {/* Item detail modal */}
@@ -189,7 +247,23 @@ export function QrMenuPage() {
             item={selectedItem}
             currencyCode={context.restaurant.currencyCode}
             onClose={() => setSelectedItem(null)}
-          />
+          >
+            <QrOrderLineEditor
+              disabled={
+                qrDraftFrozen(draft) ||
+                access.invalid ||
+                access.unavailable ||
+                draft.lines.length >= 20 ||
+                selectedItem.availabilityStatus !== 'AVAILABLE'
+              }
+              onApply={(quantity, note) => {
+                if (draft.add(selectedItem, quantity, note)) {
+                  setAdded('Đã thêm ' + selectedItem.name + ' vào giỏ.')
+                  setSelectedItem(null)
+                }
+              }}
+            />
+          </MenuItemDetail>
         )}
       </div>
     </main>

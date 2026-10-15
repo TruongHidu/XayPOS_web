@@ -11,7 +11,6 @@ import { server } from './server'
 
 // A valid 43-character base64url token for testing
 const VALID_TOKEN = 'abcdefghijklmnopqrstuvwxyz0123456789_-ABCDE'
-const VALID_TOKEN_2 = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijk012345'
 const API_BASE = 'http://localhost:8080/api/v1'
 
 const contextResponse = {
@@ -375,7 +374,6 @@ describe('QR Menu', () => {
 
   // 21. Does not persist menu or token to storage
   it('does not save QR token or menu data to localStorage/sessionStorage', async () => {
-    const storageBefore = { ...localStorage, ...sessionStorage }
     renderQrMenu(VALID_TOKEN)
     await screen.findByText('Phở bò')
     // Check no QR-related keys were added

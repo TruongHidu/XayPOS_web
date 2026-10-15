@@ -1,4 +1,5 @@
 import { useEffect, useRef, type PropsWithChildren, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { normalizeApiError } from '../errors/normalizeApiError'
 
 export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
@@ -34,7 +35,18 @@ export function Modal({ title, children, onClose }: PropsWithChildren<{ title: s
     document.addEventListener('keydown', onKeyDown)
     return () => { document.removeEventListener('keydown', onKeyDown); previous?.focus() }
   }, [onClose])
-  return <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}><div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" ref={dialogRef}><div className="modal-header"><h2 id="modal-title">{title}</h2><button className="icon-button" type="button" onClick={onClose} aria-label="Đóng">×</button></div>{children}</div></div>
+  const modalNode = (
+    <div className="modal-backdrop" role="presentation" onMouseDown={(event) => { if (event.target === event.currentTarget) onClose() }}>
+      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" ref={dialogRef}>
+        <div className="modal-header">
+          <h2 id="modal-title">{title}</h2>
+          <button className="icon-button" type="button" onClick={onClose} aria-label="Đóng">×</button>
+        </div>
+        {children}
+      </div>
+    </div>
+  )
+  return typeof document !== 'undefined' ? createPortal(modalNode, document.body) : modalNode
 }
 
 export function PageHeader({ eyebrow, title, description, actions }: { eyebrow: string; title: string; description: string; actions?: ReactNode }) {

@@ -30,7 +30,7 @@ export function mapQrMenuError(error: unknown): PublicQrMenuError {
     }
   }
 
-  if (status === 403 && code === 'QR_MENU_UNAVAILABLE') {
+  if (status === 403 && ['QR_MENU_UNAVAILABLE', 'PUBLIC_MENU_UNAVAILABLE'].includes(code ?? '')) {
     return {
       type: 'unavailable',
       message: 'Thực đơn hiện chưa khả dụng. Vui lòng liên hệ nhân viên nhà hàng.',
@@ -46,7 +46,7 @@ export function mapQrMenuError(error: unknown): PublicQrMenuError {
     }
   }
 
-  if (status === 404 && code === 'QR_MENU_NOT_FOUND') {
+  if (status === 404 && ['QR_MENU_NOT_FOUND', 'PUBLIC_MENU_NOT_FOUND'].includes(code ?? '')) {
     return {
       type: 'not_found',
       message: 'Mã QR không hợp lệ hoặc không còn khả dụng. Vui lòng quét lại mã QR hoặc liên hệ nhân viên.',

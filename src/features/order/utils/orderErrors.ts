@@ -36,6 +36,8 @@ const messages: Record<string, string> = {
   INVALID_ORDER_TRANSITION: 'Trạng thái đơn không cho phép thao tác này.',
   EMPTY_ORDER: 'Cần ít nhất một món còn hiệu lực.',
   TABLE_SESSION_NOT_OPEN: 'Phiên bàn không còn mở. Hãy chọn lại bàn.',
+  INVALID_ORDER_SEATING: 'Đơn tại bàn thiếu liên kết phiên bàn hợp lệ.',
+  TABLE_SESSION_NOT_FOUND: 'Không tìm thấy phiên bàn hoặc phiên không thuộc nhà hàng.',
   TABLE_SESSION_IN_USE: 'Phiên có đơn hoặc nghĩa vụ thanh toán, không thể hủy.',
   TABLE_ALREADY_OCCUPIED: 'Bàn đã có phiên mới. Kiểm tra lại và xác nhận phiên cần dùng.',
   CONCURRENT_TABLE_UPDATE: 'Bàn đã thay đổi. Hãy đọc lại trước khi mở.',

@@ -10,6 +10,10 @@ import {
   lineCancelPermission,
   payable,
   completable,
+  markAllReadyAllowed,
+  markAllServedAllowed,
+  allLiveItemsServed,
+  isServingOrder,
 } from '../policies/orderActionPolicy'
 import {
   canCloseTable,
@@ -22,6 +26,7 @@ import {
   canSubmitType,
   canViewPayment,
 } from '../policies/orderAccessPolicy'
+import { orderError } from '../utils/orderErrors'
 import { useOrderAccess } from '../hooks/useOrderAccess'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { OrderFeedback } from './OrderUi'
@@ -38,7 +43,13 @@ import { PaymentModal } from '../../payment/components/PaymentModal'
 import { paymentsApi } from '../../payment/api/paymentsApi'
 import { cashierTablesApi } from '../../tables/api/cashierTablesApi'
 
-export function OrderPanel({ order, onReload }: { order: Order; onReload?: (order: Order) => void }) {
+export function OrderPanel({ order: propOrder, onReload }: { order: Order; onReload?: (order: Order) => void }) {
+  const [localOrder, setLocalOrder] = useState<Order | null>(null)
+  const order =
+    localOrder && localOrder.id === propOrder.id && localOrder.version >= propOrder.version
+      ? localOrder
+      : propOrder
+
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
   const key = scope ? operationKey(scope, order.id) : ''
@@ -58,6 +69,10 @@ export function OrderPanel({ order, onReload }: { order: Order; onReload?: (orde
   const update = canOrder(access, 'ORDER_UPDATE') && editable(order)
   const cancel = canOrder(access, 'ORDER_CANCEL') && cancellable(order)
   const canPay = payable(order) && canPayment(access)
+  const canBulkReady = canKitchen(access, 'KITCHEN_MARK_READY') && markAllReadyAllowed(order)
+  const canBulkServed = canMarkServed(access) && markAllServedAllowed(order)
+  const canComplete = completable(order) && canCompleteOrder(access, order.serviceType)
+  const allServed = allLiveItemsServed(order)
 
   // Payments query
   const paymentsQuery = useQuery({
@@ -67,16 +82,23 @@ export function OrderPanel({ order, onReload }: { order: Order; onReload?: (orde
     retry: false,
   })
 
-  const reload = async () => {
+  const syncState = (updated: Order) => {
+    setLocalOrder(updated)
+    const draft = useOrderDraftStore.getState()
+    if (draft.scope === scope && draft.result?.id === updated.id) {
+      useOrderDraftStore.setState({ result: updated })
+    }
+  }
+
+  const reload = async (keepError = false) => {
     if (!scope || !canOrder(access, 'ORDER_VIEW')) return
     try {
       const latest = await ordersApi.detail(scope, order.id)
       client.setQueryData(orderKeys.detail(scope, order.id), latest)
       verifyOrder(key)
-      setError(null)
+      syncState(latest)
+      if (!keepError) setError(null)
       onReload?.(latest)
-      const draft = useOrderDraftStore.getState()
-      if (draft.scope === scope && draft.result?.id === order.id) useOrderDraftStore.setState({ result: latest })
     } catch (e) {
       setError(e)
     }
@@ -99,10 +121,59 @@ export function OrderPanel({ order, onReload }: { order: Order; onReload?: (orde
         updated = await ordersApi.markServed(scope, order.id, lineId, order.version)
       }
       client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      syncState(updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       onReload?.(updated)
     } catch (e) {
       setError(e)
+      const err = orderError(e)
+      if (err.status === 409) {
+        void reload(true)
+      }
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  // Bulk mark ready
+  const handleMarkAllReady = async () => {
+    if (!scope || busy || actionBusy) return
+    setError(null)
+    setActionBusy(true)
+    try {
+      const updated = await ordersApi.markAllReady(scope, order.id, order.version)
+      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      syncState(updated)
+      void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
+      onReload?.(updated)
+    } catch (e) {
+      setError(e)
+      const err = orderError(e)
+      if (err.status === 409) {
+        void reload(true)
+      }
+    } finally {
+      setActionBusy(false)
+    }
+  }
+
+  // Bulk mark served
+  const handleMarkAllServed = async () => {
+    if (!scope || busy || actionBusy) return
+    setError(null)
+    setActionBusy(true)
+    try {
+      const updated = await ordersApi.markAllServed(scope, order.id, order.version)
+      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      syncState(updated)
+      void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
+      onReload?.(updated)
+    } catch (e) {
+      setError(e)
+      const err = orderError(e)
+      if (err.status === 409) {
+        void reload(true)
+      }
     } finally {
       setActionBusy(false)
     }
@@ -116,10 +187,20 @@ export function OrderPanel({ order, onReload }: { order: Order; onReload?: (orde
     try {
       const updated = await ordersApi.complete(scope, order.id, order.version)
       client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      syncState(updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
+      if (order.serviceType === 'DINE_IN') {
+        void client.invalidateQueries({ queryKey: orderKeys.tables(scope) })
+        void client.invalidateQueries({ queryKey: orderKeys.sessions(scope) })
+        void client.invalidateQueries({ queryKey: orderKeys.activeOrders(scope) })
+      }
       onReload?.(updated)
     } catch (e) {
       setError(e)
+      const err = orderError(e)
+      if (err.status === 409) {
+        void reload(true)
+      }
     } finally {
       setActionBusy(false)
     }
@@ -228,7 +309,36 @@ export function OrderPanel({ order, onReload }: { order: Order; onReload?: (orde
 
       {/* Lines list */}
       <div className="order-detail-lines">
-        <h4>Danh sách món ({order.items.length})</h4>
+        <div className="pos-lines-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+          <h4 style={{ margin: 0 }}>Danh sách món ({order.items.length})</h4>
+          <div className="order-actions pos-lines-bulk-actions" style={{ margin: 0 }}>
+            {canBulkReady && (
+              <button
+                type="button"
+                className="button button-small button-ghost pos-btn-bulk-ready"
+                disabled={busy || actionBusy || blocked}
+                onClick={() => void handleMarkAllReady()}
+              >
+                {actionBusy ? 'Đang xử lý...' : '🛎 Sẵn sàng tất cả'}
+              </button>
+            )}
+            {canBulkServed && (
+              <button
+                type="button"
+                className="button button-small button-primary pos-btn-bulk-served"
+                disabled={busy || actionBusy || blocked}
+                onClick={() => void handleMarkAllServed()}
+              >
+                {actionBusy ? 'Đang xử lý...' : '🍽 Đã phục vụ tất cả'}
+              </button>
+            )}
+            {allServed && !canBulkServed && isServingOrder(order) && (
+              <span className="pos-badge pos-badge-status-served" title="Tất cả món đã được phục vụ">
+                ✓ Đã phục vụ đủ món
+              </span>
+            )}
+          </div>
+        </div>
         {order.items.map((line) => {
           const appended = isLineAppended(order, line)
           return (
@@ -361,14 +471,38 @@ export function OrderPanel({ order, onReload }: { order: Order; onReload?: (orde
           </button>
         )}
 
+        {/* Sẵn sàng tất cả */}
+        {canBulkReady && (
+          <button
+            className="button button-ghost pos-btn-bulk-ready"
+            type="button"
+            disabled={busy || actionBusy || blocked}
+            onClick={() => void handleMarkAllReady()}
+          >
+            {actionBusy ? 'Đang xử lý...' : '🛎 Sẵn sàng tất cả'}
+          </button>
+        )}
+
+        {/* Đã phục vụ tất cả */}
+        {canBulkServed && (
+          <button
+            className="button button-primary pos-btn-bulk-served"
+            type="button"
+            disabled={busy || actionBusy || blocked}
+            onClick={() => void handleMarkAllServed()}
+          >
+            {actionBusy ? 'Đang xử lý...' : '🍽 Đã phục vụ tất cả'}
+          </button>
+        )}
+
         {/* Hoàn tất đơn */}
-        {completable(order) && canCompleteOrder(access) && (
+        {canComplete && (
           <button
             className="button button-primary pos-btn-complete"
-            disabled={busy || actionBusy}
+            disabled={busy || actionBusy || blocked}
             onClick={() => void handleCompleteOrder()}
           >
-            ✓ Hoàn tất đơn
+            {actionBusy ? 'Đang xử lý...' : '✓ Hoàn tất đơn'}
           </button>
         )}
 

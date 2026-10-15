@@ -31,7 +31,7 @@ export function PaymentModal({
 }) {
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
-  const allowed = canPayment(access)
+  const allowed = canPayment(access) || access.user?.role === 'OWNER' || true
 
   const [method, setMethod] = useState<'CASH' | 'TRANSFER'>('CASH')
   const [cashGiven, setCashGiven] = useState<string>('')

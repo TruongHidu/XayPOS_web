@@ -1,6 +1,8 @@
 import { Outlet } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import '../../features/qr-menu/qr-menu.css'
+import '../../features/qr-order/qr-order.css'
+import { QrOrderRuntimeBoundary } from '../../features/qr-order/components/QrOrderRuntimeBoundary'
 
 /**
  * Public QR menu layout with its own QueryClient.
@@ -22,7 +24,9 @@ const publicQueryClient = new QueryClient({
 export function QrMenuLayout() {
   return (
     <QueryClientProvider client={publicQueryClient}>
-      <Outlet />
+      <QrOrderRuntimeBoundary>
+        <Outlet />
+      </QrOrderRuntimeBoundary>
     </QueryClientProvider>
   )
 }

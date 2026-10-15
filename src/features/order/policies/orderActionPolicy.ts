@@ -15,11 +15,37 @@ export const payable = (order: Order) =>
   ['CONFIRMED', 'PREPARING', 'READY', 'SERVED'].includes(order.status) &&
   unpaid(order) &&
   moneyMinor(order.totalAmount) > 0n
+export const isServingOrder = (order: Order) =>
+  ['CONFIRMED', 'PREPARING', 'READY', 'SERVED'].includes(order.status)
+
+export const liveItems = (order: Order) =>
+  order.items.filter((i) => i.status !== 'CANCELLED')
+
+export const markAllReadyAllowed = (order: Order) => {
+  if (!isServingOrder(order)) return false
+  const active = liveItems(order)
+  if (active.length === 0) return false
+  const hasCooking = active.some((i) => i.status === 'COOKING')
+  const hasPending = active.some((i) => i.status === 'PENDING')
+  return hasCooking && !hasPending
+}
+
+export const markAllServedAllowed = (order: Order) => {
+  if (!isServingOrder(order)) return false
+  const active = liveItems(order)
+  if (active.length === 0) return false
+  return active.some((i) => i.status === 'PENDING' || i.status === 'COOKING' || i.status === 'READY')
+}
+
+export const allLiveItemsServed = (order: Order) => {
+  const active = liveItems(order)
+  return active.length > 0 && active.every((i) => i.status === 'SERVED')
+}
+
 export const completable = (order: Order) =>
-  order.status !== 'COMPLETED' &&
-  order.status !== 'CANCELLED' &&
+  isServingOrder(order) &&
   order.paymentStatus === 'PAID' &&
   moneyMinor(order.paidAmount) === moneyMinor(order.totalAmount) &&
   moneyMinor(order.totalAmount) > 0n &&
-  order.items.some((i) => i.status !== 'CANCELLED') &&
-  order.items.filter((i) => i.status !== 'CANCELLED').every((i) => i.status === 'SERVED')
+  liveItems(order).length > 0 &&
+  liveItems(order).every((i) => i.status === 'SERVED')

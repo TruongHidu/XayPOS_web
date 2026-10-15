@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { PublicMenuItem } from '../types'
 import { formatMenuPrice } from '../utils/formatMenuPrice'
 
@@ -6,13 +6,16 @@ interface MenuItemDetailProps {
   item: PublicMenuItem
   currencyCode: string
   onClose: () => void
+  children?: ReactNode
 }
 
-const PLACEHOLDER_IMAGE = 'data:image/svg+xml,' + encodeURIComponent(
-  '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="%23f0f4f8" width="400" height="300"/><text fill="%239fb3c8" font-family="sans-serif" font-size="60" text-anchor="middle" x="200" y="170">🍽</text></svg>'
-)
+const PLACEHOLDER_IMAGE =
+  'data:image/svg+xml,' +
+  encodeURIComponent(
+    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="#f0f4f8" width="400" height="300"/><text fill="#9fb3c8" font-family="sans-serif" font-size="60" text-anchor="middle" x="200" y="170">🍽</text></svg>',
+  )
 
-export function MenuItemDetail({ item, currencyCode, onClose }: MenuItemDetailProps) {
+export function MenuItemDetail({ item, currencyCode, onClose, children }: MenuItemDetailProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
   const [imgError, setImgError] = useState(false)
   const isOutOfStock = item.availabilityStatus === 'OUT_OF_STOCK'
@@ -32,8 +35,8 @@ export function MenuItemDetail({ item, currencyCode, onClose }: MenuItemDetailPr
       if (event.key !== 'Tab') return
       const focusable = Array.from(
         dialogRef.current?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])'
-        ) ?? []
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
+        ) ?? [],
       )
       if (focusable.length === 0) return
       const first = focusable[0]
@@ -57,7 +60,9 @@ export function MenuItemDetail({ item, currencyCode, onClose }: MenuItemDetailPr
     <div
       className="qr-menu-detail-backdrop"
       role="presentation"
-      onMouseDown={e => { if (e.target === e.currentTarget) onClose() }}
+      onMouseDown={(e) => {
+        if (e.target === e.currentTarget) onClose()
+      }}
     >
       <div
         className="qr-menu-detail-modal"
@@ -68,13 +73,7 @@ export function MenuItemDetail({ item, currencyCode, onClose }: MenuItemDetailPr
       >
         <div className="qr-menu-detail-header">
           <h2 id="qr-menu-detail-title">{item.name}</h2>
-          <button
-            className="qr-menu-detail-close"
-            type="button"
-            onClick={onClose}
-            aria-label="Đóng"
-            data-close-btn
-          >
+          <button className="qr-menu-detail-close" type="button" onClick={onClose} aria-label="Đóng" data-close-btn>
             ×
           </button>
         </div>
@@ -92,9 +91,7 @@ export function MenuItemDetail({ item, currencyCode, onClose }: MenuItemDetailPr
               {item.baseUnit && <span className="qr-menu-detail-unit">/{item.baseUnit}</span>}
             </div>
 
-            {isOutOfStock && (
-              <span className="qr-menu-item-badge-oos qr-menu-detail-oos-badge">Hết hàng</span>
-            )}
+            {isOutOfStock && <span className="qr-menu-item-badge-oos qr-menu-detail-oos-badge">Hết hàng</span>}
 
             {item.group && (
               <div className="qr-menu-detail-group">
@@ -102,9 +99,8 @@ export function MenuItemDetail({ item, currencyCode, onClose }: MenuItemDetailPr
               </div>
             )}
 
-            {item.description && (
-              <p className="qr-menu-detail-desc">{item.description}</p>
-            )}
+            {item.description && <p className="qr-menu-detail-desc">{item.description}</p>}
+            {children}
           </div>
         </div>
       </div>

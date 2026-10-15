@@ -38,4 +38,10 @@ export const canKitchen = (a: OrderAccess, permission: string) =>
 export const canMenu = (a: OrderAccess) => hasPermission(a, 'MENU_VIEW') && hasFeature(a, 'MENU_MANAGEMENT')
 export const canTables = (a: OrderAccess) => hasPermission(a, 'TABLE_VIEW') && hasFeature(a, 'TABLE_MANAGEMENT')
 export const canMarkServed = (a: OrderAccess) => canOrder(a, 'ORDER_MARK_SERVED')
-export const canCompleteOrder = (a: OrderAccess) => canOrder(a, 'ORDER_COMPLETE')
+export const canCompleteOrder = (a: OrderAccess, serviceType?: 'DINE_IN' | 'TAKEAWAY') => {
+  if (!canOrder(a, 'ORDER_COMPLETE')) return false
+  if (serviceType === 'DINE_IN') {
+    return hasPermission(a, 'TABLE_CLOSE') && hasFeature(a, 'TABLE_MANAGEMENT')
+  }
+  return true
+}

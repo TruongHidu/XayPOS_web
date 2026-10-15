@@ -1,19 +1,29 @@
 import { publicApi } from '../../../shared/api/publicHttpClient'
-import { publicQrMenuContextSchema, publicMenuPageSchema } from '../schemas'
+import { publicQrMenuContextSchema, publicRestaurantMenuContextSchema, publicMenuPageSchema } from '../schemas'
 import type { PublicQrMenuContext, PublicMenuPage, PublicMenuQuery } from '../types'
 
 /**
  * Fetch QR menu context: restaurant info, table info, and menu groups.
  */
-export async function fetchQrMenuContext(qrToken: string, signal?: AbortSignal): Promise<PublicQrMenuContext> {
-  const response = await publicApi.get(`/public/menu/tables/${encodeURIComponent(qrToken)}`, { signal })
-  return publicQrMenuContextSchema.parse(response.data)
+export async function fetchQrMenuContext(
+  qrToken: string,
+  signal?: AbortSignal,
+  entryType: 'TABLE' | 'RESTAURANT' = 'TABLE',
+): Promise<PublicQrMenuContext> {
+  const namespace = entryType === 'TABLE' ? 'tables' : 'restaurants'
+  const response = await publicApi.get(`/public/menu/${namespace}/${encodeURIComponent(qrToken)}`, { signal })
+  return (entryType === 'TABLE' ? publicQrMenuContextSchema : publicRestaurantMenuContextSchema).parse(response.data)
 }
 
 /**
  * Fetch paginated menu items for a given QR token.
  */
-export async function fetchQrMenuItems(qrToken: string, query: PublicMenuQuery, signal?: AbortSignal): Promise<PublicMenuPage> {
+export async function fetchQrMenuItems(
+  qrToken: string,
+  query: PublicMenuQuery,
+  signal?: AbortSignal,
+  entryType: 'TABLE' | 'RESTAURANT' = 'TABLE',
+): Promise<PublicMenuPage> {
   const params: Record<string, string | number> = {
     page: query.page,
     size: query.size,
@@ -23,6 +33,10 @@ export async function fetchQrMenuItems(qrToken: string, query: PublicMenuQuery, 
   if (query.q) params.q = query.q
   if (query.groupId) params.groupId = query.groupId
 
-  const response = await publicApi.get(`/public/menu/tables/${encodeURIComponent(qrToken)}/items`, { params, signal })
+  const namespace = entryType === 'TABLE' ? 'tables' : 'restaurants'
+  const response = await publicApi.get(`/public/menu/${namespace}/${encodeURIComponent(qrToken)}/items`, {
+    params,
+    signal,
+  })
   return publicMenuPageSchema.parse(response.data)
 }

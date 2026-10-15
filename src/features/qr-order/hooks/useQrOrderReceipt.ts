@@ -55,6 +55,7 @@ export function useQrOrderReceipt(requestId: string) {
         const receipt = await publicQrOrderApi.receipt(access.guest!.guestToken, requestId, signal)
         if (useQrGuestStore.getState().scopeId !== scope || signal.aborted) throw new QrOrderError('QR_SCOPE_CHANGED')
         if (receipt.entryType !== entry.entryType) throw new QrOrderError('INVALID_QR_RESPONSE')
+        useQrGuestStore.getState().remember(receipt.requestId)
         failures.current = 0
         return receipt
       } catch (error) {

@@ -182,6 +182,7 @@ export function resetOrderTest() {
 }
 export const base = 'http://localhost:8080/api/v1'
 export const orderHandlers = [
+  http.get(base + '/qr-order-requests', () => HttpResponse.json(page([]))),
   http.get(base + '/menu/items', () => HttpResponse.json(page([itemFixture]))),
   http.get(base + '/menu/groups', () => HttpResponse.json(page([groupFixture]))),
   http.get(base + '/table-areas', () => HttpResponse.json(page([areaFixture]))),

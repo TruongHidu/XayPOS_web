@@ -13,8 +13,16 @@ adapter payment đã có để nối vào giao diện thu tiền. Các adapter K
 Prompt triển khai giao diện khách gọi món qua QR bàn hoặc menu mang đi:
 [customer-qr-order-implementation-prompt.md](docs/customer-qr-order-implementation-prompt.md).
 Đã triển khai `/qr/:qrToken`, `/menu/:menuToken` và trang receipt cho khách,
-gồm giỏ món, guest access và gửi yêu cầu chờ nhân viên duyệt. Xem
+gồm giỏ món, guest access và gửi yêu cầu chờ nhân viên duyệt. Tải lại trong cùng
+tab khôi phục guest ban đầu và các yêu cầu của chính guest đó bằng `sessionStorage`,
+tách theo backend và đúng QR/link menu; backend vẫn kiểm tra quyền xem mỗi yêu cầu.
+Đóng tab, xóa dữ liệu phiên, hết hạn hoặc bị thu hồi quyền sẽ không khôi phục được.
+Không tự cấp guest mới để đọc yêu cầu cũ hoặc tự gửi lại món sau reload. Xem
 [tài liệu triển khai và ảnh kiểm tra](docs/customer-qr-order.md).
+
+Cashier nhận yêu cầu khách tại cột **Chờ xác nhận → Khách gọi qua QR** trong
+`/cashier/orders`, có xem chi tiết, duyệt/từ chối và tự cập nhật hàng đợi.
+Xem [tài liệu xác nhận QR](docs/cashier-qr-review.md).
 
 React + TypeScript SPA cho `SUPER_ADMIN`, cùng auth shell cho tenant POS và public QR flow. Phần System Admin dùng API thật, React Query cho server state và URL làm nguồn trạng thái cho các bộ lọc danh sách.
 
@@ -96,7 +104,7 @@ Menu được ẩn theo permission, route vẫn được guard và mutation cũn
 
 Repository hiện không chứa `docs/openapi/admin-api.yaml` hoặc `docs/admin-api.md`; phần admin được triển khai theo contract trong yêu cầu đã cung cấp. Frontend không thêm endpoint ngoài contract và không dùng production mock data. MSW chỉ được dùng trong test.
 
-Các module POS/menu/order/kitchen/payment và public QR vẫn là shell/placeholder ngoài phạm vi admin hiện tại. Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
+POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier duyệt yêu cầu QR tại màn hình đơn. Trang Kitchen riêng vẫn là placeholder. Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
 
 ## Kiểm thử
 

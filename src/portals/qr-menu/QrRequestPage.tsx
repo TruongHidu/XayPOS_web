@@ -31,15 +31,25 @@ export function QrRequestPage() {
         ) : !sameEntry || !access.guest ? (
           <section className="qr-order-receipt qr-order-empty">
             <span aria-hidden="true">🔒</span>
-            <h1>Chưa có quyền xem yêu cầu này</h1>
+            <h1>
+              {sameEntry && access.invalid
+                ? 'Lượt gọi món đã hết hạn hoặc bị thu hồi'
+                : 'Chưa có quyền xem yêu cầu này'}
+            </h1>
             <p>
-              Lượt gọi món chỉ được giữ trong phiên truy cập hiện tại. Vui lòng quay lại thực đơn hoặc liên hệ nhân viên
-              để kiểm tra yêu cầu đã gửi.
+              {sameEntry && access.invalid
+                ? 'Không thể khôi phục quyền xem khi lượt gọi món không còn hiệu lực. Vui lòng liên hệ nhân viên để kiểm tra yêu cầu đã gửi.'
+                : 'Hãy mở yêu cầu trong đúng tab trình duyệt đã gọi món. Link yêu cầu không tự cấp quyền xem; nếu đã đóng tab hoặc xóa dữ liệu phiên, vui lòng liên hệ nhân viên.'}
             </p>
           </section>
         ) : (
           <>
             <QrMenuHeader restaurant={access.guest.restaurant} table={access.guest.table ?? undefined} />
+            {!access.storageAvailable && (
+              <p className="qr-order-notice" role="status">
+                Trình duyệt chưa lưu được lượt gọi món. Tải lại hoặc đóng tab có thể làm mất quyền theo dõi yêu cầu.
+              </p>
+            )}
             {access.invalid && (
               <p className="qr-order-notice" role="alert">
                 Lượt truy cập đã hết hạn hoặc bị thu hồi. Liên hệ nhân viên để kiểm tra; kết quả đã tải dưới đây có thể

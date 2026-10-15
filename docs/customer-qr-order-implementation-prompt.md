@@ -13,6 +13,8 @@ Hai cửa vào dùng chung nghiệp vụ gửi yêu cầu:
 
 Phạm vi UI: menu, chi tiết món, giỏ, thông tin khách, gửi yêu cầu, xem các yêu cầu đã biết của guest hiện tại và receipt của từng yêu cầu. Khách không đăng nhập tài khoản nhân viên, không tự chọn bàn/phiên từ danh sách, không duyệt yêu cầu hoặc thanh toán.
 
+Yêu cầu bổ sung mới nhất: reload trong cùng tab phải khôi phục yêu cầu của chính guest ban đầu bằng `sessionStorage`. Yêu cầu này thay thế chính sách memory-only trong phiên bản prompt trước; không cấp guest mới để giả khôi phục yêu cầu cũ và không tự gửi món sau reload.
+
 Đọc tài liệu API người dùng cung cấp. Nếu backend có trong `../pos-saas-be`, đối chiếu thêm:
 
 - `docs/public-qr-order-api.md`, `docs/qr-order-fe-sync.md`, `docs/openapi/public-qr-order-api.yaml`.
@@ -30,8 +32,9 @@ Khảo sát trước khi sửa:
 
 - `src/App.tsx`: `/qr/:qrToken` hiện nằm ngoài AuthBootstrap và private route guards.
 - `src/portals/qr-menu/QrMenuLayout.tsx`: QueryClient riêng, tách khỏi cache nhân viên.
-- `src/portals/qr-menu/QrMenuPage.tsx`: hiện chỉ xem menu TABLE.
+- `src/portals/qr-menu/QrMenuPage.tsx`: ghép menu TABLE/RESTAURANT, giỏ và lịch sử yêu cầu của khách.
 - `src/features/qr-menu/{api,hooks,components,utils}`, `schemas.ts`, `types.ts`, `qr-menu.css`.
+- `src/features/qr-order/{api,hooks,store,storage,components}`, `schemas.ts`, `types.ts` và các test QR-order hiện có.
 - `src/shared/api/publicHttpClient.ts`: publicApi không Authorization, không refresh, withCredentials=false.
 - `src/shared/utils/scaledDecimal.ts`, `src/shared/api/idempotency.ts`, `src/test/qrMenu.test.tsx`.
 
@@ -56,6 +59,8 @@ src/features/qr-order/
   store/
     qrOrderGuestStore.ts      # guest, entry scope, epoch, các requestId đã biết
     qrOrderDraftStore.ts      # giỏ local và frozen submission riêng cho khách
+  storage/
+    qrOrderSessionStorage.ts  # snapshot theo backend/entry, validate và xử lý lỗi storage
   components/
     QrOrderRuntimeBoundary.tsx
     QrOrderCart.tsx
@@ -92,7 +97,7 @@ Dùng entry được định kiểu, ví dụ `{ entryType: 'TABLE' | 'RESTAURAN
 
 Header nhận table tùy entry: TABLE hiển thị tên/mã bàn; RESTAURANT hiển thị “Đặt món mang đi”, không dựng bàn hoặc session giả. Menu RESTAURANT context không có property table; guest-access RESTAURANT có table=null. Schema cần phân biệt đúng hai response đó.
 
-Query keys menu có entryType + token + filter; query receipt có guest scope riêng + requestId. Không dùng guestToken thô làm query-key identifier mới; dùng scopeId/epoch trong memory. Scope A → B → A vẫn là lượt mới, response của lượt A cũ không được cập nhật lượt A mới.
+Query keys menu có entryType + token + filter; query receipt có guest scope riêng + requestId. Không dùng guestToken thô làm query-key identifier mới; dùng scopeId/epoch trong memory. A → B → A tạo runtime scope mới; guest ban đầu của A có thể khôi phục từ snapshot hợp lệ của A, nhưng response của scope A cũ không được cập nhật scope A mới.
 
 ## 4. Giao diện cho khách
 
@@ -125,7 +130,7 @@ Query keys menu có entryType + token + filter; query receipt có guest scope ri
 - REJECTED: thông báo chung “Nhà hàng chưa thể nhận yêu cầu này. Vui lòng liên hệ nhân viên.” Receipt public không có lý do từ chối, không dựng field/message từ API staff.
 - CANCELLED: “Yêu cầu không còn hiệu lực”; không gắn nút hủy cho khách hoặc suy một lý do cụ thể nếu response không cung cấp.
 - Chỉ hiển thị hết hạn chờ duyệt khi `status === 'PENDING' && expired === true`. APPROVED vẫn là đã duyệt dù expired=true. Hiển thị thời hạn từ expiresAt, không hardcode 15 phút hoặc 60 phút.
-- “Yêu cầu của bạn” chỉ liệt kê requestId đã gửi thành công và đã biết trong guest scope hiện tại. Không có API lịch sử public toàn nhà hàng; không tự tạo GET list hoặc tìm các request của người khác.
+- “Yêu cầu của bạn” chỉ liệt kê requestId đã biết thuộc guest hiện tại, gồm ID đã gửi thành công hoặc đã GET thành công bằng token gốc. Khôi phục danh sách này sau reload cùng tab; backend tiếp tục kiểm tra quyền sở hữu mỗi receipt. Không có API lịch sử public toàn nhà hàng; không tự tạo GET list hoặc tìm các request của người khác.
 - Tại bàn: “Gọi thêm” mở giỏ mới, cùng guest hợp lệ, key mới cho request mới; vẫn chờ nhân viên duyệt. Backend quyết định thêm vào order/phiên, khách không gửi target order/session.
 - Mang đi: “Đặt thêm món” tạo request khác; thông báo mỗi yêu cầu được duyệt là một đơn mang đi riêng. Không tự gộp theo tên, phone hoặc guest.
 - Receipt chỉ chứa món thuộc request này; không gọi số tiền đó là toàn bộ hóa đơn bàn, không cộng với các món của khách khác hoặc thêm nút thanh toán.
@@ -218,16 +223,18 @@ Trước duyệt, giá/status approved của từng dòng đều có thể null.
 
 - Giữ nguyên publicApi: guest header đặt cho từng request QR-order, không ghi vào Axios defaults/global và không gửi guestToken vào các GET menu hoặc API staff.
 - Cấp guest access khi khách chủ động bắt đầu gửi yêu cầu, sau khi giỏ hợp lệ; có thể hiển thị “Đang chuẩn bị gửi yêu cầu”. Dùng single-flight để double click/remount/StrictMode không tạo nhiều guest identity. Không mint trong mỗi render/refetch hoặc khi chỉ xem menu.
-- Guest access thành công lưu guestToken/expiresAt và scope. Guest hết hạn/thu hồi không được âm thầm thay bằng token khác rồi retry intent cũ. Token mới là identity mới, không đọc được receipt của token cũ.
+- Guest access thành công giữ GuestAccess gốc, expiresAt và requestId đã biết trong memory cùng `sessionStorage` riêng của public QR. Khóa lưu trữ có phiên bản, tách theo API backend + entryType + QR/menu token chính xác, phân biệt hoa thường. Không dùng kho token nhân viên. Guest hết hạn/thu hồi không được âm thầm thay bằng token khác rồi retry intent cũ; token mới là identity mới và không đọc được receipt của token cũ.
 - Một frozen intent gồm entry scope/epoch, guest identity dùng để gửi, key, body đã chuẩn hóa và thứ tự các items. Normalize một lần, clone sâu/freeze trước POST; text khách đang sửa không được thay payload retry.
 - State tối thiểu phân biệt editable, pending, unresolved, submitted và access-invalid/cooldown. POST retry=false; unknown outcome có action “Kiểm tra lại yêu cầu ban đầu”. Trong pending/unresolved khóa sửa, xóa, submit mới cho intent đó; không reset intent khi GET menu đổi giá/hết món.
-- 201/200 hợp lệ mới đánh intent đã gửi, lưu requestId và xóa giỏ tương ứng; không xóa một giỏ mới khác hoặc state của scope khác bằng response trễ.
+- Trước khi POST, lưu frozen intent có key/body, dòng món rút gọn đủ hiển thị và thông tin khách trong body để reload cắt ngang phản hồi vẫn biết yêu cầu nào cần kiểm tra. Không lưu group/ảnh/mô tả menu. Kiểm tra quantity bằng quy tắc decimal hiện có và kiểm tra thứ tự/itemId/quantity/note của snapshot khớp body. Reload khôi phục intent thành unresolved, pending=false; khóa sửa và chỉ replay bằng thao tác rõ ràng của khách, đúng guest/key/body ban đầu.
+- 201/200 hợp lệ mới đánh intent đã gửi; cập nhật requestId và xóa intent trong cùng snapshot. Xóa body/dòng món/thông tin khách tạm lưu sau thành công, xóa giỏ tương ứng trong memory; không xóa giỏ mới khác hoặc state của scope khác bằng response trễ.
 - Timeout/network/5xx/malformed success: giữ guestToken/key/body; retry POST gốc. Nếu chưa có requestId, không đoán requestId hoặc GET lịch sử không tồn tại. GET receipt không tự chứng minh một intent khác đã gửi thành công.
-- Known business rejection cho phép sửa giỏ sau khi hiển thị lỗi phù hợp; intent mới sau sửa có key mới. IDEMPOTENCY_KEY_REUSED không tự đổi key/gửi lại: khóa intent và hướng dẫn kiểm tra với nhân viên.
+- Known business rejection khi không còn outcome chưa rõ cho phép sửa giỏ sau khi hiển thị lỗi phù hợp; intent mới sau sửa có key mới. IDEMPOTENCY_KEY_REUSED không tự đổi key/gửi lại: khóa intent, giữ trạng thái khóa qua reload và hướng dẫn kiểm tra với nhân viên.
 - Nếu guest invalid khi outcome cũ chưa rõ, báo cần kiểm tra với nhà hàng; không tự mint và gửi lại món vì có thể tạo yêu cầu trùng. Chỉ intent mới do khách chủ động xác nhận mới được dùng guest mới khi scope cho phép.
-- Default memory-only, phù hợp QR menu hiện tại. Không persist guest token, QR/menu credential, cart/PII/receipt vào localStorage/sessionStorage hoặc staff tokenStorage; không thêm Service Worker/offline queue cho luồng này.
-- Runtime boundary public giữ guest/intent khi chuyển giữa menu và receipt cùng entry; đổi entry/guest identity thì abort request, clear cache/state liên quan và tăng epoch. Response trễ không được phục hồi credential/giỏ của entry cũ, kể cả A → B → A.
-- Sau reload/direct link không còn guest trong memory: giải thích chưa có quyền xem yêu cầu này và cho quay lại đúng menu/liên hệ nhân viên. Không mint guest mới để thử đọc request cũ; không chuyển sang login/route staff. Có cảnh báo trước unload nếu đang có intent chưa rõ kết quả.
+- Chính sách memory-only trước đây được thay thế theo yêu cầu mới của người dùng. Ngoài GuestAccess/requestId và intent tạm thời nêu trên, không persist giỏ chưa gửi nói chung, receipt hoàn chỉnh hoặc PII sau thành công. Không dùng localStorage, staff tokenStorage, URL, query string/fragment hoặc query key để lưu guest credential; không thêm Service Worker/offline queue.
+- Runtime boundary giữ guest/intent khi chuyển menu/receipt cùng entry; đổi entry hoặc guest identity thì abort request, clear cache/state runtime liên quan và tăng epoch. Snapshot hợp lệ có thể khôi phục identity riêng khi quay lại entry, nhưng response trễ của runtime scope cũ không được cập nhật scope mới. Unmount public portal và staff logout không xóa dữ liệu QR trong sessionStorage. Khách chủ động xác nhận bắt đầu lượt mới thì xóa identity/danh sách ID/intent cũ của entry.
+- Sau reload/direct link, đọc snapshot hợp lệ của đúng backend/entry trước khi GET receipt bằng guest gốc. Không tự mint hoặc POST; chỉ có link/requestId, cùng bàn/tên/số điện thoại không chứng minh quyền sở hữu. Không còn snapshot, đóng tab, xóa dữ liệu phiên, guest hết hạn hoặc bị thu hồi thì giải thích không khôi phục được quyền và cho quay lại menu/liên hệ nhân viên; không chuyển sang login/route staff. Giữ cảnh báo trước unload khi còn giỏ hoặc intent chưa rõ kết quả.
+- Validate phiên bản, schema, kích thước, entry, guest mapping và body snapshot trước khi dùng; dữ liệu hỏng/sai scope/quá lớn được cô lập thành trạng thái không còn quyền, không mint thay thế âm thầm. Hết hạn/401 lưu trạng thái invalid và loại bỏ credential/intent khỏi storage. Catch lỗi getter/getItem/setItem/removeItem; lỗi storage không ném ra làm crash ứng dụng. Cảnh báo khi thực sự không lưu được rằng reload có thể mất quyền; không mặc định cảnh báo mọi khách.
 - Không log token/key/customer body, không đưa vào analytics/crash report, không cache HTTP response no-store qua Service Worker/CDN. Giữ `referrerPolicy="no-referrer"` cho ảnh/liên kết ra ngoài; nếu có cấu hình hosting thì dùng Referrer-Policy tương ứng. Không thêm SDK bên thứ ba để theo dõi khách.
 
 ## 8. Theo dõi yêu cầu bằng polling
@@ -280,7 +287,7 @@ Yêu cầu chờ duyệt chỉ vào order sau khi nhân viên review và approve
 
 ## 11. Kiểm thử bắt buộc cho phần triển khai
 
-Giữ các test QR menu đang có, bổ sung fixture/MSW chỉ trong test. Gợi ý file `src/test/qrOrderApi.test.ts`, `qrOrderStore.test.ts`, `qrOrderUi.test.tsx`; thêm hồi quy restaurant menu khi generalize adapter.
+Giữ các test QR menu đang có, bổ sung fixture/MSW chỉ trong test. Gợi ý file `src/test/qrOrderApi.test.ts`, `qrOrderStore.test.ts`, `qrOrderUi.test.tsx`, `qrOrderReload.test.tsx`; thêm hồi quy restaurant menu khi generalize adapter.
 
 1. Hai entry gọi đúng menu/guest-access, không trộn token, table=null/absent xử lý đúng; route sai token/UUID không phát request.
 2. Chỉ xem menu không POST guest/create; không auth refresh/me-entitlements/Authorization ngay cả trình duyệt có staff token; staff logout/cache.clear không xóa public state.
@@ -288,11 +295,11 @@ Giữ các test QR menu đang có, bổ sung fixture/MSW chỉ trong test. Gợi
 4. API allowlist payload/header, {} guest-access, idempotency regex, 32KiB UTF-8, response nullable và malformed response.
 5. Double click/StrictMode không tạo nhiều intent/guest. 201 và 200 replay cùng requestId; replay đã APPROVED không bị ép PENDING.
 6. Network/5xx/timeout/parse error giữ nguyên guest/key/body/thứ tự dòng và khóa sửa. Menu refetch đổi giá/hết món không thay frozen body. IDEMPOTENCY_KEY_REUSED không auto key mới.
-7. Guest invalid không mint mới/refresh staff/replay bằng identity khác. Đổi entry A → B → A bỏ response trễ; tab menu/receipt cùng entry giữ guest đúng scope; reload không giả phục hồi request.
+7. Guest invalid không mint mới/refresh staff/replay bằng identity khác. Reload TABLE/RESTAURANT giữ guest gốc và requestId, GET lại receipt mà không mint/POST. Đổi token/entryType/backend không trộn identity; A → B → A có thể khôi phục guest A trong scope mới nhưng bỏ response trễ của scope cũ. Request người khác bị backend từ chối và không thêm vào lịch sử. Hết hạn/thu hồi giữ invalid qua nhiều lần reload.
 8. PENDING chỉ chờ duyệt; APPROVED hiển thị giá chốt/status dòng riêng; expired chỉ quyết định hết hạn khi PENDING; receipt không gọi private API/full bill hoặc dựng rejectionReason.
 9. Polling/backoff/Retry-After/background/unmount/abort đúng; cùng receipt.version vẫn cập nhật status món; dừng theo trạng thái/guest hợp lệ mà không tự submit.
 10. TABLE gọi thêm tạo request mới/key mới chờ staff, không gửi session/order target; TAKEAWAY request thứ hai độc lập; không có action khách approve/reject/sửa/hủy/thu tiền.
-11. Privacy: không persist credentials/PII/menu/receipt, không guest header trên menu hoặc private API; query/route không lộ guestToken.
+11. Privacy: chỉ giữ guest/requestId và intent tạm thời trong sessionStorage đúng scope, không localStorage/staff tokenStorage; không persist giỏ chưa gửi/receipt/PII sau thành công, không guest header trên menu hoặc private API; query/route không lộ guestToken. Reload khi POST pending hoặc unknown outcome chỉ cho replay thủ công cùng guest/key/body; conflict giữ khóa, thành công xóa body/dòng món/thông tin khách đã lưu. Storage bị chặn/hỏng/quá lớn không crash, không tự mint và có thông báo đúng trạng thái.
 12. Hồi quy routes/auth/admin/cashier/menu cũ và modal focus/keyboard/empty/error.
 
 Chạy lint các file đổi, `npm.cmd run lint`, `npm.cmd run lint:eslint`, `npm.cmd test -- --reporter=dot --maxWorkers=2`, `npm.cmd run build`. Khảo sát baseline hiện tại trước khi kết luận; không lấy lỗi/kết quả test của lần làm trước để báo kết quả lần này. Nếu công cụ trình duyệt có sẵn, kiểm tra 390/768/1366px, cuộn giỏ, focus, bàn phím mobile, text dài/ảnh lỗi và không tràn ngang. Không tự tạo data backend/nhà hàng thật để chạy test.
@@ -303,5 +310,6 @@ Chạy lint các file đổi, `npm.cmd run lint`, `npm.cmd run lint:eslint`, `np
 - Khách dùng điện thoại chọn món, xem giỏ, nhập dữ liệu đúng và gửi yêu cầu được bằng hai entry; receipt hiển thị đúng PENDING/APPROVED/REJECTED/CANCELLED/expired.
 - Giá và trạng thái sau gửi lấy backend; khách chỉ thấy món của mình. Chọn món/gửi PENDING không tự mở phiên, chiếm bàn, tạo private order hoặc gửi bếp.
 - Intent retry chống trùng, guest access không trộn với staff auth và không âm thầm đổi identity để che lỗi.
+- Reload trong cùng tab khôi phục đúng guest và yêu cầu của khách đó, không tự mint/submit; backend vẫn xác nhận quyền sở hữu. Giới hạn đóng tab/xóa storage/hết hạn/thu hồi được thể hiện rõ.
 - Mã chia API/schema/policy/hook/store/component/page đúng cấu trúc, không có Axios trong UI, không thêm dependency hoặc thay scope Cashier.
-- Bàn giao danh sách file sửa, luồng đã chạy, test/lint/build thực tế và giới hạn memory-only/phụ thuộc nhân viên duyệt. Không publish/deploy tự động.
+- Bàn giao danh sách file sửa, luồng đã chạy, test/lint/build thực tế và giới hạn khôi phục qua sessionStorage/phụ thuộc nhân viên duyệt. Không publish/deploy tự động.

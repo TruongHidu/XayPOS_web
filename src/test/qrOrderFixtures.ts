@@ -107,6 +107,9 @@ export const qrHandlers = [
 export function resetQrOrder() {
   useQrGuestStore.getState().sync(null)
   useQrDraftStore.getState().reset('')
+  for (const key of Object.keys(sessionStorage)) {
+    if (key.startsWith('pos-saas:qr-session:v1:')) sessionStorage.removeItem(key)
+  }
 }
 export function seedQrOrder(entry = tableEntry, withGuest = false) {
   resetQrOrder()

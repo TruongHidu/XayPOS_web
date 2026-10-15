@@ -30,6 +30,12 @@ export function QrOrderCart({ currencyCode }: { currencyCode: string }) {
         <span aria-hidden="true">🛍</span>
       </header>
       <QrOrderFeedback failure={draft.error} />
+      {!access.storageAvailable && (
+        <p className="qr-order-notice" role="status">
+          Trình duyệt chưa lưu được lượt gọi món. Sau khi tải lại, bạn có thể mất quyền theo dõi yêu cầu; hãy giữ tab
+          này mở.
+        </p>
+      )}
       {access.waitSeconds > 0 && (
         <p className="qr-order-notice" role="status">
           Vui lòng chờ {access.waitSeconds} giây trước khi thử lại.

@@ -3,6 +3,17 @@ import axios from 'axios'
 import { normalizeApiError } from '../../../shared/errors/normalizeApiError'
 import type { NormalizedApiError } from '../../../shared/types/auth'
 const messages: Record<string, string> = {
+  INVALID_QR_REVIEW_RESPONSE: 'Dữ liệu xác nhận QR chưa hợp lệ. Đọc lại yêu cầu để kiểm tra kết quả trước khi thao tác tiếp.',
+  QR_REVIEW_REQUIRED: 'Cần đọc lại yêu cầu và kiểm tra quyền xác nhận trước khi tiếp tục.',
+  QR_REVIEW_CONTEXT_CHANGED: 'Giá món hoặc phiên bàn đã thay đổi. Đọc lại yêu cầu và kiểm tra trước khi xác nhận.',
+  CONCURRENT_QR_REQUEST_UPDATE: 'Yêu cầu vừa được nhân viên khác xử lý. Đọc lại để kiểm tra trạng thái mới.',
+  QR_ORDER_REQUEST_EXPIRED: 'Yêu cầu gọi món đã hết hạn. Vui lòng đề nghị khách gửi yêu cầu mới.',
+  QR_ORDER_REQUEST_NOT_FOUND: 'Không tìm thấy yêu cầu QR trong nhà hàng này.',
+  INVALID_QR_REQUEST_TRANSITION: 'Yêu cầu không còn chờ xác nhận. Đọc lại để kiểm tra kết quả.',
+  QR_REQUEST_SESSION_CHANGED: 'Phiên bàn của khách đã thay đổi. Kiểm tra với khách và đề nghị gửi lại yêu cầu.',
+  QR_ORDER_DRAFT_NOT_SUBMITTED: 'Bàn đang có đơn nháp. Gửi đơn nháp trước khi nhận thêm món QR.',
+  QR_ORDER_CHECKOUT_IN_PROGRESS: 'Bàn đang thanh toán, hiện không thể nhận thêm món QR.',
+  QR_ORDER_UNAVAILABLE: 'Nhà hàng hoặc QR hiện chưa đủ điều kiện nhận yêu cầu gọi món.',
   INVALID_GUEST_COUNT: 'Số khách phải là số nguyên từ 1 đến 32767.',
   TABLE_OPEN_REQUIRED: 'Cần nhân viên có TABLE_OPEN để gửi đơn cho bàn trống.',
   DINE_IN_ORDER_VIEW_REQUIRED: 'Cần ORDER_VIEW để kiểm tra đơn đang phục vụ của bàn.',

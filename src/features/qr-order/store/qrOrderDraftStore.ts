@@ -53,8 +53,34 @@ export const useQrDraftStore = create<DraftState>((set, get) => ({
   pending: false,
   unresolved: false,
   error: null,
-  reset: (scopeId) =>
-    set({ scopeId, lines: [], fields: emptyFields(), intent: null, pending: false, unresolved: false, error: null }),
+  reset: (scopeId) => {
+    const runtime = useQrGuestStore.getState()
+    const recovery = runtime.scopeId === scopeId && !runtime.invalid && runtime.guest ? runtime.recovery : null
+    const intent = recovery
+      ? Object.freeze({ scopeId, guestToken: runtime.guest!.guestToken, key: recovery.key, body: recovery.body })
+      : null
+    if (intent) {
+      intent.body.items.forEach(Object.freeze)
+      Object.freeze(intent.body.items)
+      Object.freeze(intent.body)
+    }
+    const fields = intent
+      ? {
+          customerName: intent.body.customerName ?? '',
+          customerPhone: intent.body.customerPhone ?? '',
+          note: intent.body.note ?? '',
+        }
+      : emptyFields()
+    set({
+      scopeId,
+      lines: recovery?.lines ?? [],
+      fields,
+      intent,
+      pending: false,
+      unresolved: !!intent,
+      error: recovery?.blocked ? qrOrderError(new QrOrderError('IDEMPOTENCY_KEY_REUSED')) : null,
+    })
+  },
   add: (item, quantity = '1', note = '') => {
     const state = get()
     if (
@@ -158,6 +184,10 @@ export const useQrDraftStore = create<DraftState>((set, get) => ({
         if (get().scopeId !== scope) return null
         intent = Object.freeze({ scopeId: scope, guestToken: guest.guestToken, key: qrOrderId(), body })
         set({ intent })
+        // Persist before POST: a reload may interrupt the response after the server has accepted it.
+        useQrGuestStore.setState({
+          recovery: { key: intent.key, body: intent.body, blocked: false, lines: state.lines },
+        })
       }
       const request = qrScopeRequest(scope)
       let receipt: QrReceipt
@@ -170,7 +200,7 @@ export const useQrDraftStore = create<DraftState>((set, get) => ({
         request.release()
       }
       if (get().scopeId !== scope) return null
-      useQrGuestStore.getState().remember(receipt.requestId)
+      useQrGuestStore.getState().remember(receipt.requestId, intent.key)
       set({
         lines: [],
         fields: { ...state.fields, note: '' },
@@ -185,6 +215,17 @@ export const useQrDraftStore = create<DraftState>((set, get) => ({
       const failure = qrOrderError(error)
       useQrGuestStore.getState().fail(failure)
       const unresolved = !!intent && (state.unresolved || failure.unknownOutcome || failure.status === 429)
+      useQrGuestStore.setState({
+        recovery:
+          unresolved && intent
+            ? {
+                key: intent.key,
+                body: intent.body,
+                blocked: failure.code === 'IDEMPOTENCY_KEY_REUSED',
+                lines: state.lines,
+              }
+            : null,
+      })
       set({ pending: false, error: failure, unresolved, intent: unresolved ? intent : null })
       return null
     }

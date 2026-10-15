@@ -34,7 +34,7 @@ export function useQrOrderNavigationGuard() {
       if (
         (state.pending || state.unresolved || qrDraftDirty(state)) &&
         !window.confirm(
-          'Giỏ và lượt gọi món này chỉ được giữ trong phiên hiện tại. Kiểm tra với nhà hàng nếu kết quả gửi chưa rõ. Bạn muốn rời trang?',
+          'Giỏ món chưa gửi sẽ bị xóa khi rời trang. Yêu cầu đã gửi được giữ trong tab này đến khi lượt gọi món hết hạn. Nếu kết quả gửi chưa rõ, hãy kiểm tra yêu cầu ban đầu. Bạn muốn rời trang?',
         )
       ) {
         event.preventDefault()

@@ -242,7 +242,7 @@ describe('Public customer QR ordering UI', () => {
     await screen.findByText('Đường dẫn yêu cầu không hợp lệ. Vui lòng mở lại link nhà hàng.')
     expect(calls).toBe(0)
   })
-  it('no guest token or customer data is persisted or exposed in receipt route', async () => {
+  it('stores the guest only in tab storage and keeps customer data and tokens out of receipt links', async () => {
     const storage = { local: { ...localStorage }, session: { ...sessionStorage } }
     const user = userEvent.setup()
     mount()
@@ -251,7 +251,13 @@ describe('Public customer QR ordering UI', () => {
     await user.click(screen.getByRole('button', { name: 'Gửi yêu cầu gọi món' }))
     await screen.findByRole('heading', { name: 'Đang chờ nhà hàng xác nhận' })
     expect({ ...localStorage }).toEqual(storage.local)
-    expect({ ...sessionStorage }).toEqual(storage.session)
+    const keys = Object.keys(sessionStorage).filter((key) => key.startsWith('pos-saas:qr-session:v1:'))
+    expect(keys).toHaveLength(1)
+    const saved = JSON.parse(sessionStorage.getItem(keys[0])!)
+    expect(saved.guest.guestToken).toBe(qrGuest().guestToken)
+    expect(saved.requestIds).toEqual([qrIds.request])
+    expect(saved.recovery).toBeNull()
+    expect(sessionStorage.getItem(keys[0])).not.toContain('Private Guest')
     for (const anchor of screen.getAllByRole('link')) expect(anchor.getAttribute('href')).not.toContain('guest-token')
   })
   it('receipt updates items at same request version by polling and stops when served', async () => {

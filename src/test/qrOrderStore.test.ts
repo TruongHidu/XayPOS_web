@@ -217,7 +217,7 @@ describe('Guest QR draft and idempotent intent', () => {
       expect(useQrGuestStore.getState().requestIds).toHaveLength(2)
     },
   )
-  it('A → B → A scope cannot accept an old response or resurrect guest/private data', async () => {
+  it('A → B → A restores its guest/intent with a fresh scope and ignores the old in-flight response', async () => {
     const oldScope = seedQrOrder(tableEntry, true)
     let finish: (value: { receipt: ReturnType<typeof qrReceipt>; replayed: boolean }) => void = () => {}
     vi.spyOn(publicQrOrderApi, 'submit').mockImplementation(
@@ -229,15 +229,19 @@ describe('Guest QR draft and idempotent intent', () => {
     const draft = useQrDraftStore.getState()
     draft.add(qrItem)
     const pending = draft.submit()
-    await vi.waitFor(() => expect(useQrDraftStore.getState().pending).toBe(true))
+    await vi.waitFor(() => expect(useQrDraftStore.getState().intent).not.toBeNull())
+    const originalKey = useQrDraftStore.getState().intent!.key
     useQrGuestStore.getState().sync(takeawayEntry)
     useQrGuestStore.getState().sync(tableEntry)
     expect(useQrGuestStore.getState().scopeId).not.toBe(oldScope)
     finish({ receipt: qrReceipt(), replayed: false })
     await pending
-    expect(useQrGuestStore.getState().guest).toBeNull()
+    expect(useQrGuestStore.getState().guest?.guestToken).toBe('table-guest-token')
     expect(useQrGuestStore.getState().requestIds).toEqual([])
-    expect(useQrDraftStore.getState().lines).toEqual([])
-    expect(useQrDraftStore.getState().intent).toBeNull()
+    expect(useQrDraftStore.getState().lines).toHaveLength(1)
+    expect(useQrDraftStore.getState().lines[0].item).toMatchObject({ id: qrItem.id, name: qrItem.name })
+    expect(useQrDraftStore.getState().unresolved).toBe(true)
+    expect(useQrDraftStore.getState().intent?.key).toBe(originalKey)
+    expect(useQrDraftStore.getState().intent?.scopeId).toBe(useQrGuestStore.getState().scopeId)
   })
 })

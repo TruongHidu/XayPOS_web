@@ -14,6 +14,11 @@ import { OrderDetailModal } from '../components/OrderDetailModal'
 import { ordersApi } from '../api/ordersApi'
 import { useQueryClient } from '@tanstack/react-query'
 import { orderKeys } from '../api/orderKeys'
+import { qrReviewCriteriaSchema } from '../../qr-order-review/schemas'
+import { qrReviewKeys } from '../../qr-order-review/api/qrReviewKeys'
+import { useQrReviewQueue } from '../../qr-order-review/hooks/useQrReview'
+import { QrReviewQueue } from '../../qr-order-review/components/QrReviewQueue'
+import { QrReviewModal } from '../../qr-order-review/components/QrReviewModal'
 import '../order.css'
 
 export function SessionOrders({ sessionId }: { sessionId: string }) {
@@ -313,9 +318,23 @@ export function OrderListPage() {
   const [addItemsOrderId, setAddItemsOrderId] = useState<string | null>(null)
   const [selectedOrderFull, setSelectedOrderFull] = useState<Order | null>(null)
   const [detailOrderId, setDetailOrderId] = useState<string | null>(null)
+  const [qrSelection, setQrSelection] = useState<{ scope: string; id: string } | null>(null)
+  const [qrNotice, setQrNotice] = useState<{ scope: string; message: string; orderId?: string } | null>(null)
+  const [qrPagination, setQrPagination] = useState({ filter: '', page: 0 })
 
   const isHistoryMode = criteria.status === 'COMPLETED' || criteria.status === 'CANCELLED'
   const isTableSessionFiltered = !!criteria.tableSessionId
+  const qrFilter = `${scope ?? ''}:${criteria.serviceType ?? ''}:${criteria.tableSessionId ?? ''}`
+  const qrPage = qrPagination.filter === qrFilter ? qrPagination.page : 0
+  const qrQuery = useQrReviewQueue(
+    qrReviewCriteriaSchema.parse({
+      page: qrPage,
+      entryType:
+        criteria.serviceType === 'DINE_IN' ? 'TABLE' : criteria.serviceType === 'TAKEAWAY' ? 'RESTAURANT' : undefined,
+      observedSessionId: criteria.tableSessionId,
+    }),
+    !isHistoryMode,
+  )
 
   // Column queries for 3-Column Kanban
   const confirmedQuery = useOrders({ ...criteria, status: 'CONFIRMED' })
@@ -341,6 +360,7 @@ export function OrderListPage() {
   // Refresh all queries
   const handleRefresh = () => {
     void client.invalidateQueries({ queryKey: orderKeys.lists(scope ?? '') })
+    void client.invalidateQueries({ queryKey: qrReviewKeys.root(scope) })
   }
 
   // Open Payment modal
@@ -390,9 +410,11 @@ export function OrderListPage() {
     readyOrders = servedQuery.data?.content ?? []
   }
 
-  const pendingCount = isTableSessionFiltered
+  const draftCount = isTableSessionFiltered
     ? pendingOrders.length
     : (openQuery.data?.totalElements ?? 0)
+  const qrCount = qrQuery.data?.totalElements ?? 0
+  const pendingCount = draftCount + qrCount
 
   const cookingCount = isTableSessionFiltered
     ? cookingOrders.length
@@ -404,7 +426,7 @@ export function OrderListPage() {
     ? readyOrders.length
     : (servedQuery.data?.totalElements ?? 0)
 
-  const totalServingCount = pendingCount + cookingCount + readyCount
+  const totalServingCount = draftCount + cookingCount + readyCount
 
   return (
     <div className="cashier-order pos-orders-management">
@@ -451,6 +473,17 @@ export function OrderListPage() {
           )}
         </div>
       </header>
+
+      {qrNotice?.scope === scope && (
+        <div className="qr-review-notice" role="status">
+          <span>{qrNotice.message}</span>
+          {qrNotice.orderId && (
+            <button type="button" className="button button-ghost" onClick={() => setDetailOrderId(qrNotice.orderId!)}>
+              Xem đơn đã nhận
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Session filter banner */}
       {isTableSessionFiltered && (
@@ -625,13 +658,20 @@ export function OrderListPage() {
                   <span className="pos-column-icon" aria-hidden="true">📦</span>
                   <div>
                     <h3>Chờ xác nhận</h3>
-                    <p className="pos-column-subtitle">Đơn mới cần xử lý</p>
+                    <p className="pos-column-subtitle">Yêu cầu QR và đơn nháp cần xử lý</p>
                   </div>
                 </div>
                 <span className="pos-column-badge">{pendingCount}</span>
               </header>
 
               <div className="pos-kanban-cards-stack">
+                <QrReviewQueue
+                  query={qrQuery}
+                  page={qrPage}
+                  onPage={(page) => setQrPagination({ filter: qrFilter, page })}
+                  onReview={(id) => { if (scope) setQrSelection({ scope, id }) }}
+                  searching={!!criteria.q}
+                />
                 {pendingOrders.map((order) => (
                   <OrderCardItem
                     key={order.id}
@@ -642,7 +682,7 @@ export function OrderListPage() {
                   />
                 ))}
 
-                {pendingOrders.length === 0 && (
+                {pendingOrders.length === 0 && qrCount === 0 && !qrQuery.isLoading && !qrQuery.error && (
                   <div className="pos-column-empty">
                     <span>⏱ Không có đơn chờ xác nhận</span>
                   </div>
@@ -715,6 +755,18 @@ export function OrderListPage() {
             </section>
           </div>
         </>
+      )}
+
+      {qrSelection?.scope === scope && (
+        <QrReviewModal
+          key={`${scope}:${qrSelection.id}`}
+          requestId={qrSelection.id}
+          onClose={() => setQrSelection(null)}
+          onDone={(message, orderId) => {
+            if (scope) setQrNotice({ scope, message, orderId })
+            setQrSelection(null)
+          }}
+        />
       )}
 
       {/* Order Detail Modal */}

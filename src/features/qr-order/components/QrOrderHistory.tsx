@@ -11,7 +11,14 @@ export function QrOrderHistory() {
     <section className="qr-order-history" aria-label="Yêu cầu của bạn">
       <span className="qr-order-eyebrow">THEO DÕI YÊU CẦU</span>
       <h2>Yêu cầu của bạn</h2>
-      <p className="qr-order-muted">Các lần gửi trong lượt gọi món hiện tại. Nhà hàng xác nhận từng yêu cầu.</p>
+      <p className="qr-order-muted">
+        Yêu cầu được khôi phục khi tải lại trong cùng tab, đến khi lượt gọi món hết hạn. Nhà hàng xác nhận từng yêu cầu.
+      </p>
+      {!access.storageAvailable && (
+        <p className="qr-order-notice">
+          Trình duyệt chưa lưu được lượt gọi món. Sau khi tải lại, bạn có thể không xem lại được yêu cầu đã gửi.
+        </p>
+      )}
       {!access.requestIds.length && (
         <div className="qr-order-empty">
           <span aria-hidden="true">📋</span>

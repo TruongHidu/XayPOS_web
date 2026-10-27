@@ -36,19 +36,23 @@ import { OrderAddItems } from './OrderAddItems'
 import type { EditorKind } from '../utils/orderCommands'
 import { ordersApi } from '../api/ordersApi'
 import { orderKeys } from '../api/orderKeys'
+import { cacheOrderSnapshot } from '../api/orderSnapshot'
 import { operationKey, verifyOrder, useOrderOperationState } from '../store/orderOperationState'
 import { useOrderDraftStore } from '../store/orderDraftStore'
 import { isLineAppended } from '../utils/orderAppended'
 import { PaymentModal } from '../../payment/components/PaymentModal'
 import { paymentsApi } from '../../payment/api/paymentsApi'
 import { cashierTablesApi } from '../../tables/api/cashierTablesApi'
+import { useOrderDetail } from '../hooks/useOrderDetail'
 
 export function OrderPanel({ order: propOrder, onReload }: { order: Order; onReload?: (order: Order) => void }) {
+  const liveQuery = useOrderDetail(propOrder.id, propOrder)
+  const currentOrder = liveQuery.data && liveQuery.data.version > propOrder.version ? liveQuery.data : propOrder
   const [localOrder, setLocalOrder] = useState<Order | null>(null)
   const order =
-    localOrder && localOrder.id === propOrder.id && localOrder.version >= propOrder.version
+    localOrder && localOrder.id === currentOrder.id && localOrder.version >= currentOrder.version
       ? localOrder
-      : propOrder
+      : currentOrder
 
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
@@ -94,7 +98,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
     if (!scope || !canOrder(access, 'ORDER_VIEW')) return
     try {
       const latest = await ordersApi.detail(scope, order.id)
-      client.setQueryData(orderKeys.detail(scope, order.id), latest)
+      cacheOrderSnapshot(client, scope, latest)
       verifyOrder(key)
       syncState(latest)
       if (!keepError) setError(null)
@@ -120,7 +124,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
       } else {
         updated = await ordersApi.markServed(scope, order.id, lineId, order.version)
       }
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       syncState(updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       onReload?.(updated)
@@ -142,7 +146,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
     setActionBusy(true)
     try {
       const updated = await ordersApi.markAllReady(scope, order.id, order.version)
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       syncState(updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       onReload?.(updated)
@@ -164,7 +168,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
     setActionBusy(true)
     try {
       const updated = await ordersApi.markAllServed(scope, order.id, order.version)
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       syncState(updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       onReload?.(updated)
@@ -186,7 +190,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
     setActionBusy(true)
     try {
       const updated = await ordersApi.complete(scope, order.id, order.version)
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       syncState(updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       if (order.serviceType === 'DINE_IN') {
@@ -234,11 +238,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
           <h2>{order.orderCode}</h2>
         </div>
         <div className="order-actions">
-          <button
-            type="button"
-            className="button button-ghost"
-            onClick={() => window.print()}
-          >
+          <button type="button" className="button button-ghost" onClick={() => window.print()}>
             🖨 In hóa đơn
           </button>
           {canOrder(access, 'ORDER_VIEW') && (
@@ -261,15 +261,11 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
         <span className={`pos-badge pos-badge-${order.serviceType.toLowerCase()}`}>
           {orderLabels[order.serviceType]}
         </span>
-        <span className={`pos-badge pos-badge-status-${order.status.toLowerCase()}`}>
-          {orderLabels[order.status]}
-        </span>
+        <span className={`pos-badge pos-badge-status-${order.status.toLowerCase()}`}>{orderLabels[order.status]}</span>
         <span className={`pos-badge pos-badge-pay-${order.paymentStatus.toLowerCase()}`}>
           {orderLabels[order.paymentStatus]}
         </span>
-        {order.sourceChannel === 'QR_TABLE' && (
-          <span className="pos-badge pos-badge-qr">📱 QR Bàn</span>
-        )}
+        {order.sourceChannel === 'QR_TABLE' && <span className="pos-badge pos-badge-qr">📱 QR Bàn</span>}
       </div>
 
       <div className="pos-order-meta-grid">
@@ -284,7 +280,9 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
         {order.customerName && (
           <div className="pos-meta-item">
             <span className="order-muted">Khách hàng:</span>
-            <strong>{order.customerName} {order.customerPhone ? `(${order.customerPhone})` : ''}</strong>
+            <strong>
+              {order.customerName} {order.customerPhone ? `(${order.customerPhone})` : ''}
+            </strong>
           </div>
         )}
         {order.tableSessionId && (
@@ -309,7 +307,17 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
 
       {/* Lines list */}
       <div className="order-detail-lines">
-        <div className="pos-lines-header-row" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px', marginBottom: '12px' }}>
+        <div
+          className="pos-lines-header-row"
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            flexWrap: 'wrap',
+            gap: '8px',
+            marginBottom: '12px',
+          }}
+        >
           <h4 style={{ margin: 0 }}>Danh sách món ({order.items.length})</h4>
           <div className="order-actions pos-lines-bulk-actions" style={{ margin: 0 }}>
             {canBulkReady && (
@@ -342,7 +350,10 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
         {order.items.map((line) => {
           const appended = isLineAppended(order, line)
           return (
-            <article className={'order-detail-line ' + (line.status === 'CANCELLED' ? 'is-cancelled' : '')} key={line.id}>
+            <article
+              className={'order-detail-line ' + (line.status === 'CANCELLED' ? 'is-cancelled' : '')}
+              key={line.id}
+            >
               <div>
                 <div>
                   <strong>{line.itemName}</strong>
@@ -355,66 +366,66 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
                     {orderLabels[line.status]}
                   </span>
                 </div>
-              <strong className="pos-line-total">
-                {formatMinor(moneyMinor(line.lineTotal), order.currencyCode)}
-              </strong>
-            </div>
+                <strong className="pos-line-total">
+                  {formatMinor(moneyMinor(line.lineTotal), order.currencyCode)}
+                </strong>
+              </div>
 
-            <p className="order-muted">
-              {line.quantity} {line.unit} × {formatMinor(moneyMinor(line.unitPrice), order.currencyCode)}
-            </p>
+              <p className="order-muted">
+                {line.quantity} {line.unit} × {formatMinor(moneyMinor(line.unitPrice), order.currencyCode)}
+              </p>
 
-            {line.note && <p className="pos-line-note">Ghi chú: {line.note}</p>}
-            {line.cancelReason && <p className="pos-line-note cancel">Lý do hủy: {line.cancelReason}</p>}
+              {line.note && <p className="pos-line-note">Ghi chú: {line.note}</p>}
+              {line.cancelReason && <p className="pos-line-note cancel">Lý do hủy: {line.cancelReason}</p>}
 
-            <div className="order-actions pos-line-ops">
-              {/* Kitchen transitions */}
-              {line.status === 'PENDING' && canKitchen(access, 'KITCHEN_START_COOKING') && (
-                <button
-                  type="button"
-                  className="button button-small button-ghost"
-                  disabled={busy || actionBusy}
-                  onClick={() => void handleItemTransition(line.id, 'start-cooking')}
-                >
-                  🍳 Bắt đầu nấu
-                </button>
-              )}
-              {line.status === 'COOKING' && canKitchen(access, 'KITCHEN_MARK_READY') && (
-                <button
-                  type="button"
-                  className="button button-small button-ghost"
-                  disabled={busy || actionBusy}
-                  onClick={() => void handleItemTransition(line.id, 'mark-ready')}
-                >
-                  🛎 Món sẵn sàng
-                </button>
-              )}
-              {line.status === 'READY' && canMarkServed(access) && (
-                <button
-                  type="button"
-                  className="button button-small button-primary"
-                  disabled={busy || actionBusy}
-                  onClick={() => void handleItemTransition(line.id, 'mark-served')}
-                >
-                  🍽 Giao món
-                </button>
-              )}
+              <div className="order-actions pos-line-ops">
+                {/* Kitchen transitions */}
+                {line.status === 'PENDING' && canKitchen(access, 'KITCHEN_START_COOKING') && (
+                  <button
+                    type="button"
+                    className="button button-small button-ghost"
+                    disabled={busy || actionBusy}
+                    onClick={() => void handleItemTransition(line.id, 'start-cooking')}
+                  >
+                    🍳 Bắt đầu nấu
+                  </button>
+                )}
+                {line.status === 'COOKING' && canKitchen(access, 'KITCHEN_MARK_READY') && (
+                  <button
+                    type="button"
+                    className="button button-small button-ghost"
+                    disabled={busy || actionBusy}
+                    onClick={() => void handleItemTransition(line.id, 'mark-ready')}
+                  >
+                    🛎 Món sẵn sàng
+                  </button>
+                )}
+                {line.status === 'READY' && canMarkServed(access) && (
+                  <button
+                    type="button"
+                    className="button button-small button-primary"
+                    disabled={busy || actionBusy}
+                    onClick={() => void handleItemTransition(line.id, 'mark-served')}
+                  >
+                    🍽 Giao món
+                  </button>
+                )}
 
-              {/* Edit / cancel line */}
-              {update && line.status === 'PENDING' && (
-                <button type="button" disabled={busy || blocked} onClick={() => start('line', line)}>
-                  Sửa món
-                </button>
-              )}
-              {lineCancellable(order, line) && canOrder(access, lineCancelPermission(order)) && (
-                <button type="button" disabled={busy || blocked} onClick={() => start('cancelLine', line)}>
-                  Hủy món
-                </button>
-              )}
-            </div>
-          </article>
-        )
-      })}
+                {/* Edit / cancel line */}
+                {update && line.status === 'PENDING' && (
+                  <button type="button" disabled={busy || blocked} onClick={() => start('line', line)}>
+                    Sửa món
+                  </button>
+                )}
+                {lineCancellable(order, line) && canOrder(access, lineCancelPermission(order)) && (
+                  <button type="button" disabled={busy || blocked} onClick={() => start('cancelLine', line)}>
+                    Hủy món
+                  </button>
+                )}
+              </div>
+            </article>
+          )
+        })}
       </div>
 
       {/* Totals */}

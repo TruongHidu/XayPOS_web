@@ -9,6 +9,7 @@ import { orderKeys } from '../api/orderKeys'
 import { useOrderAccess } from './useOrderAccess'
 import type { ServiceContext } from '../types'
 import { resourceId } from '../../../shared/api/tenantSchemas'
+import { useRealtimeStatus } from '../../../shared/realtime/RealtimeContext'
 const requireOpen = (s: TableSession | null): ServiceContext => {
   if (!s || s.status !== 'OPEN') throw new Error('TABLE_SESSION_NOT_OPEN')
   return { serviceType: 'DINE_IN', tableSessionId: s.id, guestCount: s.guestCount, tableName: s.tableName }
@@ -27,6 +28,7 @@ function emptyTableContext(table: RestaurantTable): ServiceContext {
 }
 export function useOrderServiceContext(type: 'DINE_IN' | 'TAKEAWAY') {
   const { access, scope } = useOrderAccess()
+  const realtime = useRealtimeStatus()
   const [occupied, setOccupied] = useState<boolean | undefined>()
   const [areaId, setAreaId] = useState<string | undefined>()
   const [page, setPage] = useState(0)
@@ -34,6 +36,7 @@ export function useOrderServiceContext(type: 'DINE_IN' | 'TAKEAWAY') {
   const enabled = type === 'DINE_IN' && !!scope && canTables(access) && canCreateType(access, 'DINE_IN')
   const tables = useQuery({
     queryKey: orderKeys.tableList(scope, criteria),
+    refetchOnWindowFocus: realtime.state !== 'connected',
     queryFn: ({ signal }) => cashierTablesApi.tables(scope!, criteria, signal),
     enabled,
     retry: false,
@@ -82,8 +85,10 @@ export function useOrderServiceContext(type: 'DINE_IN' | 'TAKEAWAY') {
 }
 export function useDineInContext(sessionId: string | undefined, tableId?: string) {
   const { access, scope } = useOrderAccess()
+  const realtime = useRealtimeStatus()
   return useQuery({
-    queryKey: sessionId ? orderKeys.session(scope, sessionId) : ['cashier', scope, 'selected-table', tableId],
+    queryKey: sessionId ? orderKeys.session(scope, sessionId) : orderKeys.selectedTable(scope, tableId),
+    refetchOnWindowFocus: realtime.state !== 'connected',
     retry: false,
     enabled:
       !!scope &&

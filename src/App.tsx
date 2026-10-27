@@ -5,6 +5,8 @@ import { useAuthStore } from './features/auth/store/authStore'
 import { AuthBootstrap } from './features/auth/components/AuthBootstrap'
 import { AdminShell } from './portals/admin/AdminShell'
 import { CashierShell } from './portals/cashier/CashierShell'
+import { StaffRealtimeBoundary } from './portals/cashier/StaffRealtimeBoundary'
+import type { RealtimeRuntime } from './shared/realtime/runtime'
 import { QrMenuPage } from './portals/qr-menu/QrMenuPage'
 import { QrMenuLayout } from './portals/qr-menu/QrMenuLayout'
 import { QrRequestPage } from './portals/qr-menu/QrRequestPage'
@@ -74,7 +76,7 @@ function AdminDefaultRedirect() {
   return <Navigate to={route} replace />
 }
 
-export default function App() {
+export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRuntime } = {}) {
   return (
     <Routes>
       {/* === PUBLIC QR MENU — outside AuthBootstrap === */}
@@ -136,7 +138,14 @@ export default function App() {
           <Route element={<RequireTenant />}>
             <Route element={<TenantPortal />}>
               <Route element={<RequireRole roles={['OWNER', 'MANAGER', 'CASHIER', 'WAITER', 'KITCHEN']} />}>
-                <Route path="/cashier" element={<CashierShell />}>
+                <Route
+                  path="/cashier"
+                  element={
+                    <StaffRealtimeBoundary runtime={realtimeRuntime}>
+                      <CashierShell />
+                    </StaffRealtimeBoundary>
+                  }
+                >
                   <Route path="dashboard" element={<DashboardPage portal="cashier" />} />
                   <Route element={<OrderGuard permission="ORDER_CREATE" />}>
                     <Route path="pos" element={<CashierPosPage />} />

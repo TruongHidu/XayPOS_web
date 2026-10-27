@@ -12,6 +12,8 @@ import { orderError } from '../../order/utils/orderErrors'
 import type { QrReviewDetail } from '../types'
 import { QrReviewTableLabel } from './QrReviewQueue'
 import '../qr-review.css'
+import { useRemoteRevision } from '../../../shared/realtime/useRemoteRevision'
+import { qrReviewKeys } from '../api/qrReviewKeys'
 
 export function QrReviewModal({
   requestId,
@@ -23,6 +25,8 @@ export function QrReviewModal({
   onDone: (message: string, orderId?: string) => void
 }) {
   const detail = useQrReviewDetail(requestId)
+  const { scope } = useOrderAccess()
+  const revision = useRemoteRevision(qrReviewKeys.detail(scope, requestId))
   return (
     <Modal title="Xác nhận yêu cầu gọi món QR" onClose={onClose}>
       <div className="qr-review-modal-body">
@@ -30,11 +34,15 @@ export function QrReviewModal({
         {detail.isLoading && <p role="status">Đang kiểm tra yêu cầu, giá món và phiên bàn...</p>}
         {detail.data && (
           <QrReviewForm
-            key={detail.data.reviewContextHash ?? `${requestId}:${detail.data.request.version}`}
+            key={requestId}
             detail={detail.data}
+            revision={revision}
             refreshing={detail.isFetching}
             readFailed={detail.isError}
-            refresh={async () => !(await detail.refetch()).isError}
+            refresh={async () => {
+              const result = await detail.refetch()
+              return result.isError ? undefined : result.data
+            }}
             onDone={onDone}
           />
         )}
@@ -43,16 +51,18 @@ export function QrReviewModal({
   )
 }
 function QrReviewForm({
-  detail,
+  detail: incoming,
+  revision,
   refreshing,
   readFailed,
   refresh,
   onDone,
 }: {
   detail: QrReviewDetail
+  revision: number
   refreshing: boolean
   readFailed: boolean
-  refresh: () => Promise<boolean>
+  refresh: () => Promise<QrReviewDetail | undefined>
   onDone: (message: string, orderId?: string) => void
 }) {
   const { access, scope } = useOrderAccess()
@@ -63,6 +73,13 @@ function QrReviewForm({
   const [reason, setReason] = useState('')
   const [error, setError] = useState<unknown>(null)
   const [needsReview, setNeedsReview] = useState(false)
+  const [baseline, setBaseline] = useState(() => ({ detail: incoming, revision }))
+  const detail = baseline.detail
+  const remotelyChanged =
+    revision !== baseline.revision ||
+    incoming.reviewContextHash !== detail.reviewContextHash ||
+    incoming.request.version !== detail.request.version
+  const mustReview = needsReview || remotelyChanged
   const request = detail.request
   const sessionId = detail.reviewContext?.currentSessionId
   useEffect(() => {
@@ -77,7 +94,9 @@ function QrReviewForm({
     if (busy) return
     setConfirmedGroup(false)
     setNeedsReview(true)
-    if (await refresh()) {
+    const updated = await refresh()
+    if (updated) {
+      setBaseline({ detail: updated, revision })
       setNeedsReview(false)
       setError(null)
     }
@@ -87,7 +106,7 @@ function QrReviewForm({
       lock.current ||
       refreshing ||
       readFailed ||
-      needsReview ||
+      mustReview ||
       (kind === 'approve' && (!canApprove || (sessionId && !confirmedGroup)))
     )
       return
@@ -131,7 +150,7 @@ function QrReviewForm({
         <strong>{request.customerName || 'Khách tại bàn'}</strong>
         {request.customerPhone && <span>{request.customerPhone}</span>}
         <span>
-          {qrReviewStatusLabels[request.status]}
+          {qrReviewStatusLabels[incoming.request.status]}
           {request.status === 'PENDING' && expired ? ' · Đã hết hạn' : ''}
         </span>
         <small className="order-muted">
@@ -217,7 +236,7 @@ function QrReviewForm({
       {request.rejectionReason && <p>Lý do từ chối: {request.rejectionReason}</p>}
       {request.cancellationReason && <p>Lý do hủy: {request.cancellationReason}</p>}
       {error ? <OrderFeedback error={error} /> : null}
-      {needsReview && (
+      {mustReview && (
         <p className="qr-review-warning">
           Kết quả hoặc dữ liệu đã thay đổi. Đọc lại yêu cầu trước khi quyết định tiếp; hệ thống không tự gửi lại thao
           tác.
@@ -237,7 +256,7 @@ function QrReviewForm({
             <button
               type="button"
               className="button button-primary"
-              disabled={busy || refreshing || needsReview || !canApprove || (!!sessionId && !confirmedGroup)}
+              disabled={busy || refreshing || mustReview || !canApprove || (!!sessionId && !confirmedGroup)}
               onClick={() => void decide('approve')}
             >
               {busy ? 'Đang xử lý...' : 'Xác nhận yêu cầu'}
@@ -262,7 +281,7 @@ function QrReviewForm({
               <button
                 type="button"
                 className="button button-ghost"
-                disabled={busy || refreshing || needsReview || !reason.trim()}
+                disabled={busy || refreshing || mustReview || !reason.trim()}
                 onClick={() => void decide('reject')}
               >
                 Xác nhận từ chối

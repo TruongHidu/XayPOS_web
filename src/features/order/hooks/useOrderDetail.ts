@@ -4,17 +4,21 @@ import { ordersApi } from '../api/ordersApi'
 import { orderKeys } from '../api/orderKeys'
 import { canOrder } from '../policies/orderAccessPolicy'
 import { useOrderAccess } from './useOrderAccess'
-export function useOrderDetail(id: string) {
+import { useRealtimeStatus } from '../../../shared/realtime/RealtimeContext'
+export function useOrderDetail(id: string, initialData?: Order) {
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
+  const realtime = useRealtimeStatus()
   return useQuery({
     queryKey: orderKeys.detail(scope, id),
+    initialData,
     queryFn: async ({ signal }) => {
       const response = await ordersApi.detail(scope!, id, signal)
       const cached = client.getQueryData<Order>(orderKeys.detail(scope, id))
       return cached && cached.version > response.version ? cached : response
     },
-    enabled: !!scope && canOrder(access, 'ORDER_VIEW'),
+    enabled: !!scope && !!id && canOrder(access, 'ORDER_VIEW'),
     retry: false,
+    refetchOnWindowFocus: realtime.state !== 'connected',
   })
 }

@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../auth/store/authStore'
 import { ordersApi } from '../api/ordersApi'
 import { orderKeys } from '../api/orderKeys'
+import { cacheOrderSnapshot } from '../api/orderSnapshot'
 import { canOrder, canSubmitType, orderScope } from '../policies/orderAccessPolicy'
 import {
   cancellable,
@@ -85,7 +86,8 @@ export function useOrderMutations(order: Order) {
       )
         throw new Error('ORDER_ACCESS_CHANGED')
       const cached = client.getQueryData<Order>(orderKeys.detail(scope, order.id))
-      if (!replay && cached && cached.version !== command.input.expectedVersion) {
+      const dirty = client.getQueryState(orderKeys.detail(scope, order.id))?.isInvalidated
+      if (!replay && (dirty || (cached && cached.version !== command.input.expectedVersion))) {
         markOrderUncertain(key)
         throw new Error('CONCURRENT_ORDER_UPDATE')
       }
@@ -125,7 +127,7 @@ export function useOrderMutations(order: Order) {
         }
         if (orderScope(useAuthStore.getState()) !== scope) throw new Error('ORDER_ACCESS_CHANGED')
         await client.cancelQueries({ queryKey: orderKeys.detail(scope, order.id), exact: true })
-        client.setQueryData(orderKeys.detail(scope, response.id), response)
+        response = cacheOrderSnapshot(client, scope, response)
         if (command.kind === 'add') {
           clearAppend(key)
           const prevIds = new Set(order.items.map((i) => i.id))

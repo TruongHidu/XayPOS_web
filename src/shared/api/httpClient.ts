@@ -26,9 +26,18 @@ api.interceptors.request.use((config) => {
 })
 
 let accessToken: string | null = null
+const tokenListeners = new Set<() => void>()
+export const subscribeAccessToken = (listener: () => void) => {
+  tokenListeners.add(listener)
+  return () => {
+    tokenListeners.delete(listener)
+  }
+}
 export const getAccessToken = () => accessToken
 export const setAccessToken = (token: string | null) => {
+  if (accessToken === token) return
   accessToken = token
+  tokenListeners.forEach((listener) => listener())
 }
 
 let refreshSingleFlight: Promise<string> | null = null
@@ -37,12 +46,13 @@ export function resetRefreshCoordinator() {
 }
 export function refreshWithCoordinator(): Promise<string> {
   if (!refreshSingleFlight) {
-    refreshSingleFlight = import('../../features/auth/store/authStore')
+    const flight = import('../../features/auth/store/authStore')
       .then(({ useAuthStore }) => useAuthStore.getState().refreshSession())
       .then((response) => response.accessToken)
       .finally(() => {
-        refreshSingleFlight = null
+        if (refreshSingleFlight === flight) refreshSingleFlight = null
       })
+    refreshSingleFlight = flight
   }
   return refreshSingleFlight
 }

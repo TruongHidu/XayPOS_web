@@ -9,23 +9,33 @@ import { qrReviewApi } from '../api/qrReviewApi'
 import { qrReviewKeys } from '../api/qrReviewKeys'
 import { canApproveQr, canRejectQr } from '../policies/qrReviewPolicy'
 import type { QrReviewCriteria, QrReviewDetail } from '../types'
+import { useRealtimeStatus } from '../../../shared/realtime/RealtimeContext'
+import { cacheOrderSnapshot } from '../../order/api/orderSnapshot'
 
 export function useQrReviewQueue(criteria: QrReviewCriteria, enabled = true) {
   const { access, scope } = useOrderAccess()
+  const realtime = useRealtimeStatus()
   return useQuery({
     queryKey: qrReviewKeys.list(scope, criteria),
     queryFn: ({ signal }) => qrReviewApi.list(scope!, criteria, signal),
     enabled: enabled && !!scope && canOrder(access, 'ORDER_VIEW'),
     retry: false,
-    refetchInterval: (query) => (query.state.error ? false : 10000),
+    refetchInterval: (query) =>
+      query.state.error ? false : realtime.state === 'connected' && !realtime.code ? 60000 : 10000,
+    refetchOnWindowFocus: realtime.state !== 'connected',
     refetchIntervalInBackground: false,
   })
 }
 export function useQrReviewDetail(id: string) {
   const { access, scope } = useOrderAccess()
+  const client = useQueryClient()
   return useQuery({
     queryKey: qrReviewKeys.detail(scope, id),
-    queryFn: ({ signal }) => qrReviewApi.detail(scope!, id, signal),
+    queryFn: async ({ signal }) => {
+      const response = await qrReviewApi.detail(scope!, id, signal)
+      const cached = client.getQueryData<QrReviewDetail>(qrReviewKeys.detail(scope, id))
+      return cached && cached.request.version > response.request.version ? cached : response
+    },
     enabled: !!scope && canOrder(access, 'ORDER_VIEW'),
     retry: false,
     staleTime: 0,
@@ -34,11 +44,13 @@ export function useQrReviewDetail(id: string) {
 }
 export function useQrReviewTable(id: string | null) {
   const { access, scope } = useOrderAccess()
+  const realtime = useRealtimeStatus()
   return useQuery({
     queryKey: qrReviewKeys.table(scope, id),
     queryFn: ({ signal }) => cashierTablesApi.table(scope!, id!, signal),
     enabled: !!scope && !!id && canTables(access),
     staleTime: 30000,
+    refetchOnWindowFocus: realtime.state !== 'connected',
     retry: false,
   })
 }
@@ -52,6 +64,14 @@ export function useQrReviewDecision() {
       const access = useAuthStore.getState()
       if (!scope || !sameOrderScope(scope, access)) throw new Error('ORDER_ACCESS_CHANGED')
       const { detail } = decision
+      const cached = client.getQueryState<QrReviewDetail>(qrReviewKeys.detail(scope, detail.request.requestId))
+      if (
+        cached &&
+        (cached.isInvalidated ||
+          cached.data?.reviewContextHash !== detail.reviewContextHash ||
+          cached.data?.request.version !== detail.request.version)
+      )
+        throw new Error('QR_REVIEW_REQUIRED')
       if (decision.kind === 'approve') {
         if (!canApproveQr(access, detail)) throw new Error('QR_REVIEW_REQUIRED')
         return qrReviewApi.approve(scope, detail.request.requestId, {
@@ -70,7 +90,7 @@ export function useQrReviewDecision() {
       if (!sameOrderScope(scope, useAuthStore.getState())) return
       void client.invalidateQueries({ queryKey: qrReviewKeys.root(scope) })
       if ('order' in result) {
-        client.setQueryData(orderKeys.detail(scope, result.order.id), result.order)
+        cacheOrderSnapshot(client, scope, result.order)
         void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
         void client.invalidateQueries({ queryKey: orderKeys.tables(scope) })
         void client.invalidateQueries({ queryKey: orderKeys.sessions(scope) })

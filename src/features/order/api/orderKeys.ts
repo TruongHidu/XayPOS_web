@@ -13,6 +13,9 @@ export const orderKeys = {
   sessions: (scope: string | null) => ['cashier', scope, 'session'] as const,
   active: (scope: string | null, id: string) => ['cashier', scope, 'active-order', id.toLowerCase()] as const,
   activeOrders: (scope: string | null) => ['cashier', scope, 'active-order'] as const,
+  selectedTables: (scope: string | null) => ['cashier', scope, 'selected-table'] as const,
+  selectedTable: (scope: string | null, id: string | undefined) => ['cashier', scope, 'selected-table', id] as const,
   kitchen: (scope: string | null, criteria: object) => ['cashier', scope, 'kitchen', criteria] as const,
+  kitchens: (scope: string | null) => ['cashier', scope, 'kitchen'] as const,
   payments: (scope: string | null, id: string) => ['cashier', scope, 'payments', id.toLowerCase()] as const,
 }

@@ -5,8 +5,9 @@ import { Modal } from '../../../shared/components/AdminUi'
 import { useOrderMutations } from '../hooks/useOrderMutations'
 import { buildOrderCommand, editorDefaults, type EditorFields, type EditorKind } from '../utils/orderCommands'
 import { OrderFeedback } from './OrderUi'
+import { useOrderBaseline } from '../hooks/useOrderBaseline'
 export function OrderEditor({
-  order,
+  order: initial,
   kind,
   line,
   onClose,
@@ -16,6 +17,8 @@ export function OrderEditor({
   line?: OrderLine
   onClose: () => void
 }) {
+  const baseline = useOrderBaseline(initial)
+  const order = baseline.order
   const form = useForm<EditorFields>({ defaultValues: editorDefaults(order, line) })
   const mutation = useOrderMutations(order)
   const [error, setError] = useState<unknown>(null)
@@ -36,6 +39,7 @@ export function OrderEditor({
       <form
         className="order-form"
         onSubmit={form.handleSubmit(async (fields) => {
+          if (baseline.needsReview || baseline.refreshing || baseline.readFailed) return
           setError(null)
           try {
             await mutation.mutateAsync(buildOrderCommand(kind, order, fields, line))
@@ -46,6 +50,16 @@ export function OrderEditor({
         })}
       >
         <OrderFeedback error={error} />
+        {baseline.needsReview && (
+          <p className="order-warning">
+            Đơn đã được cập nhật trên thiết bị khác. Nội dung đang nhập được giữ; kiểm tra lại trước khi xác nhận.
+          </p>
+        )}
+        {(baseline.needsReview || baseline.readFailed) && (
+          <button type="button" disabled={mutation.busy || baseline.refreshing} onClick={() => void baseline.review()}>
+            Kiểm tra lại đơn
+          </button>
+        )}
         {mutation.uncertain && (
           <p className="order-warning">
             Bản đang nhập được giữ. Đóng hộp thoại và tải lại đơn để đối chiếu trước khi thực hiện lại; không tự đổi
@@ -106,7 +120,12 @@ export function OrderEditor({
           <button type="button" className="button button-ghost" disabled={mutation.busy} onClick={close}>
             Đóng
           </button>
-          <button className="button button-primary" disabled={mutation.busy || mutation.uncertain}>
+          <button
+            className="button button-primary"
+            disabled={
+              mutation.busy || mutation.uncertain || baseline.needsReview || baseline.refreshing || baseline.readFailed
+            }
+          >
             {mutation.busy ? 'Đang lưu...' : 'Xác nhận'}
           </button>
         </div>

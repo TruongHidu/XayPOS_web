@@ -14,9 +14,14 @@ useAuthStore.subscribe((state) => {
 })
 export function tenantRequest(scope: string | null, signal?: AbortSignal): AxiosRequestConfig {
   const capturedEpoch = epoch
+  const revision = useAuthStore.getState().sessionRevision
   return {
     signal,
     timeout: 20000,
-    isScopeCurrent: () => scope !== null && epoch === capturedEpoch && tenantScope(useAuthStore.getState()) === scope,
+    isScopeCurrent: () =>
+      scope !== null &&
+      epoch === capturedEpoch &&
+      revision === useAuthStore.getState().sessionRevision &&
+      tenantScope(useAuthStore.getState()) === scope,
   }
 }

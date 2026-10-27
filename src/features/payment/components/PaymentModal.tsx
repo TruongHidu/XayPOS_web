@@ -13,6 +13,8 @@ import { orderError } from '../../order/utils/orderErrors'
 import { Modal } from '../../../shared/components/AdminUi'
 import { OrderFeedback } from '../../order/components/OrderUi'
 import { ReceiptPrint } from '../../order/components/ReceiptPrint'
+import { useOrderBaseline } from '../../order/hooks/useOrderBaseline'
+import { payable } from '../../order/policies/orderActionPolicy'
 
 interface PaymentIntent {
   orderId: string
@@ -21,7 +23,7 @@ interface PaymentIntent {
 }
 
 export function PaymentModal({
-  order,
+  order: initial,
   onClose,
   onSuccess,
 }: {
@@ -30,8 +32,10 @@ export function PaymentModal({
   onSuccess?: (order: Order, payment: Payment) => void
 }) {
   const { access, scope } = useOrderAccess()
+  const baseline = useOrderBaseline(initial)
+  const order = baseline.order
   const client = useQueryClient()
-  const allowed = canPayment(access) || access.user?.role === 'OWNER' || true
+  const allowed = canPayment(access)
 
   const [method, setMethod] = useState<'CASH' | 'TRANSFER'>('CASH')
   const [cashGiven, setCashGiven] = useState<string>('')
@@ -53,16 +57,13 @@ export function PaymentModal({
   const isInsufficient = isGivenEntered && givenMinor < totalMinor
   const changeMinor = isGivenEntered && givenMinor >= totalMinor ? givenMinor - totalMinor : 0n
 
-  const quickAmounts = [
-    Number(totalMinor / 100n),
-    50000,
-    100000,
-    200000,
-    500000,
-  ].filter((v, i, a) => v >= Number(totalMinor / 100n) && a.indexOf(v) === i)
+  const quickAmounts = [Number(totalMinor / 100n), 50000, 100000, 200000, 500000].filter(
+    (v, i, a) => v >= Number(totalMinor / 100n) && a.indexOf(v) === i,
+  )
 
   const handleRecordPayment = async (retry = false) => {
     if (!scope || !allowed || busy) return
+    if (!retry && (baseline.needsReview || baseline.refreshing || baseline.readFailed || !payable(order))) return
     setError(null)
     setBusy(true)
 
@@ -89,12 +90,7 @@ export function PaymentModal({
         setIntent(currentIntent)
       }
 
-      const res = await paymentsApi.record(
-        scope,
-        currentIntent.orderId,
-        currentIntent.input,
-        currentIntent.key,
-      )
+      const res = await paymentsApi.record(scope, currentIntent.orderId, currentIntent.input, currentIntent.key)
 
       // Fetch authoritative updated order
       let updated = order
@@ -143,9 +139,13 @@ export function PaymentModal({
         {paidPayment ? (
           <div className="pos-payment-success">
             <div className="pos-payment-success-badge">
-              <span className="pos-payment-success-icon" aria-hidden="true">✓</span>
+              <span className="pos-payment-success-icon" aria-hidden="true">
+                ✓
+              </span>
               <h3>Đã ghi nhận thanh toán</h3>
-              <p className="order-muted">Mã thanh toán: <strong>{paidPayment.paymentCode}</strong></p>
+              <p className="order-muted">
+                Mã thanh toán: <strong>{paidPayment.paymentCode}</strong>
+              </p>
             </div>
 
             <div className="pos-payment-receipt-summary">
@@ -193,18 +193,10 @@ export function PaymentModal({
             </div>
 
             <div className="order-actions pos-payment-actions">
-              <button
-                type="button"
-                className="button button-ghost"
-                onClick={handlePrint}
-              >
+              <button type="button" className="button button-ghost" onClick={handlePrint}>
                 🖨 In hóa đơn / Phiếu thu
               </button>
-              <button
-                type="button"
-                className="button button-primary"
-                onClick={onClose}
-              >
+              <button type="button" className="button button-primary" onClick={onClose}>
                 Hoàn tất
               </button>
             </div>
@@ -218,9 +210,22 @@ export function PaymentModal({
             ) : (
               <>
                 <OrderFeedback error={error} />
+                {baseline.needsReview && (
+                  <p className="order-warning">
+                    Đơn hoặc số tiền còn phải trả đã thay đổi. Dữ liệu đang nhập được giữ; kiểm tra lại đơn trước khi
+                    thu tiền.
+                  </p>
+                )}
+                {!payable(order) && <p className="order-warning">Đơn không còn đủ điều kiện thu tiền.</p>}
+                {(baseline.needsReview || baseline.readFailed) && !uncertain && (
+                  <button type="button" disabled={busy || baseline.refreshing} onClick={() => void baseline.review()}>
+                    Kiểm tra lại đơn và số tiền
+                  </button>
+                )}
                 {uncertain && (
                   <div className="order-warning" role="alert">
-                    Kết quả thanh toán chưa rõ do sự cố mạng. Vui lòng bấm kiểm tra lại để gửi lại yêu cầu gốc, không tự tạo yêu cầu mới.
+                    Kết quả thanh toán chưa rõ do sự cố mạng. Vui lòng bấm kiểm tra lại để gửi lại yêu cầu gốc, không tự
+                    tạo yêu cầu mới.
                   </div>
                 )}
 
@@ -228,16 +233,12 @@ export function PaymentModal({
                 <div className="pos-payment-order-summary">
                   <div className="pos-payment-summary-header">
                     <div>
-                      <span className="order-eyebrow">
-                        {order.serviceType === 'TAKEAWAY' ? 'Mang đi' : 'Tại bàn'}
-                      </span>
+                      <span className="order-eyebrow">{order.serviceType === 'TAKEAWAY' ? 'Mang đi' : 'Tại bàn'}</span>
                       <h4>{order.orderCode}</h4>
                     </div>
                     <div className="pos-payment-amount-box">
                       <span className="order-muted">Tổng phải thu:</span>
-                      <strong className="pos-payment-total">
-                        {formatMinor(totalMinor, currency)}
-                      </strong>
+                      <strong className="pos-payment-total">{formatMinor(totalMinor, currency)}</strong>
                     </div>
                   </div>
 
@@ -333,9 +334,7 @@ export function PaymentModal({
                     {isGivenEntered && !isInsufficient && (
                       <div className="pos-change-box">
                         <span>Tiền thừa trả khách:</span>
-                        <strong className="pos-change-amount">
-                          {formatMinor(changeMinor, currency)}
-                        </strong>
+                        <strong className="pos-change-amount">{formatMinor(changeMinor, currency)}</strong>
                       </div>
                     )}
                   </div>
@@ -345,7 +344,9 @@ export function PaymentModal({
                 {method === 'TRANSFER' && (
                   <div className="pos-payment-transfer-section">
                     <label>
-                      <span>Mã giao dịch / Mã tham chiếu <strong className="text-danger">*</strong></span>
+                      <span>
+                        Mã giao dịch / Mã tham chiếu <strong className="text-danger">*</strong>
+                      </span>
                       <input
                         type="text"
                         maxLength={100}
@@ -356,18 +357,14 @@ export function PaymentModal({
                       />
                     </label>
                     <p className="order-muted">
-                      ⚠️ Thu ngân tự kiểm tra biến động số dư tài khoản ngân hàng và xác nhận đã nhận đủ tiền trước khi nhấn xác nhận.
+                      ⚠️ Thu ngân tự kiểm tra biến động số dư tài khoản ngân hàng và xác nhận đã nhận đủ tiền trước khi
+                      nhấn xác nhận.
                     </p>
                   </div>
                 )}
 
                 <div className="order-actions pos-modal-footer">
-                  <button
-                    type="button"
-                    className="button button-ghost"
-                    disabled={busy}
-                    onClick={onClose}
-                  >
+                  <button type="button" className="button button-ghost" disabled={busy} onClick={onClose}>
                     Hủy
                   </button>
 
@@ -386,6 +383,10 @@ export function PaymentModal({
                       className="button button-primary pos-confirm-pay-btn"
                       disabled={
                         busy ||
+                        baseline.needsReview ||
+                        baseline.readFailed ||
+                        baseline.refreshing ||
+                        !payable(order) ||
                         (method === 'CASH' && isInsufficient) ||
                         (method === 'TRANSFER' && !referenceNo.trim())
                       }

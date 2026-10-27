@@ -7,7 +7,11 @@ import { useOrderMutations } from '../hooks/useOrderMutations'
 import { quantityMilli } from '../../../shared/utils/scaledDecimal'
 import { OrderFeedback } from './OrderUi'
 import { newOrderId } from '../utils/orderId'
-export function OrderAddItems({ order, onClose }: { order: Order; onClose: () => void }) {
+import { useOrderBaseline } from '../hooks/useOrderBaseline'
+import { appendable } from '../policies/orderActionPolicy'
+export function OrderAddItems({ order: initial, onClose }: { order: Order; onClose: () => void }) {
+  const baseline = useOrderBaseline(initial)
+  const order = baseline.order
   const mutation = useOrderMutations(order)
   const [lines, setLines] = useState<{ id: string; item: PrivateMenuItem; quantity: string; note: string }[]>([])
   const [error, setError] = useState<unknown>(null)
@@ -44,6 +48,25 @@ export function OrderAddItems({ order, onClose }: { order: Order; onClose: () =>
           }}
         />
         <div className="order-form">
+          {baseline.needsReview && (
+            <p className="order-warning">
+              Đơn đã thay đổi trên thiết bị khác. Giỏ món được giữ; kiểm tra lại đơn trước khi gửi.
+            </p>
+          )}
+          {!appendable(order) && (
+            <p className="order-warning">
+              Đơn đã hoàn tất hoặc bị hủy, không thể gọi thêm. Các món chưa gửi vẫn được giữ.
+            </p>
+          )}
+          {(baseline.needsReview || baseline.readFailed) && (
+            <button
+              type="button"
+              disabled={mutation.busy || baseline.refreshing}
+              onClick={() => void baseline.review()}
+            >
+              Kiểm tra lại đơn
+            </button>
+          )}
           <OrderFeedback error={error} />
           {lines.map((line) => (
             <fieldset key={line.id} disabled={mutation.busy || mutation.uncertain}>
@@ -131,7 +154,15 @@ export function OrderAddItems({ order, onClose }: { order: Order; onClose: () =>
         <button
           className="button button-primary"
           type="button"
-          disabled={!lines.length || mutation.busy || mutation.uncertain}
+          disabled={
+            !lines.length ||
+            mutation.busy ||
+            mutation.uncertain ||
+            baseline.needsReview ||
+            baseline.readFailed ||
+            baseline.refreshing ||
+            !appendable(order)
+          }
           onClick={async () => {
             setError(null)
             try {

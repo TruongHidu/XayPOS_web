@@ -5,6 +5,7 @@ import { useOrderAccess } from '../../features/order/hooks/useOrderAccess'
 import { canOrder } from '../../features/order/policies/orderAccessPolicy'
 import { useDraftNavigationGuard } from '../../features/order/hooks/useDraftNavigationGuard'
 import '../../features/order/order.css'
+import { RealtimeIndicator } from './RealtimeIndicator'
 
 export function CashierShell() {
   useDraftNavigationGuard()
@@ -91,6 +92,7 @@ export function CashierShell() {
         </aside>
       )}
       <div className="main-area">
+        <RealtimeIndicator />
         {!isPos && (
           <header className="topbar pos-shell-topbar">
             <div className="pos-topbar-left">
@@ -114,11 +116,7 @@ export function CashierShell() {
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <line x1="3" y1="12" x2="15" y2="12" />
                   <line x1="3" y1="18" x2="21" y2="18" />
-                  {sidebarCollapsed ? (
-                    <polyline points="18 9 21 12 18 15" />
-                  ) : (
-                    <polyline points="6 9 3 12 6 15" />
-                  )}
+                  {sidebarCollapsed ? <polyline points="18 9 21 12 18 15" /> : <polyline points="6 9 3 12 6 15" />}
                 </svg>
               </button>
             </div>

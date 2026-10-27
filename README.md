@@ -108,4 +108,6 @@ POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier d
 
 ## Kiểm thử
 
+Cashier hỗ trợ staff realtime qua native WebSocket/STOMP; bật bằng `VITE_REALTIME_ENABLED=true`. Xem [cấu hình, kiến trúc và kịch bản kiểm thử realtime](docs/staff-realtime.md). Public QR và admin giữ luồng HTTP riêng; tắt realtime vẫn sử dụng REST/polling.
+
 Test hiện có bao phủ auth/interceptor/routing, permission guards, API path/DTO, feature/package CRUD, dashboard, restaurant list/detail, subscription list/detail/operations và audit validation/read-only/redaction. Chạy toàn bộ bằng `npm test`.

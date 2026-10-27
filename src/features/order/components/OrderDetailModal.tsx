@@ -1,21 +1,14 @@
 import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQueryClient } from '@tanstack/react-query'
+import { useOrderDetail } from '../hooks/useOrderDetail'
 import type { Order } from '../types'
 import { ordersApi } from '../api/ordersApi'
 import { orderKeys } from '../api/orderKeys'
+import { cacheOrderSnapshot } from '../api/orderSnapshot'
 import { useOrderAccess } from '../hooks/useOrderAccess'
-import {
-  canMarkServed,
-  canCompleteOrder,
-  canSubmitType,
-  canOrder,
-} from '../policies/orderAccessPolicy'
-import {
-  cancellable,
-  appendable,
-  liveItems,
-} from '../policies/orderActionPolicy'
+import { canMarkServed, canCompleteOrder, canSubmitType, canOrder } from '../policies/orderAccessPolicy'
+import { cancellable, appendable, liveItems } from '../policies/orderActionPolicy'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { orderError } from '../utils/orderErrors'
 import { OrderFeedback } from './OrderUi'
@@ -28,13 +21,7 @@ interface OrderDetailModalProps {
   onRefresh?: () => void
 }
 
-export function OrderDetailModal({
-  orderId,
-  onClose,
-  onOpenPay,
-  onOpenAddItems,
-  onRefresh,
-}: OrderDetailModalProps) {
+export function OrderDetailModal({ orderId, onClose, onOpenPay, onOpenAddItems, onRefresh }: OrderDetailModalProps) {
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
 
@@ -42,17 +29,7 @@ export function OrderDetailModal({
   const [actionError, setActionError] = useState<unknown>(null)
 
   // Fetch full order detail
-  const {
-    data: fetchedOrder,
-    isLoading,
-    error: queryError,
-    refetch,
-  } = useQuery({
-    queryKey: orderKeys.detail(scope, orderId),
-    queryFn: ({ signal }) => ordersApi.detail(scope!, orderId, signal),
-    enabled: Boolean(scope && orderId),
-    retry: false,
-  })
+  const { data: fetchedOrder, isLoading, error: queryError, refetch } = useOrderDetail(orderId)
 
   const [localOrder, setLocalOrder] = useState<Order | null>(null)
   const order =
@@ -70,14 +47,26 @@ export function OrderDetailModal({
 
   if (isLoading || !order) {
     const loadingNode = (
-      <div className="pos-detail-modal-backdrop" role="presentation" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
+      <div
+        className="pos-detail-modal-backdrop"
+        role="presentation"
+        onMouseDown={(e) => {
+          if (e.target === e.currentTarget) onClose()
+        }}
+      >
         <div className="pos-detail-modal" role="dialog" aria-modal="true" aria-label="Chi tiết đơn hàng">
           <div className="pos-modal-header">
             <h3>Chi tiết đơn hàng</h3>
-            <button type="button" className="pos-modal-close" onClick={onClose} aria-label="Đóng">✕</button>
+            <button type="button" className="pos-modal-close" onClick={onClose} aria-label="Đóng">
+              ✕
+            </button>
           </div>
           <div className="pos-modal-body" style={{ padding: '32px', textAlign: 'center' }}>
-            {queryError ? <OrderFeedback error={queryError} onRetry={() => void refetch()} /> : <p>Đang tải chi tiết đơn...</p>}
+            {queryError ? (
+              <OrderFeedback error={queryError} onRetry={() => void refetch()} />
+            ) : (
+              <p>Đang tải chi tiết đơn...</p>
+            )}
           </div>
         </div>
       </div>
@@ -115,7 +104,7 @@ export function OrderDetailModal({
     try {
       const updated = await ordersApi.markAllServed(scope, order.id, order.version)
       setLocalOrder(updated)
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       onRefresh?.()
     } catch (err) {
@@ -137,7 +126,7 @@ export function OrderDetailModal({
     try {
       const updated = await ordersApi.complete(scope, order.id, order.version)
       setLocalOrder(updated)
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       if (order.serviceType === 'DINE_IN') {
         void client.invalidateQueries({ queryKey: orderKeys.tables(scope) })
@@ -169,7 +158,7 @@ export function OrderDetailModal({
         reason: 'Khách yêu cầu hủy',
       })
       setLocalOrder(updated)
-      client.setQueryData(orderKeys.detail(scope, order.id), updated)
+      cacheOrderSnapshot(client, scope, updated)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       onRefresh?.()
     } catch (err) {
@@ -187,12 +176,7 @@ export function OrderDetailModal({
         if (e.target === e.currentTarget) onClose()
       }}
     >
-      <div
-        className="pos-detail-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="modal-order-title"
-      >
+      <div className="pos-detail-modal" role="dialog" aria-modal="true" aria-labelledby="modal-order-title">
         {/* Header */}
         <div className="pos-modal-header">
           <div className="pos-modal-title-row">
@@ -209,12 +193,7 @@ export function OrderDetailModal({
               {isDineIn ? '🪑 Tại bàn' : '🛍️ Mang đi'}
             </span>
           </div>
-          <button
-            type="button"
-            className="pos-modal-close"
-            onClick={onClose}
-            aria-label="Đóng"
-          >
+          <button type="button" className="pos-modal-close" onClick={onClose} aria-label="Đóng">
             ✕
           </button>
         </div>
@@ -260,21 +239,14 @@ export function OrderDetailModal({
           <h4>Danh sách món</h4>
           <div className="pos-modal-items-list">
             {order.items.map((line) => (
-              <div
-                key={line.id}
-                className={`pos-modal-item-row ${line.status === 'CANCELLED' ? 'is-cancelled' : ''}`}
-              >
+              <div key={line.id} className={`pos-modal-item-row ${line.status === 'CANCELLED' ? 'is-cancelled' : ''}`}>
                 <div className="pos-modal-item-left">
                   <span className="pos-modal-item-qty">{line.quantity}×</span>
                   <div className="pos-modal-item-meta">
                     <strong>{line.itemName}</strong>
-                    {line.note && (
-                      <span className="pos-modal-item-note">Ghi chú: {line.note}</span>
-                    )}
+                    {line.note && <span className="pos-modal-item-note">Ghi chú: {line.note}</span>}
                     {line.cancelReason && (
-                      <span className="pos-modal-item-note text-danger">
-                        Lý do hủy: {line.cancelReason}
-                      </span>
+                      <span className="pos-modal-item-note text-danger">Lý do hủy: {line.cancelReason}</span>
                     )}
                   </div>
                 </div>
@@ -290,9 +262,7 @@ export function OrderDetailModal({
                 </div>
 
                 <div className="pos-modal-item-right">
-                  <strong>
-                    {formatMinor(moneyMinor(line.lineTotal), order.currencyCode)}
-                  </strong>
+                  <strong>{formatMinor(moneyMinor(line.lineTotal), order.currencyCode)}</strong>
                   <span className="order-muted pos-modal-item-unitprice">
                     {formatMinor(moneyMinor(line.unitPrice), order.currencyCode)}/món
                   </span>
@@ -306,24 +276,18 @@ export function OrderDetailModal({
         <div className="pos-modal-totals-section">
           <div className="pos-modal-total-row">
             <span className="order-muted">Tạm tính</span>
-            <span>
-              {formatMinor(moneyMinor(order.subtotalAmount), order.currencyCode)}
-            </span>
+            <span>{formatMinor(moneyMinor(order.subtotalAmount), order.currencyCode)}</span>
           </div>
           {order.discountAmount > 0 && (
             <div className="pos-modal-total-row text-success">
               <span>Giảm giá</span>
-              <span>
-                -{formatMinor(moneyMinor(order.discountAmount), order.currencyCode)}
-              </span>
+              <span>-{formatMinor(moneyMinor(order.discountAmount), order.currencyCode)}</span>
             </div>
           )}
           {order.taxAmount > 0 && (
             <div className="pos-modal-total-row">
               <span className="order-muted">Thuế</span>
-              <span>
-                {formatMinor(moneyMinor(order.taxAmount), order.currencyCode)}
-              </span>
+              <span>{formatMinor(moneyMinor(order.taxAmount), order.currencyCode)}</span>
             </div>
           )}
           <div className="pos-modal-total-row is-grand">
@@ -344,23 +308,13 @@ export function OrderDetailModal({
         <div className="pos-modal-actions-footer">
           <div className="pos-modal-footer-left">
             {canMarkAllServed && (
-              <button
-                type="button"
-                className="pos-btn-outline-green"
-                disabled={busy}
-                onClick={handleMarkServed}
-              >
+              <button type="button" className="pos-btn-outline-green" disabled={busy} onClick={handleMarkServed}>
                 {busy ? 'Đang xử lý...' : '✓ Đã lên món'}
               </button>
             )}
 
             {canCancel && (
-              <button
-                type="button"
-                className="pos-btn-outline-red"
-                disabled={busy}
-                onClick={handleCancelOrder}
-              >
+              <button type="button" className="pos-btn-outline-red" disabled={busy} onClick={handleCancelOrder}>
                 ✕ Đã huỷ
               </button>
             )}
@@ -379,12 +333,7 @@ export function OrderDetailModal({
             )}
 
             {canPay && onOpenPay && (
-              <button
-                type="button"
-                className="pos-btn-solid-green"
-                disabled={busy}
-                onClick={() => onOpenPay(order.id)}
-              >
+              <button type="button" className="pos-btn-solid-green" disabled={busy} onClick={() => onOpenPay(order.id)}>
                 💰 Thanh toán {formatMinor(moneyMinor(order.totalAmount), order.currencyCode)}
               </button>
             )}

@@ -24,6 +24,8 @@ Cashier nhận yêu cầu khách tại cột **Chờ xác nhận → Khách gọ
 `/cashier/orders`, có xem chi tiết, duyệt/từ chối và tự cập nhật hàng đợi.
 Xem [tài liệu xác nhận QR](docs/cashier-qr-review.md).
 
+Cashier đã đồng bộ `recipeEnabled`/`costConfigured` của private menu và lỗi chấp nhận món theo backend Phase 1. Xem [tích hợp công thức và cấu hình giá vốn](docs/recipe-cost-config.md) về cache cũ, giỏ/idempotency, public QR và các chức năng quản lý không nằm trên web.
+
 React + TypeScript SPA cho `SUPER_ADMIN`, cùng auth shell cho tenant POS và public QR flow. Phần System Admin dùng API thật, React Query cho server state và URL làm nguồn trạng thái cho các bộ lọc danh sách.
 
 ## Chạy local

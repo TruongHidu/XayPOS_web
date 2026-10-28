@@ -7,7 +7,9 @@ export const orderKeys = {
   tables: (scope: string | null) => ['cashier', scope, 'tables'] as const,
   tableList: (scope: string | null, criteria: object) => ['cashier', scope, 'tables', criteria] as const,
   areas: (scope: string | null) => ['cashier', scope, 'areas'] as const,
-  menu: (scope: string | null, criteria: object) => ['cashier', scope, 'menu', criteria] as const,
+  menus: (scope: string | null) => ['cashier', scope, 'menu'] as const,
+  // Old menu cache has no recipe/cost flags; read a fresh validated DTO after upgrade.
+  menu: (scope: string | null, criteria: object) => [...orderKeys.menus(scope), 'recipe-cost-v1', criteria] as const,
   groups: (scope: string | null) => ['cashier', scope, 'groups'] as const,
   session: (scope: string | null, id: string) => ['cashier', scope, 'session', id.toLowerCase()] as const,
   sessions: (scope: string | null) => ['cashier', scope, 'session'] as const,

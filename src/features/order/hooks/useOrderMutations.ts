@@ -12,7 +12,7 @@ import {
   lineCancellable,
   lineCancelPermission,
 } from '../policies/orderActionPolicy'
-import { orderError } from '../utils/orderErrors'
+import { isOrderAcceptanceRefusal, orderError } from '../utils/orderErrors'
 import { unresolvedResult } from '../utils/orderErrors'
 import { addItemsSchema } from '../schemas'
 import { newOrderId } from '../utils/orderId'
@@ -143,13 +143,20 @@ export function useOrderMutations(order: Order) {
         return response
       } catch (error) {
         const f = orderError(error)
+        const acceptanceRefused = isOrderAcceptanceRefusal(error)
+        if (acceptanceRefused && orderScope(useAuthStore.getState()) === scope)
+          void client.invalidateQueries({ queryKey: orderKeys.menus(scope) })
         if (command.kind === 'add' && orderScope(useAuthStore.getState()) === scope && !unresolvedResult(error))
           clearAppend(key)
+        // A replay reaching a known acceptance refusal has no committed ledger entry.
+        // REST has now resolved this intent; remote events never perform verification.
+        if (replay && acceptanceRefused && orderScope(useAuthStore.getState()) === scope) verifyOrder(key)
         if (f.code === 'CONCURRENT_ORDER_UPDATE' && scope && canOrder(useAuthStore.getState(), 'ORDER_VIEW'))
           void client.invalidateQueries({ queryKey: orderKeys.detail(scope, order.id), exact: true })
         if (f.status === 403 && orderScope(useAuthStore.getState()) === scope) markOrderRefusal(key, f)
         if (
           orderScope(useAuthStore.getState()) === scope &&
+          !acceptanceRefused &&
           !['VALIDATION_ERROR', 'ORDER_ACCESS_CHANGED'].includes(f.code) &&
           (f.isNetworkError || !f.status || f.status >= 500 || f.status === 409 || f.status === 404)
         )

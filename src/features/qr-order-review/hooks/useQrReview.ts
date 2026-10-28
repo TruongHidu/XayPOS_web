@@ -11,6 +11,7 @@ import { canApproveQr, canRejectQr } from '../policies/qrReviewPolicy'
 import type { QrReviewCriteria, QrReviewDetail } from '../types'
 import { useRealtimeStatus } from '../../../shared/realtime/RealtimeContext'
 import { cacheOrderSnapshot } from '../../order/api/orderSnapshot'
+import { isOrderAcceptanceRefusal } from '../../order/utils/orderErrors'
 
 export function useQrReviewQueue(criteria: QrReviewCriteria, enabled = true) {
   const { access, scope } = useOrderAccess()
@@ -85,6 +86,11 @@ export function useQrReviewDecision() {
         expectedRequestVersion: detail.request.version,
         reason: decision.reason,
       })
+    },
+    onError: (error, decision) => {
+      if (!sameOrderScope(scope, useAuthStore.getState()) || !isOrderAcceptanceRefusal(error)) return
+      void client.invalidateQueries({ queryKey: orderKeys.menus(scope) })
+      void client.invalidateQueries({ queryKey: qrReviewKeys.detail(scope, decision.detail.request.requestId) })
     },
     onSuccess: (result) => {
       if (!sameOrderScope(scope, useAuthStore.getState())) return

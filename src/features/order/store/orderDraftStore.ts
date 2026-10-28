@@ -4,7 +4,7 @@ import type { CreateOrderInput, Order, ServiceContext } from '../types'
 import { createOrderSchema } from '../schemas'
 import { previewLine, quantityMilli } from '../../../shared/utils/scaledDecimal'
 import { newOrderId } from '../utils/orderId'
-import { orderError, unresolvedResult } from '../utils/orderErrors'
+import { isOrderAcceptanceRefusal, orderError, unresolvedResult } from '../utils/orderErrors'
 import { useAuthStore } from '../../auth/store/authStore'
 import { canCreateType, canMenu, hasPermission, orderScope } from '../policies/orderAccessPolicy'
 import { ordersApi } from '../api/ordersApi'
@@ -205,6 +205,7 @@ export const useOrderDraftStore = create<DraftState>((set, get) => ({
       if (get().scope !== scope || orderScope(useAuthStore.getState()) !== scope) return null
       const uncertain = unresolvedResult(error)
       const failure = orderError(error)
+      if (isOrderAcceptanceRefusal(error)) void queryClient.invalidateQueries({ queryKey: orderKeys.menus(scope) })
       if (
         failure.status === 409 &&
         ['CONCURRENT_TABLE_UPDATE', 'TABLE_ALREADY_OCCUPIED', 'TABLE_SESSION_HAS_SERVING_ORDER'].includes(failure.code)

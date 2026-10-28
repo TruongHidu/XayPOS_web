@@ -14,6 +14,10 @@ export const privateMenuItemSchema = z.object({
   name: z.string().min(1),
   baseUnit: z.string().min(1),
   salePrice: moneySchema,
+  // Manual reference cost; recipe estimates never replace this value.
+  costPrice: moneySchema,
+  costConfigured: z.boolean(),
+  recipeEnabled: z.boolean(),
   active: z.boolean(),
   sellable: z.boolean(),
   availabilityStatus: z.enum(['AVAILABLE', 'OUT_OF_STOCK']),

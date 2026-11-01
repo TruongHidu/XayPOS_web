@@ -67,16 +67,27 @@ export function TableSelector({
     return true
   })
 
+  const [choosingId, setChoosingId] = useState<string | null>(null)
+  const [tableSearch, setTableSearch] = useState('')
+
   const choose = async (id: string) => {
     setError(null)
+    setChoosingId(id)
     try {
       const table = await h.prepare.mutateAsync(id)
       if (table.status !== 'AVAILABLE' || table.area?.active === false) throw new Error('TABLE_INACTIVE')
       onSelect(table.occupied || table.currentSession ? await h.current(table.id) : h.emptyTableContext(table))
     } catch (e) {
       setError(e)
+    } finally {
+      setChoosingId(null)
     }
   }
+
+  const filteredTables = displayTables.filter((t) => {
+    if (!tableSearch.trim()) return true
+    return t.name.toLowerCase().includes(tableSearch.trim().toLowerCase())
+  })
 
   return (
     <section className="order-tables" aria-label="Chọn bàn">
@@ -86,12 +97,37 @@ export function TableSelector({
           <span className="order-muted">Phiên mở khi gửi đơn</span>
         </div>
         {h.tables.data?.totalElements !== undefined && (
-          <span className="pos-count-chip">{displayTables.length} bàn</span>
+          <span className="pos-count-chip">{filteredTables.length} bàn</span>
         )}
       </div>
 
       {h.enabled ? (
         <>
+          <div className="pos-table-search-bar">
+            <label className="order-search">
+              <span className="pos-search-icon" aria-hidden="true">🔍</span>
+              <input
+                value={tableSearch}
+                onChange={(e) => setTableSearch(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Escape') setTableSearch('')
+                }}
+                placeholder="Tìm tên bàn..."
+                aria-label="Tìm bàn"
+              />
+              {tableSearch && (
+                <button
+                  type="button"
+                  className="pos-search-clear-btn"
+                  onClick={() => setTableSearch('')}
+                  aria-label="Xóa tìm bàn"
+                >
+                  ✕
+                </button>
+              )}
+            </label>
+          </div>
+
           <div className="order-table-filters" role="tablist" aria-label="Trạng thái bàn">
             {(
               [
@@ -154,7 +190,14 @@ export function TableSelector({
       <OrderFeedback error={h.areas.error} onRetry={() => void h.areas.refetch()} />
       <OrderFeedback error={h.tables.error} onRetry={() => void h.tables.refetch()} />
 
-      {h.tables.isFetching && <p role="status">Đang tải bàn...</p>}
+      {h.tables.isFetching && (
+        <div className="pos-skeleton-table-grid" role="status" aria-label="Đang tải danh sách bàn...">
+          <span className="sr-only">Đang tải bàn...</span>
+          {Array.from({ length: 6 }).map((_, idx) => (
+            <div key={idx} className="pos-skeleton-table-card" />
+          ))}
+        </div>
+      )}
 
       <div className="order-table-grid">
         {canTakeaway && (
@@ -167,22 +210,37 @@ export function TableSelector({
         )}
 
         {h.enabled &&
-          displayTables.map((t) => {
+          filteredTables.map((t) => {
             const hasSession = !!(t.occupied || t.currentSession)
             const sId = t.currentSession?.id
             const hasActiveOrder = hasSession && !!sId && !!sessionHasOrder.get(sId)
             const isWaitingOrder = hasSession && !hasActiveOrder
+            const isInactive = t.status !== 'AVAILABLE' || t.area?.active === false
             const isDisabled =
               h.prepare.isPending ||
-              t.status !== 'AVAILABLE' ||
-              t.area?.active === false ||
+              isInactive ||
               (!hasSession && !t.canOpen)
+
+            let disabledReason = ''
+            if (h.prepare.isPending && choosingId === t.id) {
+              disabledReason = 'Đang chọn...'
+            } else if (t.status !== 'AVAILABLE') {
+              disabledReason = 'Không hoạt động'
+            } else if (t.area?.active === false) {
+              disabledReason = 'Khu vực tạm ngưng'
+            } else if (!hasSession && !t.canOpen) {
+              disabledReason = 'Cần quyền mở bàn'
+            }
 
             let statusPillClass = 'available'
             let statusPillText = 'Trống'
             let statusDescText = 'Còn trống'
 
-            if (hasActiveOrder) {
+            if (isInactive) {
+              statusPillClass = 'inactive'
+              statusPillText = 'Tạm dừng'
+              statusDescText = disabledReason
+            } else if (hasActiveOrder) {
               statusPillClass = 'occupied'
               statusPillText = 'Có khách'
               statusDescText = 'Đang sử dụng'
@@ -194,7 +252,7 @@ export function TableSelector({
 
             return (
               <button
-                className={`order-table-card ${hasActiveOrder ? 'is-occupied' : isWaitingOrder ? 'is-waiting-order' : 'is-available'} ${isDisabled ? 'is-disabled' : ''}`}
+                className={`order-table-card ${hasActiveOrder ? 'is-occupied' : isWaitingOrder ? 'is-waiting-order' : 'is-available'} ${isDisabled ? 'is-disabled' : ''} ${choosingId === t.id ? 'is-choosing' : ''}`}
                 type="button"
                 key={t.id}
                 aria-label={t.name + ' ' + (hasSession ? 'Đang sử dụng' : 'Còn trống')}
@@ -209,7 +267,11 @@ export function TableSelector({
                 </div>
                 <strong>{t.name}</strong>
                 <small>{t.area?.name}</small>
-                <small>{statusDescText}</small>
+                {isDisabled && disabledReason ? (
+                  <small className="pos-table-disabled-reason" title={disabledReason}>{disabledReason}</small>
+                ) : (
+                  <small>{statusDescText}</small>
+                )}
                 {t.capacity !== undefined && (
                   <span className="pos-table-capacity">👥 {t.capacity} chỗ</span>
                 )}
@@ -218,7 +280,7 @@ export function TableSelector({
           })}
       </div>
 
-      {h.enabled && displayTables.length === 0 && !h.tables.isFetching && (
+      {h.enabled && filteredTables.length === 0 && !h.tables.isFetching && (
         <p className="order-empty">Không có bàn phù hợp.</p>
       )}
 

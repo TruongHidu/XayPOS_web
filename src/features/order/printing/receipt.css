@@ -1,0 +1,184 @@
+.receipt-document {
+  box-sizing: border-box;
+  width: 72mm;
+  max-width: 100%;
+  margin: 0 auto;
+  padding: 3mm 0;
+  color: #000;
+  background: #fff;
+  font-family: Arial, 'Segoe UI', sans-serif;
+  font-size: 10pt;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.receipt-document *,
+.receipt-document *::before,
+.receipt-document *::after {
+  box-sizing: border-box;
+}
+.receipt-document h2,
+.receipt-document h3,
+.receipt-document p {
+  margin: 0;
+}
+.receipt-document__header {
+  text-align: center;
+  margin-bottom: 3mm;
+}
+.receipt-document__header h2 {
+  font-size: 14pt;
+  font-weight: 700;
+}
+.receipt-document__header h3 {
+  font-size: 12pt;
+  font-weight: 700;
+  margin: 2mm 0 1mm;
+}
+.receipt-document__reprint {
+  display: block;
+  font-size: 10pt;
+  margin-bottom: 1mm;
+}
+.receipt-document__meta {
+  display: grid;
+  gap: 1mm;
+  margin: 2mm 0;
+  font-size: 9pt;
+}
+.receipt-document__divider {
+  border-top: 1px dashed #000;
+  margin: 2mm 0;
+}
+.receipt-document__items {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 9pt;
+}
+.receipt-document__items th {
+  color: #000;
+  background: #fff;
+  letter-spacing: normal;
+  text-transform: none;
+  border-bottom: 1px solid #000;
+  padding: 1mm 0;
+  font-weight: 700;
+}
+.receipt-document__items td {
+  vertical-align: top;
+  padding: 1.5mm 0;
+}
+.receipt-document__items .receipt-document__name {
+  padding-top: 2mm;
+  padding-bottom: 0;
+  text-align: left;
+}
+.receipt-document__items .receipt-document__quantity {
+  padding-right: 0;
+  text-align: right;
+  font-size: 8pt;
+}
+.receipt-document__items .receipt-document__price {
+  padding-left: 0.5mm;
+  text-align: right;
+}
+.receipt-document__items .receipt-document__amount {
+  padding-left: 0.5mm;
+  text-align: right;
+}
+.receipt-document__quantity-value,
+.receipt-document__money {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.receipt-document__items .receipt-document__money--compact {
+  font-size: 7.5pt;
+}
+.receipt-document__unit,
+.receipt-document__line-note {
+  display: block;
+  font-size: 8pt;
+  margin-top: 0.5mm;
+}
+.receipt-document__line-note {
+  font-style: italic;
+}
+.receipt-document__totals {
+  display: grid;
+  gap: 1mm;
+  margin-top: 2mm;
+}
+.receipt-document__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 2mm;
+}
+.receipt-document__row > :first-child {
+  flex: 1;
+}
+.receipt-document__grand-total {
+  font-size: 12pt;
+  border-top: 1px solid #000;
+  padding-top: 1.5mm;
+  font-weight: 700;
+}
+.receipt-document__payment {
+  font-size: 9pt;
+}
+.receipt-document__footer {
+  margin-top: 4mm;
+  text-align: center;
+  font-size: 9pt;
+}
+#staff-receipt-print-root {
+  display: none;
+}
+@page staff-receipt {
+  size: auto;
+  margin: 0;
+}
+@media print {
+  body[data-staff-receipt-print] {
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    color: #000 !important;
+    background: #fff !important;
+  }
+  body[data-staff-receipt-print] > :not(#staff-receipt-print-root) {
+    display: none !important;
+  }
+  body[data-staff-receipt-print] > #staff-receipt-print-root {
+    display: block !important;
+    box-sizing: border-box;
+    page: staff-receipt;
+    width: 80mm;
+    max-width: 100%;
+    margin: 0;
+    padding: 0 4mm;
+    color: #000;
+    background: #fff;
+  }
+  #staff-receipt-print-root .receipt-document {
+    width: 72mm;
+    max-width: 100%;
+    margin: 0;
+    box-shadow: none;
+  }
+  #staff-receipt-print-root .receipt-document__items thead {
+    display: table-header-group;
+  }
+  #staff-receipt-print-root .receipt-document__items tbody,
+  #staff-receipt-print-root .receipt-document__items tr,
+  #staff-receipt-print-root .receipt-document__totals,
+  #staff-receipt-print-root .receipt-document__payment,
+  #staff-receipt-print-root .receipt-document__footer {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

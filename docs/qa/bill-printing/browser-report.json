@@ -1,0 +1,157 @@
+{
+  "result": "passed",
+  "flow": "direct-print-on-one-click",
+  "browser": {
+    "protocolVersion": "1.3",
+    "product": "Chrome/156.0.8078.48",
+    "revision": "@d0c02bfad08ec92a6ffcf989e53cd995e6381a4c",
+    "userAgent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/156.0.0.0 Safari/537.36",
+    "jsVersion": "15.6.75.19"
+  },
+  "output": "D:\\Đồ án tốt nghiệp\\Code\\pos-saas-web\\docs\\qa\\bill-printing",
+  "nativePrinterTested": false,
+  "pdfGenerated": false,
+  "businessMutationCount": 0,
+  "staffWebSocketCount": 0,
+  "networkMode": "All staff REST mocked; navigator offline to prevent real staff sockets",
+  "results": [
+    {
+      "case": "short-provisional",
+      "paperWidthPx": 302.359375,
+      "contentWidthPx": 272.125,
+      "heightPx": 746.3125,
+      "overflowPx": 0,
+      "printCalls": 1,
+      "applicationPreviewShown": false
+    },
+    {
+      "case": "long-provisional",
+      "paperWidthPx": 302.359375,
+      "contentWidthPx": 272.125,
+      "heightPx": 3612.390625,
+      "overflowPx": 0,
+      "printCalls": 1,
+      "applicationPreviewShown": false
+    },
+    {
+      "case": "short-paid-reprint",
+      "paperWidthPx": 302.359375,
+      "contentWidthPx": 272.125,
+      "heightPx": 882.140625,
+      "overflowPx": 0,
+      "printCalls": 1,
+      "applicationPreviewShown": false
+    },
+    {
+      "case": "long-paid-reprint",
+      "paperWidthPx": 302.359375,
+      "contentWidthPx": 272.125,
+      "heightPx": 3748.21875,
+      "overflowPx": 0,
+      "printCalls": 1,
+      "applicationPreviewShown": false
+    }
+  ],
+  "apiCalls": [
+    {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "case": "short-provisional"
+    },
+    {
+      "method": "GET",
+      "path": "/me/entitlements",
+      "case": "short-provisional"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "short-provisional"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "short-provisional"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "case": "long-provisional"
+    },
+    {
+      "method": "GET",
+      "path": "/me/entitlements",
+      "case": "long-provisional"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "long-provisional"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "long-provisional"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "case": "short-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/me/entitlements",
+      "case": "short-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "short-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "short-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333/payments",
+      "case": "short-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333/payments",
+      "case": "short-paid-reprint"
+    },
+    {
+      "method": "POST",
+      "path": "/auth/refresh",
+      "case": "long-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/me/entitlements",
+      "case": "long-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "long-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333",
+      "case": "long-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333/payments",
+      "case": "long-paid-reprint"
+    },
+    {
+      "method": "GET",
+      "path": "/orders/33333333-3333-4333-8333-333333333333/payments",
+      "case": "long-paid-reprint"
+    }
+  ]
+}

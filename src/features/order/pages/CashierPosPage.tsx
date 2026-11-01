@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useOrderAccess } from '../hooks/useOrderAccess'
-import { canCreateType, canOrder, canTables } from '../policies/orderAccessPolicy'
+import { canCreateType, canOrder, canPayment, canTables } from '../policies/orderAccessPolicy'
+import { payable } from '../policies/orderActionPolicy'
 import { useDineInContext } from '../hooks/useOrderServiceContext'
 import { useOrderDraftStore, draftDirty, draftFrozen, draftTotal } from '../store/orderDraftStore'
 import { confirmDraftExit } from '../hooks/useDraftNavigationGuard'
@@ -11,9 +12,10 @@ import { OrderCart } from '../components/OrderCart'
 import { OrderPanel } from '../components/OrderPanel'
 import { OrderFeedback } from '../components/OrderUi'
 import { SessionOrders } from './OrderListPage'
+import { PaymentModal } from '../../payment/components/PaymentModal'
 import type { ServiceContext } from '../types'
 import { resourceId } from '../../../shared/api/tenantSchemas'
-import { formatMinor } from '../../../shared/utils/scaledDecimal'
+import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import '../order.css'
 
 export function CashierPosPage() {
@@ -21,6 +23,9 @@ export function CashierPosPage() {
   const [params, setParams] = useSearchParams()
   const navigate = useNavigate()
   const draft = useOrderDraftStore()
+
+  const [redirectCancelled, setRedirectCancelled] = useState(false)
+  const [showPaymentModal, setShowPaymentModal] = useState(false)
 
   const requested = params.get('serviceType')
   const sessionId = params.get('tableSessionId') ?? undefined
@@ -45,6 +50,16 @@ export function CashierPosPage() {
       ? 'tables'
       : 'menu',
   )
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && tab === 'cart') {
+        setTab('menu')
+      }
+    }
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [tab])
 
   const validSeatingQuery =
     (!requested || ['DINE_IN', 'TAKEAWAY'].includes(requested)) &&
@@ -83,7 +98,7 @@ export function CashierPosPage() {
   }, [scope, context, draft.context, navigate])
 
   useEffect(() => {
-    if (draft.result) {
+    if (draft.result && !redirectCancelled) {
       if (import.meta.env.MODE !== 'test') {
         const timer = setTimeout(() => {
           draft.discard()
@@ -92,7 +107,7 @@ export function CashierPosPage() {
         return () => clearTimeout(timer)
       }
     }
-  }, [draft.result, navigate, draft])
+  }, [draft.result, redirectCancelled, navigate, draft])
 
   const select = (next: ServiceContext) => {
     const current = useOrderDraftStore.getState().context
@@ -158,15 +173,19 @@ export function CashierPosPage() {
       </div>
     )
 
-  if (draft.result)
+  if (draft.result) {
+    const createdOrder = draft.result
+    const canPay = payable(createdOrder) && canPayment(access)
+
     return (
-      <div className="cashier-order pos-workspace">
+      <div className="cashier-order pos-workspace pos-order-submitted-screen">
         <header className="pos-topbar-56">
           <div className="pos-topbar-left">
             <button
               type="button"
               className="pos-btn-back"
               onClick={() => {
+                setRedirectCancelled(true)
                 draft.discard()
                 navigate('/cashier/orders')
               }}
@@ -180,31 +199,85 @@ export function CashierPosPage() {
             <span className="order-eyebrow pos-success-toast">
               ✓ Gọi món thành công! Đang chuyển đến màn hình đơn...
             </span>
-            <button
-              className="button button-ghost"
-              type="button"
-              onClick={() => {
-                draft.discard()
-                navigate('/cashier/orders')
-              }}
-            >
-              Xem danh sách đơn
-            </button>
-            <button
-              className="button button-primary"
-              type="button"
-              onClick={() => {
-                draft.discard()
-                setParams({ serviceType: type })
-              }}
-            >
-              Tạo đơn khác
-            </button>
+            <div className="pos-submitted-button-group">
+              {canPay && (
+                <button
+                  className="button button-primary pos-btn-pay-now"
+                  type="button"
+                  onClick={() => {
+                    setRedirectCancelled(true)
+                    setShowPaymentModal(true)
+                  }}
+                >
+                  💵 Thanh toán ngay
+                </button>
+              )}
+              <button
+                className="button button-ghost"
+                type="button"
+                onClick={() => {
+                  setRedirectCancelled(true)
+                  draft.discard()
+                  navigate('/cashier/orders')
+                }}
+              >
+                Xem danh sách đơn
+              </button>
+              <button
+                className="button button-primary"
+                type="button"
+                onClick={() => {
+                  setRedirectCancelled(true)
+                  draft.discard()
+                  setParams({ serviceType: type })
+                }}
+              >
+                Tạo đơn khác
+              </button>
+            </div>
           </div>
         </header>
-        <OrderPanel key={draft.result.id} order={draft.result} />
+
+        {/* Detailed summary of the created order */}
+        <div className="pos-success-summary-card">
+          <div className="pos-success-summary-header">
+            <div>
+              <span className="pos-badge pos-badge-status-confirmed">Đã tạo thành công</span>
+              <h2>Mã đơn: {createdOrder.orderCode}</h2>
+            </div>
+            <strong className="pos-success-total">
+              {formatMinor(moneyMinor(createdOrder.totalAmount), createdOrder.currencyCode)}
+            </strong>
+          </div>
+          <div className="pos-success-details-row">
+            <span>
+              {createdOrder.serviceType === 'TAKEAWAY'
+                ? '🛍️ Đơn mang đi'
+                : `🪑 ${session.data?.tableName ?? 'Tại bàn'}`}
+            </span>
+            <span>·</span>
+            <span>{createdOrder.items.length} món</span>
+            <span>·</span>
+            <span>{createdOrder.guestCount} khách</span>
+          </div>
+        </div>
+
+        <OrderPanel key={createdOrder.id} order={createdOrder} />
+
+        {showPaymentModal && (
+          <PaymentModal
+            order={createdOrder}
+            onClose={() => setShowPaymentModal(false)}
+            onSuccess={(updatedOrder) => {
+              setShowPaymentModal(false)
+              draft.discard()
+              navigate('/cashier/orders/' + updatedOrder.id)
+            }}
+          />
+        )}
       </div>
     )
+  }
 
   const ready =
     !!context &&
@@ -268,7 +341,10 @@ export function CashierPosPage() {
           <button
             type="button"
             className={`pos-subnav-btn ${tab === 'tables' ? 'active' : ''}`}
-            onClick={() => setTab('tables')}
+            onClick={() => {
+              if (draftDirty(draft) && !confirmDraftExit()) return
+              setTab('tables')
+            }}
           >
             Sơ đồ bàn
           </button>
@@ -295,7 +371,15 @@ export function CashierPosPage() {
       {/* Mobile Tabs */}
       <nav className="order-mobile-tabs" aria-label="Panel POS">
         {['tables', 'menu', 'cart'].map((value) => (
-          <button type="button" key={value} aria-pressed={tab === value} onClick={() => setTab(value)}>
+          <button
+            type="button"
+            key={value}
+            aria-pressed={tab === value}
+            onClick={() => {
+              if (value === 'tables' && draftDirty(draft) && !confirmDraftExit()) return
+              setTab(value)
+            }}
+          >
             {{ tables: 'Bàn', menu: 'Chọn món', cart: 'Giỏ (' + draft.lines.length + ')' }[value]}
           </button>
         ))}
@@ -305,7 +389,7 @@ export function CashierPosPage() {
       <div className="order-pos-grid" data-mobile-tab={tab}>
         {/* Left Side: Tables or Menu */}
         <div className="pos-left-workspace">
-          {type === 'DINE_IN' && tab === 'tables' && !(sessionId || tableId) ? (
+          {type === 'DINE_IN' && (tab === 'tables' || !(sessionId || tableId)) && (
             <div className="order-context-panel">
               <TableSelector
                 canTakeaway={canTakeaway}
@@ -313,69 +397,74 @@ export function CashierPosPage() {
                 onSelect={select}
               />
             </div>
-          ) : (
-            <>
-              {/* Context bar / summary when table is selected */}
-              {type === 'DINE_IN' && (sessionId || tableId) && (
-                <div className="order-context-panel pos-selected-session-bar">
-                  <section className="order-service-summary">
-                    {session.isFetching && <p role="status">Kiểm tra phiên bàn...</p>}
-                    {!canTables(access) && <p>Cần TABLE_VIEW để kiểm tra phiên bàn.</p>}
-                    <OrderFeedback error={session.error} onRetry={() => void session.refetch()} />
-                    {session.data && (
-                      <div className="pos-active-table-bar">
-                        <div className="pos-active-table-title">
-                          <h3>{session.data.tableName}</h3>
-                          <p>
-                            {session.data.tableSessionId ? 'Phiên OPEN' : 'Mở phiên khi gửi đơn'} · {session.data.guestCount} khách
-                          </p>
-                        </div>
-                        <div className="pos-active-table-ops">
-                          <button type="button" className="button button-ghost" onClick={() => switchType('DINE_IN')}>
-                            Chọn bàn khác
-                          </button>
-                          {canOrder(access, 'ORDER_VIEW') && session.data.tableSessionId && (
-                            <SessionOrders sessionId={session.data.tableSessionId} />
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </section>
-                </div>
-              )}
+          )}
 
-              {/* Takeaway context summary */}
-              {type === 'TAKEAWAY' && (
-                <div className="order-context-panel visually-hidden" aria-hidden="true">
-                  <section className="order-service-summary">
-                    <span className="order-large-icon">🛒</span>
-                    <h3>Mang đi</h3>
-                    <p>Không có bàn hoặc phiên bàn.</p>
-                  </section>
-                </div>
-              )}
-
-              {/* Menu Catalog */}
-              <div className="order-menu-panel">
-                {ready ? (
-                  <MenuPicker permission="ORDER_CREATE" onAdd={draft.add} disabled={draftFrozen(draft)} />
-                ) : (
-                  <div className="order-empty pos-pick-table-prompt">
-                    <span className="pos-prompt-icon" aria-hidden="true">🪑</span>
-                    <h3>Chưa chọn bàn phục vụ</h3>
-                    <p>Vui lòng chọn bàn từ sơ đồ trước khi thêm món vào giỏ.</p>
-                    <button
-                      type="button"
-                      className="button button-primary"
-                      onClick={() => setTab('tables')}
-                    >
-                      Mở sơ đồ bàn
-                    </button>
+          {/* Context bar / summary when table is selected */}
+          {type === 'DINE_IN' && (sessionId || tableId) && tab !== 'tables' && (
+            <div className="order-context-panel pos-selected-session-bar">
+              <section className="order-service-summary">
+                {session.isFetching && <p role="status">Kiểm tra phiên bàn...</p>}
+                {!canTables(access) && <p>Cần TABLE_VIEW để kiểm tra phiên bàn.</p>}
+                <OrderFeedback error={session.error} onRetry={() => void session.refetch()} />
+                {session.data && (
+                  <div className="pos-active-table-bar">
+                    <div className="pos-active-table-title">
+                      <h3>{session.data.tableName}</h3>
+                      <p>
+                        {session.data.tableSessionId ? 'Phiên OPEN' : 'Mở phiên khi gửi đơn'} · {session.data.guestCount} khách
+                      </p>
+                    </div>
+                    <div className="pos-active-table-ops">
+                      <button type="button" className="button button-ghost" onClick={() => switchType('DINE_IN')}>
+                        Chọn bàn khác
+                      </button>
+                      {canOrder(access, 'ORDER_VIEW') && session.data.tableSessionId && (
+                        <SessionOrders sessionId={session.data.tableSessionId} />
+                      )}
+                    </div>
                   </div>
                 )}
-              </div>
-            </>
+              </section>
+            </div>
           )}
+
+          {/* Takeaway context summary */}
+          {type === 'TAKEAWAY' && (
+            <div className="order-context-panel visually-hidden" aria-hidden="true">
+              <section className="order-service-summary">
+                <span className="order-large-icon">🛒</span>
+                <h3>Mang đi</h3>
+                <p>Không có bàn hoặc phiên bàn.</p>
+              </section>
+            </div>
+          )}
+
+          {/* Menu Catalog */}
+          <div
+            className="order-menu-panel"
+            style={
+              type === 'DINE_IN' && tab === 'tables' && !(sessionId || tableId)
+                ? { display: 'none' }
+                : undefined
+            }
+          >
+            {ready ? (
+              <MenuPicker permission="ORDER_CREATE" onAdd={draft.add} disabled={draftFrozen(draft)} />
+            ) : (
+              <div className="order-empty pos-pick-table-prompt">
+                <span className="pos-prompt-icon" aria-hidden="true">🪑</span>
+                <h3>Chưa chọn bàn phục vụ</h3>
+                <p>Vui lòng chọn bàn từ sơ đồ trước khi thêm món vào giỏ.</p>
+                <button
+                  type="button"
+                  className="button button-primary"
+                  onClick={() => setTab('tables')}
+                >
+                  Mở sơ đồ bàn
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Right Side: Sticky Cart */}
@@ -395,6 +484,15 @@ export function CashierPosPage() {
           <span>🛒 Xem giỏ ({draft.lines.length} món)</span>
           <strong>{formatMinor(draftTotal(draft.lines))}</strong>
         </button>
+      )}
+
+      {/* Backdrop for mobile cart drawer */}
+      {tab === 'cart' && (
+        <div
+          className="pos-mobile-cart-backdrop"
+          onClick={() => setTab('menu')}
+          aria-hidden="true"
+        />
       )}
     </div>
   )

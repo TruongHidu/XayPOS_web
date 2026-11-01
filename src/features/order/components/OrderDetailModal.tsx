@@ -12,6 +12,7 @@ import { cancellable, appendable, liveItems } from '../policies/orderActionPolic
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { orderError } from '../utils/orderErrors'
 import { OrderFeedback } from './OrderUi'
+import { ReceiptButton } from '../printing/ReceiptButton'
 
 interface OrderDetailModalProps {
   orderId: string
@@ -307,6 +308,7 @@ export function OrderDetailModal({ orderId, onClose, onOpenPay, onOpenAddItems, 
         {/* Footer Actions */}
         <div className="pos-modal-actions-footer">
           <div className="pos-modal-footer-left">
+            <ReceiptButton order={order} disabled={busy} />
             {canMarkAllServed && (
               <button type="button" className="pos-btn-outline-green" disabled={busy} onClick={handleMarkServed}>
                 {busy ? 'Đang xử lý...' : '✓ Đã lên món'}

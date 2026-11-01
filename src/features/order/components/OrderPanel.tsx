@@ -36,6 +36,7 @@ import { OrderAddItems } from './OrderAddItems'
 import type { EditorKind } from '../utils/orderCommands'
 import { ordersApi } from '../api/ordersApi'
 import { orderKeys } from '../api/orderKeys'
+import { ReceiptButton } from '../printing/ReceiptButton'
 import { cacheOrderSnapshot } from '../api/orderSnapshot'
 import { operationKey, verifyOrder, useOrderOperationState } from '../store/orderOperationState'
 import { useOrderDraftStore } from '../store/orderDraftStore'
@@ -238,9 +239,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
           <h2>{order.orderCode}</h2>
         </div>
         <div className="order-actions">
-          <button type="button" className="button button-ghost" onClick={() => window.print()}>
-            🖨 In hóa đơn
-          </button>
+          <ReceiptButton order={order} disabled={busy || actionBusy} />
           {canOrder(access, 'ORDER_VIEW') && (
             <button className="button button-ghost" type="button" disabled={busy} onClick={() => void reload()}>
               Tải lại đơn

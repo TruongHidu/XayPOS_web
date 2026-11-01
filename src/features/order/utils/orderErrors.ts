@@ -25,6 +25,10 @@ const messages: Record<string, string> = {
   INVALID_TENANT_RESPONSE: 'Dữ liệu danh mục trả về không hợp lệ.',
   INVALID_IDEMPOTENCY_KEY: 'Key thao tác không hợp lệ.',
   INVALID_PAYMENT_RESPONSE: 'Dữ liệu thanh toán không hợp lệ. Kiểm tra bằng yêu cầu ban đầu.',
+  PAYMENT_RESULT_UNVERIFIED:
+    'Phản hồi thanh toán chưa xác minh được trạng thái thành công hoặc không khớp yêu cầu. Giữ yêu cầu gốc để kiểm tra, không thu tiền bằng yêu cầu mới.',
+  PAYMENT_ORDER_NOT_VERIFIED:
+    'Đã ghi nhận giao dịch nhưng dữ liệu đơn chưa khớp. Tải lại đơn để kiểm tra trước khi in bill.',
   INVALID_KITCHEN_RESPONSE: 'Dữ liệu hàng đợi bếp không hợp lệ.',
   CONCURRENT_ORDER_UPDATE: 'Đơn đã được cập nhật. Giữ bản đang nhập và tải lại để đối chiếu.',
   IDEMPOTENCY_KEY_REUSED: 'Key tạo đơn đã có xung đột. Không tự tạo key khác, hãy kiểm tra đơn trước.',

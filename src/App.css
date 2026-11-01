@@ -155,9 +155,15 @@ pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; color: #48
 @media (max-width: 900px) { .stat-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } .detail-grid, .subscription-grid { grid-template-columns: 1fr; } }
 @media (max-width: 540px) { .metric-grid, .stat-strip, .stat-grid, .detail-facts, .result-grid { grid-template-columns: 1fr; } .topbar { padding-block: 14px; } .user-chip > span { display: none; } .content { padding-block: 22px; } .page-header, .quick-actions { align-items: flex-start; flex-direction: column; } .page-actions, .quick-links { justify-content: flex-start; } .form-grid { grid-template-columns: 1fr; } }
 
-/* Global Page Transitions */
+/* Global Page Transitions & Motion */
+:root {
+  --pos-duration-fast: 150ms;
+  --pos-duration: 220ms;
+  --pos-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
 .pos-page-transition {
-  animation: posPageFadeIn 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  animation: posPageFadeIn var(--pos-duration) var(--pos-ease);
   min-height: 100%;
 }
 
@@ -168,5 +174,15 @@ pre { white-space: pre-wrap; word-break: break-word; font-size: 11px; color: #48
   }
   to {
     opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

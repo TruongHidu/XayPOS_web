@@ -6,6 +6,7 @@ import { AuthBootstrap } from './features/auth/components/AuthBootstrap'
 import { AdminShell } from './portals/admin/AdminShell'
 import { CashierShell } from './portals/cashier/CashierShell'
 import { StaffRealtimeBoundary } from './portals/cashier/StaffRealtimeBoundary'
+import { ReceiptPrintingProvider } from './features/order/printing/ReceiptPrintingProvider'
 import type { RealtimeRuntime } from './shared/realtime/runtime'
 import { QrMenuPage } from './portals/qr-menu/QrMenuPage'
 import { QrMenuLayout } from './portals/qr-menu/QrMenuLayout'
@@ -142,7 +143,9 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
                   path="/cashier"
                   element={
                     <StaffRealtimeBoundary runtime={realtimeRuntime}>
-                      <CashierShell />
+                      <ReceiptPrintingProvider>
+                        <CashierShell />
+                      </ReceiptPrintingProvider>
                     </StaffRealtimeBoundary>
                   }
                 >

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import { useForm } from 'react-hook-form'
 import { Modal } from '../../../shared/components/AdminUi'
 import { useOrderDraftStore, draftFrozen, draftTotal, type DraftLine } from '../store/orderDraftStore'
@@ -12,11 +12,39 @@ export function OrderCart() {
   const { access } = useOrderAccess()
   const [line, setLine] = useState<DraftLine | null>(null)
   const [showDetails, setShowDetails] = useState(false)
+  const [expandedNoteId, setExpandedNoteId] = useState<string | null>(null)
   const frozen = draftFrozen(s)
   const allowed = !!s.context && canCreateType(access, s.context.serviceType) && canMenu(access)
 
   const isDineIn = s.context?.serviceType === 'DINE_IN'
   const isTakeaway = s.context?.serviceType === 'TAKEAWAY'
+
+  const linesContainerRef = useRef<HTMLDivElement>(null)
+  const prevLineCount = useRef(s.lines.length)
+  const [highlightId, setHighlightId] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (s.lines.length > prevLineCount.current) {
+      const lastLine = s.lines[s.lines.length - 1]
+      if (lastLine) {
+        setHighlightId(lastLine.id)
+        const timer = setTimeout(() => setHighlightId(null), 1000)
+        if (linesContainerRef.current) {
+          if (typeof linesContainerRef.current.scrollTo === 'function') {
+            linesContainerRef.current.scrollTo({
+              top: linesContainerRef.current.scrollHeight,
+              behavior: 'smooth',
+            })
+          } else {
+            linesContainerRef.current.scrollTop = linesContainerRef.current.scrollHeight
+          }
+        }
+        prevLineCount.current = s.lines.length
+        return () => clearTimeout(timer)
+      }
+    }
+    prevLineCount.current = s.lines.length
+  }, [s.lines])
 
   const handleStepQuantity = (l: DraftLine, step: number) => {
     if (frozen) return
@@ -24,12 +52,28 @@ export function OrderCart() {
       const current = Number(l.quantity)
       const next = current + step
       if (next <= 0) {
-        s.remove(l.id)
+        if (window.confirm(`Xóa món ${l.item.name} khỏi giỏ?`)) {
+          s.remove(l.id)
+        }
       } else {
         s.edit(l.id, String(next), l.note)
       }
     } catch {
       // ignore
+    }
+  }
+
+  const handleRemoveLine = (l: DraftLine) => {
+    if (frozen) return
+    if (window.confirm(`Xóa món ${l.item.name} khỏi giỏ?`)) {
+      s.remove(l.id)
+    }
+  }
+
+  const handleClearCart = () => {
+    if (frozen) return
+    if (window.confirm('Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng không?')) {
+      s.discard()
     }
   }
 
@@ -44,8 +88,20 @@ export function OrderCart() {
             {s.context?.tableName ?? (isTakeaway ? 'Mang đi' : 'Chưa chọn bàn')}
           </span>
         </div>
-        <div className={`pos-cart-badge ${isTakeaway ? 'takeaway' : 'dine-in'}`}>
-          {isTakeaway ? '🛍️ Mang đi' : '🪑 Tại bàn'}
+        <div className="pos-cart-header-actions">
+          {s.lines.length > 0 && !frozen && (
+            <button
+              type="button"
+              className="pos-cart-clear-btn"
+              onClick={handleClearCart}
+              title="Xóa toàn bộ giỏ hàng"
+            >
+              Xóa giỏ
+            </button>
+          )}
+          <div className={`pos-cart-badge ${isTakeaway ? 'takeaway' : 'dine-in'}`}>
+            {isTakeaway ? '🛍️ Mang đi' : '🪑 Tại bàn'}
+          </div>
         </div>
       </div>
 
@@ -56,9 +112,17 @@ export function OrderCart() {
       />
 
       {s.uncertain && (
-        <p className="order-warning" role="alert">
-          Kết quả chưa xác định. Giỏ đã khóa; key và payload giữ nguyên khi kiểm tra lại.
-        </p>
+        <div className="order-warning pos-uncertain-alert" role="alert">
+          <p>Kết quả chưa xác định. Giỏ đã khóa; key và payload giữ nguyên khi kiểm tra lại.</p>
+          <button
+            type="button"
+            className="button button-primary pos-retry-submit-btn"
+            disabled={s.pending}
+            onClick={() => void s.submit()}
+          >
+            {s.pending ? 'Đang kiểm tra...' : 'Thử lại'}
+          </button>
+        </div>
       )}
 
       {s.refused && (
@@ -68,16 +132,25 @@ export function OrderCart() {
       )}
 
       {/* Cart Lines */}
-      <div className="order-cart-lines">
+      <div className="order-cart-lines" ref={linesContainerRef}>
         {s.lines.length === 0 && (
           <div className="pos-empty-cart">
-            <span className="pos-empty-cart-icon" aria-hidden="true">🛒</span>
-            <p className="order-empty">Chọn món từ thực đơn để bắt đầu.</p>
+            <span className="pos-empty-cart-icon" aria-hidden="true">
+              {isDineIn ? '🪑' : '🛒'}
+            </span>
+            <p className="order-empty">
+              {isDineIn && !s.context?.tableName
+                ? 'Vui lòng chọn bàn từ sơ đồ trước khi chọn món.'
+                : 'Giỏ món đang trống. Chọn món từ thực đơn để bắt đầu.'}
+            </p>
           </div>
         )}
 
         {s.lines.map((l) => (
-          <article key={l.id} className="order-cart-line">
+          <article
+            key={l.id}
+            className={`order-cart-line ${highlightId === l.id ? 'is-recently-added' : ''}`}
+          >
             <div className="pos-line-header">
               <div>
                 <strong>{l.item.name}</strong>
@@ -90,7 +163,32 @@ export function OrderCart() {
               </p>
             </div>
 
-            {l.note && <small className="pos-line-note">📝 {l.note}</small>}
+            <div className="pos-line-note-container">
+              {expandedNoteId === l.id ? (
+                <div className="pos-inline-note-form">
+                  <input
+                    maxLength={2000}
+                    value={l.note}
+                    onChange={(e) => s.edit(l.id, l.quantity, e.target.value)}
+                    placeholder="Ghi chú món (VD: ít đá, không hành...)"
+                    aria-label={`Ghi chú cho ${l.item.name}`}
+                    autoFocus
+                  />
+                  <button
+                    type="button"
+                    className="pos-inline-note-done"
+                    onClick={() => setExpandedNoteId(null)}
+                  >
+                    Xong
+                  </button>
+                </div>
+              ) : l.note ? (
+                <div className="pos-line-note-display" onClick={() => !frozen && setExpandedNoteId(l.id)}>
+                  <small className="pos-line-note">📝 {l.note}</small>
+                  {!frozen && <span className="pos-note-edit-hint">Sửa</span>}
+                </div>
+              ) : null}
+            </div>
 
             <div className="order-line-actions">
               <div className="pos-qty-stepper">
@@ -117,6 +215,16 @@ export function OrderCart() {
 
               <button
                 type="button"
+                className="pos-line-btn-note"
+                disabled={frozen}
+                onClick={() => setExpandedNoteId(expandedNoteId === l.id ? null : l.id)}
+                aria-label={l.note ? 'Sửa ghi chú' : 'Thêm ghi chú'}
+              >
+                📝 {l.note ? 'Ghi chú' : '+ Ghi chú'}
+              </button>
+
+              <button
+                type="button"
                 className="pos-line-btn-edit"
                 disabled={frozen}
                 onClick={() => setLine(l)}
@@ -128,7 +236,7 @@ export function OrderCart() {
                 type="button"
                 className="pos-line-btn-remove"
                 disabled={frozen}
-                onClick={() => s.remove(l.id)}
+                onClick={() => handleRemoveLine(l)}
                 aria-label="Bỏ món"
               >
                 Bỏ món

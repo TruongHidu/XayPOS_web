@@ -1,8 +1,10 @@
+import { useMemo, useState } from 'react'
 import type { PrivateMenuItem } from '../../menu/schemas'
 import { useOrderMenuPicker } from '../hooks/useOrderMenuPicker'
 import { moneyMinor, formatMinor } from '../../../shared/utils/scaledDecimal'
 import { OrderFeedback, OrderPager } from './OrderUi'
 import { orderError } from '../utils/orderErrors'
+import { useOrderDraftStore, draftFrozen } from '../store/orderDraftStore'
 
 export function MenuPicker({
   permission,
@@ -14,6 +16,28 @@ export function MenuPicker({
   disabled?: boolean
 }) {
   const p = useOrderMenuPicker(permission)
+  const cartLines = useOrderDraftStore((s) => s.lines)
+  const isDraftFrozen = useOrderDraftStore((s) => draftFrozen(s))
+  const [liveAnnouncement, setLiveAnnouncement] = useState('')
+  const [animatingId, setAnimatingId] = useState<string | null>(null)
+
+  const cartCounts = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const l of cartLines) {
+      const q = parseFloat(l.quantity) || 0
+      counts.set(l.item.id, (counts.get(l.item.id) || 0) + q)
+    }
+    return counts
+  }, [cartLines])
+
+  const handleAddItem = (item: PrivateMenuItem) => {
+    if (disabled || !item.sellable) return
+    onAdd(item)
+    setAnimatingId(item.id)
+    setLiveAnnouncement(`Đã thêm ${item.name} vào giỏ`)
+    setTimeout(() => setAnimatingId(null), 300)
+  }
+
   if (p.items.error && orderError(p.items.error).status === 403) return <OrderFeedback error={p.items.error} />
   if (!p.enabled && p.search.length <= 100)
     return (
@@ -22,6 +46,10 @@ export function MenuPicker({
 
   return (
     <section className="order-catalog" aria-label="Chọn món">
+      <div className="sr-only" aria-live="polite" aria-atomic="true">
+        {liveAnnouncement}
+      </div>
+
       <div className="order-panel-heading">
         <div>
           <h3>Thực đơn</h3>
@@ -32,13 +60,16 @@ export function MenuPicker({
         )}
       </div>
 
-      <div className="pos-search-wrapper">
+      <div className="pos-search-wrapper pos-sticky-search">
         <label className="order-search">
           <span className="pos-search-icon" aria-hidden="true">🔍</span>
           <input
             maxLength={100}
             value={p.search}
             onChange={(e) => p.setSearch(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') p.setSearch('')
+            }}
             placeholder="Nhập tên món..."
             aria-label="Tìm món"
           />
@@ -54,6 +85,12 @@ export function MenuPicker({
           )}
         </label>
       </div>
+
+      {disabled && isDraftFrozen && (
+        <div className="pos-menu-frozen-banner" role="status">
+          🔒 Giỏ hàng đang được xử lý hoặc đã khóa, tạm thời không thể thêm món.
+        </div>
+      )}
 
       <div className="order-chips" role="tablist" aria-label="Nhóm món">
         <button
@@ -111,45 +148,70 @@ export function MenuPicker({
       )}
 
       <div className="order-menu-grid">
-        {p.items.data?.content.map((item) => (
-          <button
-            type="button"
-            className="order-menu-card"
-            key={item.id}
-            onClick={() => onAdd(item)}
-            disabled={disabled || !item.sellable}
-            aria-label={'Thêm ' + item.name}
-          >
-            <div className="order-menu-img-wrap">
-              {item.imageUrl ? (
-                <img
-                  loading="lazy"
-                  src={item.imageUrl}
-                  alt=""
-                  onError={(e) => {
-                    e.currentTarget.style.display = 'none'
-                  }}
-                />
-              ) : (
-                <span className="order-food-icon" aria-hidden="true">
-                  ♨
+        {p.items.data?.content.map((item) => {
+          const inCartCount = cartCounts.get(item.id) || 0
+          const isAnimating = animatingId === item.id
+          const isItemDisabled = disabled || !item.sellable
+
+          return (
+            <button
+              type="button"
+              className={`order-menu-card ${isItemDisabled ? 'is-disabled' : ''} ${!item.sellable ? 'is-out-of-stock' : ''} ${isAnimating ? 'is-pop-active' : ''}`}
+              key={item.id}
+              onClick={() => handleAddItem(item)}
+              disabled={isItemDisabled}
+              aria-label={'Thêm ' + item.name}
+            >
+              {inCartCount > 0 && (
+                <span className="pos-menu-card-badge" aria-label={`Đã có ${inCartCount} trong giỏ`}>
+                  {inCartCount}
                 </span>
               )}
-            </div>
-            <div className="order-menu-info">
-              <strong title={item.name}>{item.name}</strong>
-              <div className="order-menu-price-row">
-                <span className="pos-menu-price">
-                  {formatMinor(moneyMinor(item.salePrice))}
+
+              {!item.sellable && (
+                <span className="pos-menu-card-badge pos-badge-soldout">
+                  Hết hàng
                 </span>
-                <span className="pos-menu-unit">/ {item.baseUnit}</span>
+              )}
+
+              <div className="order-menu-img-wrap">
+                {item.imageUrl ? (
+                  <img
+                    loading="lazy"
+                    src={item.imageUrl}
+                    alt=""
+                    onError={(e) => {
+                      e.currentTarget.style.display = 'none'
+                      const fallback = e.currentTarget.parentElement?.querySelector('.pos-menu-img-fallback')
+                      if (fallback) (fallback as HTMLElement).style.display = 'flex'
+                    }}
+                  />
+                ) : null}
+                <div
+                  className="pos-menu-img-fallback"
+                  style={{ display: item.imageUrl ? 'none' : 'flex' }}
+                  aria-hidden="true"
+                >
+                  <span className="order-food-icon" aria-hidden="true">
+                    ♨
+                  </span>
+                </div>
               </div>
-            </div>
-            <span className="order-add-sign" aria-hidden="true">
-              +
-            </span>
-          </button>
-        ))}
+              <div className="order-menu-info">
+                <strong title={item.name}>{item.name}</strong>
+                <div className="order-menu-price-row">
+                  <span className="pos-menu-price">
+                    {formatMinor(moneyMinor(item.salePrice))}
+                  </span>
+                  <span className="pos-menu-unit">/ {item.baseUnit}</span>
+                </div>
+              </div>
+              <span className={`order-add-sign ${isAnimating ? 'animating' : ''}`} aria-hidden="true">
+                +
+              </span>
+            </button>
+          )
+        })}
       </div>
 
       <OrderPager

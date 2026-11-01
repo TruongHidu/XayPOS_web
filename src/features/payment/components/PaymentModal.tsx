@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import type { Order } from '../../order/types'
 import type { Payment, PaymentInput } from '../schemas'
@@ -6,13 +6,17 @@ import { paymentsApi } from '../api/paymentsApi'
 import { ordersApi } from '../../order/api/ordersApi'
 import { orderKeys } from '../../order/api/orderKeys'
 import { useOrderAccess } from '../../order/hooks/useOrderAccess'
-import { canPayment } from '../../order/policies/orderAccessPolicy'
+import { canPayment, orderScope } from '../../order/policies/orderAccessPolicy'
+import { useAuthStore } from '../../auth/store/authStore'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { newOrderId } from '../../order/utils/orderId'
-import { orderError } from '../../order/utils/orderErrors'
+import { unresolvedResult } from '../../order/utils/orderErrors'
 import { Modal } from '../../../shared/components/AdminUi'
 import { OrderFeedback } from '../../order/components/OrderUi'
-import { ReceiptPrint } from '../../order/components/ReceiptPrint'
+import { useReceiptPrinting } from '../../order/printing/ReceiptPrintingContext'
+import { isReceiptPaymentValid, receiptKindForOrder, type ReceiptTender } from '../../order/printing/receiptModel'
+import { cacheOrderSnapshot } from '../../order/api/orderSnapshot'
+import { paymentConfirmsIntent } from '../utils/paymentConfirmation'
 import { useOrderBaseline } from '../../order/hooks/useOrderBaseline'
 import { payable } from '../../order/policies/orderActionPolicy'
 
@@ -20,6 +24,9 @@ interface PaymentIntent {
   orderId: string
   input: PaymentInput
   key: string
+  currency: string
+  tender?: ReceiptTender
+  revision: number
 }
 
 export function PaymentModal({
@@ -32,10 +39,23 @@ export function PaymentModal({
   onSuccess?: (order: Order, payment: Payment) => void
 }) {
   const { access, scope } = useOrderAccess()
+  const authRevision = useAuthStore((state) => state.sessionRevision)
   const baseline = useOrderBaseline(initial)
   const order = baseline.order
   const client = useQueryClient()
   const allowed = canPayment(access)
+  const printing = useReceiptPrinting()
+  const mounted = useRef(true)
+  const paymentBusy = useRef(false)
+  const readController = useRef<AbortController | null>(null)
+  const notified = useRef<string | null>(null)
+  useEffect(() => {
+    mounted.current = true
+    return () => {
+      mounted.current = false
+      readController.current?.abort()
+    }
+  }, [])
 
   const [method, setMethod] = useState<'CASH' | 'TRANSFER'>('CASH')
   const [cashGiven, setCashGiven] = useState<string>('')
@@ -45,7 +65,9 @@ export function PaymentModal({
   const [uncertain, setUncertain] = useState(false)
   const [intent, setIntent] = useState<PaymentIntent | null>(null)
   const [paidPayment, setPaidPayment] = useState<Payment | null>(null)
-  const [latestOrder, setLatestOrder] = useState<Order>(order)
+  const [verifiedOrder, setVerifiedOrder] = useState<Order | null>(null)
+  const [snapshotError, setSnapshotError] = useState<unknown>(null)
+  const [verifying, setVerifying] = useState(false)
 
   const totalMinor = moneyMinor(order.totalAmount)
   const currency = order.currencyCode || 'VND'
@@ -61,11 +83,46 @@ export function PaymentModal({
     (v, i, a) => v >= Number(totalMinor / 100n) && a.indexOf(v) === i,
   )
 
+  const current = (revision: number) =>
+    mounted.current &&
+    useAuthStore.getState().sessionRevision === revision &&
+    orderScope(useAuthStore.getState()) === scope
+  const refreshConfirmedOrder = async (payment: Payment, revision: number) => {
+    if (!scope || !current(revision)) return
+    readController.current?.abort()
+    const controller = new AbortController()
+    readController.current = controller
+    const latestRead = () => current(revision) && readController.current === controller && !controller.signal.aborted
+    setVerifying(true)
+    setSnapshotError(null)
+    try {
+      const response = await ordersApi.detail(scope, payment.orderId, controller.signal)
+      if (!latestRead()) return
+      if (response.id !== payment.orderId) throw new Error('PAYMENT_ORDER_NOT_VERIFIED')
+      const updated = cacheOrderSnapshot(client, scope, response)
+      if (receiptKindForOrder(updated) !== 'paid' || !isReceiptPaymentValid(updated, payment))
+        throw new Error('PAYMENT_ORDER_NOT_VERIFIED')
+      setVerifiedOrder(updated)
+      if (notified.current !== payment.id) {
+        notified.current = payment.id
+        onSuccess?.(updated, payment)
+      }
+    } catch (failure) {
+      if (!latestRead()) return
+      setVerifiedOrder(null)
+      setSnapshotError(failure)
+    } finally {
+      if (latestRead()) setVerifying(false)
+    }
+  }
+
   const handleRecordPayment = async (retry = false) => {
-    if (!scope || !allowed || busy) return
+    if (!scope || !allowed || busy || paymentBusy.current || paidPayment) return
     if (!retry && (baseline.needsReview || baseline.refreshing || baseline.readFailed || !payable(order))) return
     setError(null)
     setBusy(true)
+    paymentBusy.current = true
+    const revision = useAuthStore.getState().sessionRevision
 
     try {
       let currentIntent = intent
@@ -73,33 +130,34 @@ export function PaymentModal({
         if (method === 'TRANSFER' && !referenceNo.trim()) {
           setError(new Error('Vui lòng nhập mã giao dịch tham chiếu.'))
           setBusy(false)
+          paymentBusy.current = false
           return
         }
 
-        const input: PaymentInput = {
+        const input: PaymentInput = Object.freeze({
           expectedOrderVersion: order.version,
           paymentMethod: method,
           amount: order.totalAmount,
           referenceNo: method === 'TRANSFER' ? referenceNo.trim() : undefined,
-        }
-        currentIntent = {
+        })
+        currentIntent = Object.freeze({
           orderId: order.id,
           input,
           key: newOrderId(),
-        }
+          currency,
+          revision,
+          tender:
+            method === 'CASH' && isGivenEntered && givenMinor >= totalMinor
+              ? Object.freeze({ cashGiven: givenMinor, change: changeMinor })
+              : undefined,
+        })
         setIntent(currentIntent)
       }
 
       const res = await paymentsApi.record(scope, currentIntent.orderId, currentIntent.input, currentIntent.key)
-
-      // Fetch authoritative updated order
-      let updated = order
-      try {
-        updated = await ordersApi.detail(scope, order.id)
-        setLatestOrder(updated)
-      } catch {
-        // Keep payment confirmed even if order refetch fails
-      }
+      if (!current(revision)) return
+      if (!paymentConfirmsIntent(res.payment, currentIntent.orderId, currentIntent.currency, currentIntent.input))
+        throw new Error('PAYMENT_RESULT_UNVERIFIED')
 
       setPaidPayment(res.payment)
       setUncertain(false)
@@ -110,23 +168,28 @@ export function PaymentModal({
       void client.invalidateQueries({ queryKey: orderKeys.activeOrders(scope) })
       void client.invalidateQueries({ queryKey: ['cashier', scope, 'payments', order.id] })
 
-      onSuccess?.(updated, res.payment)
+      await refreshConfirmedOrder(res.payment, revision)
     } catch (err) {
-      const e = orderError(err)
-      if (e.isNetworkError || !e.status || e.status >= 500) {
+      if (!current(revision)) return
+      if (unresolvedResult(err) || (retry && uncertain)) {
         setUncertain(true)
       } else {
         setIntent(null)
+        setUncertain(false)
       }
       setError(err)
     } finally {
-      setBusy(false)
+      paymentBusy.current = false
+      if (current(revision)) setBusy(false)
     }
   }
 
-  const handlePrint = () => {
-    window.print()
-  }
+  if (intent && (intent.revision !== authRevision || intent.orderId !== initial.id))
+    return (
+      <Modal title="Phiên thanh toán đã thay đổi" onClose={onClose}>
+        <p>Đóng hộp thoại và mở lại đơn trong phiên hiện tại để tiếp tục.</p>
+      </Modal>
+    )
 
   return (
     <Modal
@@ -169,15 +232,15 @@ export function PaymentModal({
                   <span>{paidPayment.referenceNo}</span>
                 </div>
               )}
-              {method === 'CASH' && isGivenEntered && (
+              {paidPayment.paymentMethod === 'CASH' && intent?.tender && (
                 <>
                   <div className="pos-receipt-row">
                     <span>Khách đưa:</span>
-                    <span>{formatMinor(givenMinor, currency)}</span>
+                    <span>{formatMinor(intent.tender.cashGiven, paidPayment.currencyCode)}</span>
                   </div>
                   <div className="pos-receipt-row pos-receipt-change">
                     <span>Tiền thừa trả khách:</span>
-                    <strong>{formatMinor(changeMinor, currency)}</strong>
+                    <strong>{formatMinor(intent.tender.change, paidPayment.currencyCode)}</strong>
                   </div>
                 </>
               )}
@@ -187,14 +250,41 @@ export function PaymentModal({
               </div>
             </div>
 
-            {/* Hidden printable receipt for window.print() */}
-            <div className="pos-printable-area">
-              <ReceiptPrint order={latestOrder} payment={paidPayment} cashGiven={givenMinor} change={changeMinor} />
-            </div>
+            {verifying && <p role="status">Đang kiểm tra đơn để in bill...</p>}
+            {snapshotError ? (
+              <>
+                <p className="order-warning">
+                  Đã ghi nhận thanh toán. Chưa đủ dữ liệu đơn để in; chỉ tải lại, không thu tiền lần nữa.
+                </p>
+                <OrderFeedback error={snapshotError} />
+                <button
+                  type="button"
+                  disabled={verifying}
+                  onClick={() => {
+                    if (intent) void refreshConfirmedOrder(paidPayment, intent.revision)
+                  }}
+                >
+                  Tải lại đơn để in
+                </button>
+              </>
+            ) : null}
 
             <div className="order-actions pos-payment-actions">
-              <button type="button" className="button button-ghost" onClick={handlePrint}>
-                🖨 In hóa đơn / Phiếu thu
+              <button
+                type="button"
+                className="button button-ghost"
+                disabled={!verifiedOrder || verifying || !printing.available}
+                onClick={() =>
+                  printing.openReceipt({
+                    orderId: paidPayment.orderId,
+                    expectedKind: 'paid',
+                    expectedVersion: verifiedOrder?.version,
+                    payment: paidPayment,
+                    tender: intent?.tender,
+                  })
+                }
+              >
+                In bill / Phiếu thu
               </button>
               <button type="button" className="button button-primary" onClick={onClose}>
                 Hoàn tất

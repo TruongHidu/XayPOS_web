@@ -1,0 +1,10 @@
+.git
+.claude
+.kilo
+.backend-user-api
+node_modules
+dist
+docs
+*.log
+.env
+.env.*

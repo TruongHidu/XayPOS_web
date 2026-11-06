@@ -28,6 +28,8 @@ Cashier hỗ trợ in bill tạm tính, bill đã thanh toán và in lại theo 
 
 Cashier đã đồng bộ `recipeEnabled`/`costConfigured` của private menu và lỗi chấp nhận món theo backend Phase 1. Xem [tích hợp công thức và cấu hình giá vốn](docs/recipe-cost-config.md) về cache cũ, giỏ/idempotency, public QR và các chức năng quản lý không nằm trên web.
 
+Luồng khách mới: `/` là trang giới thiệu; `/register` tạo OWNER + nhà hàng; `/onboarding` thiết lập nhà hàng, chọn gói và tạo đơn mua; `/onboarding/purchases/:purchaseId` xem, hủy đơn và tạo mã VietQR chuyển khoản (render từ `instructions.qrPayload`, chỉ khi backend trả `CREATE_PAYMENT_ATTEMPT`). Mã được tạo tự động một lần ngay sau khi xác nhận gói; tải lại trang hay mở lại đơn không tự tạo thêm, khi đó chủ quán bấm nút tạo mã. Trang poll đơn mỗi 4 giây khi có mã QR còn hiệu lực hoặc đơn đang chờ kích hoạt. OWNER chưa có gói được chuyển về `/onboarding`. Backend chưa có webhook (Phase 4) nên đơn chưa tự chuyển sang PAID sau khi chuyển khoản. Tạo đơn và QR cần backend chạy với `SUBSCRIPTION_PURCHASE_ACCEPT_NEW=true` và cấu hình `SEPAY_*`.
+
 React + TypeScript SPA cho `SUPER_ADMIN`, cùng auth shell cho tenant POS và public QR flow. Phần System Admin dùng API thật, React Query cho server state và URL làm nguồn trạng thái cho các bộ lọc danh sách.
 
 ## Chạy local

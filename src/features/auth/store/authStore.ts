@@ -16,6 +16,7 @@ import type {
   CurrentEntitlement,
   EntitlementState,
   LoginRequest,
+  RegisterRestaurantRequest,
 } from '../../../shared/types/auth'
 
 interface AuthState {
@@ -26,6 +27,7 @@ interface AuthState {
   entitlementState: EntitlementState
   lastError: string | null
   signIn: (body: LoginRequest) => Promise<AuthResponse>
+  signUp: (body: RegisterRestaurantRequest) => Promise<AuthResponse>
   refreshSession: () => Promise<AuthResponse>
   bootstrap: () => Promise<void>
   loadEntitlement: () => Promise<void>
@@ -63,6 +65,13 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       email: body.email.trim().toLowerCase(),
       deviceInfo: getDeviceInfo(),
     })
+    set({ sessionRevision: get().sessionRevision + 1 })
+    applyAuthResponse(response)
+    await get().loadEntitlement()
+    return response
+  },
+  signUp: async (body) => {
+    const response = await authApi.registerRestaurant(body)
     set({ sessionRevision: get().sessionRevision + 1 })
     applyAuthResponse(response)
     await get().loadEntitlement()

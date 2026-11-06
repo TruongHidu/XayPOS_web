@@ -1,5 +1,6 @@
-import { Navigate, Outlet, Route, Routes } from 'react-router-dom'
+import { Navigate, Outlet, Route, Routes, useLocation } from 'react-router-dom'
 import { LoginPage } from './features/auth/pages/LoginPage'
+import { RegisterPage } from './features/auth/pages/RegisterPage'
 import { PublicOnlyRoute, RequireAuth, RequirePermission, RequireRole, RequireTenant } from './features/auth/guards'
 import { useAuthStore } from './features/auth/store/authStore'
 import { AuthBootstrap } from './features/auth/components/AuthBootstrap'
@@ -30,19 +31,22 @@ import { OrderGuard } from './features/order/components/OrderGuard'
 import { CashierPosPage } from './features/order/pages/CashierPosPage'
 import { OrderListPage } from './features/order/pages/OrderListPage'
 import { OrderDetailPage } from './features/order/pages/OrderDetailPage'
+import { LandingPage } from './features/marketing/pages/LandingPage'
+import { OnboardingPage } from './features/onboarding/pages/OnboardingPage'
+import { PurchasePage } from './features/onboarding/pages/PurchasePage'
 
 function TenantPortal() {
   const user = useAuthStore((state) => state.user)
   const entitlementState = useAuthStore((state) => state.entitlementState)
+  const location = useLocation()
 
   if (!user || user.restaurantId === null) return <Navigate to="/forbidden" replace />
   if (entitlementState === 'inactive') {
-    return (
-      <Navigate
-        to={user.role === 'OWNER' || user.role === 'MANAGER' ? '/subscription-required' : '/access-unavailable'}
-        replace
-      />
-    )
+    const target =
+      user.role === 'OWNER' ? '/onboarding' : user.role === 'MANAGER' ? '/subscription-required' : '/access-unavailable'
+    // LoginPage navigates right after PublicOnlyRoute does. Without the key that second navigation
+    // lands back here on an already-fired Navigate, which renders nothing and leaves a blank page.
+    return <Navigate key={location.key} to={target} replace />
   }
   if (entitlementState === 'error')
     return (
@@ -80,6 +84,9 @@ function AdminDefaultRedirect() {
 export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRuntime } = {}) {
   return (
     <Routes>
+      {/* === LANDING — outside AuthBootstrap so visitors never see the session loading screen === */}
+      <Route path="/" element={<LandingPage />} />
+
       {/* === PUBLIC QR MENU — outside AuthBootstrap === */}
       <Route element={<QrMenuLayout />}>
         <Route path="/qr/:qrToken" element={<QrMenuPage />} />
@@ -100,6 +107,7 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
       >
         <Route element={<PublicOnlyRoute />}>
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
         </Route>
 
         <Route element={<RequireAuth />}>
@@ -137,6 +145,12 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
           </Route>
 
           <Route element={<RequireTenant />}>
+            {/* Outside TenantPortal: these pages serve restaurants without an active subscription. */}
+            <Route element={<RequireRole roles={['OWNER']} />}>
+              <Route path="/onboarding" element={<OnboardingPage />} />
+              <Route path="/onboarding/purchases/:purchaseId" element={<PurchasePage />} />
+            </Route>
+
             <Route element={<TenantPortal />}>
               <Route element={<RequireRole roles={['OWNER', 'MANAGER', 'CASHIER', 'WAITER', 'KITCHEN']} />}>
                 <Route
@@ -177,8 +191,8 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
             element={
               <StatusPage
                 kind="subscription"
-                title="Subscription chưa hoạt động"
-                description="Nhà hàng chưa có subscription đang hoạt động. Vui lòng liên hệ quản trị viên để tiếp tục."
+                title="Nhà hàng chưa có gói hoạt động"
+                description="Vui lòng liên hệ chủ quán để kích hoạt gói dịch vụ."
               />
             }
           />
@@ -214,7 +228,7 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
           />
         </Route>
 
-        <Route path="/" element={<DefaultRedirect />} />
+        <Route path="/app" element={<DefaultRedirect />} />
         <Route
           path="*"
           element={

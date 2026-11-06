@@ -1,11 +1,12 @@
 import { useState } from 'react'
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { useOrderAccess } from '../../features/order/hooks/useOrderAccess'
 import { canOrder } from '../../features/order/policies/orderAccessPolicy'
 import { useDraftNavigationGuard } from '../../features/order/hooks/useDraftNavigationGuard'
 import '../../features/order/order.css'
 import { RealtimeIndicator } from './RealtimeIndicator'
+import { AppSidebar, type SidebarSection } from '../../shared/components/AppSidebar'
 
 export function CashierShell() {
   useDraftNavigationGuard()
@@ -51,11 +52,34 @@ export function CashierShell() {
 
   const avatarLetter = (user?.name || user?.role || 'U').trim().charAt(0).toUpperCase()
 
-  const links = [
-    { to: '/cashier/dashboard', label: 'Tổng quan', visible: true },
-    { to: '/cashier/pos', label: 'Gọi món', visible: canOrder(access, 'ORDER_CREATE') },
-    { to: '/cashier/orders', label: 'Đơn hàng', visible: canOrder(access, 'ORDER_VIEW') },
-    { to: '/cashier/kitchen', label: 'Bếp', visible: ['OWNER', 'MANAGER', 'KITCHEN'].includes(user?.role ?? '') },
+  const handleSignOut = async () => {
+    await signOut()
+    navigate('/login', { replace: true })
+  }
+
+  const sections: SidebarSection[] = [
+    {
+      title: 'Tổng quan',
+      links: [{ to: '/cashier/dashboard', label: 'Tổng quan', icon: 'dashboard' }],
+    },
+    {
+      title: 'Bán hàng & vận hành',
+      links: [
+        { to: '/cashier/orders', label: 'Đơn hàng', icon: 'order', visible: canOrder(access, 'ORDER_VIEW') },
+        { to: '/cashier/pos', label: 'Gọi món', icon: 'pos', visible: canOrder(access, 'ORDER_CREATE') },
+      ],
+    },
+    {
+      title: 'Bếp',
+      links: [
+        {
+          to: '/cashier/kitchen',
+          label: 'Màn hình bếp',
+          icon: 'kitchen',
+          visible: ['OWNER', 'MANAGER', 'KITCHEN'].includes(user?.role ?? ''),
+        },
+      ],
+    },
   ]
 
   return (
@@ -63,33 +87,15 @@ export function CashierShell() {
       className={`app-shell cashier-shell ${isPos ? 'is-pos-fullscreen' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
     >
       {!isPos && (
-        <aside className="sidebar">
-          <NavLink className="brand" to="/cashier/dashboard">
-            <span className="brand-mark">P</span>
-            <span>
-              <strong>POS SaaS</strong>
-              <small>{user?.restaurantName ?? 'Restaurant portal'}</small>
-            </span>
-          </NavLink>
-          <div className="nav-label">Operations</div>
-          <nav className="nav-list">
-            {links
-              .filter((l) => l.visible)
-              .map((link) => (
-                <NavLink
-                  key={link.to}
-                  to={link.to}
-                  className={({ isActive }) => 'nav-link ' + (isActive ? 'active' : '')}
-                >
-                  <span>{link.label}</span>
-                  <span>›</span>
-                </NavLink>
-              ))}
-          </nav>
-          <div className="sidebar-footer">
-            <span className="muted">{user?.role}</span>
-          </div>
-        </aside>
+        <AppSidebar
+          homeTo="/cashier/dashboard"
+          subtitle="Restaurant Pro"
+          userName={user?.name ?? 'Người dùng'}
+          userMeta={user?.restaurantName ?? roleLabel}
+          roleBadge={user?.role ?? ''}
+          sections={sections}
+          onSignOut={() => void handleSignOut()}
+        />
       )}
       <div className="main-area">
         <RealtimeIndicator />
@@ -131,16 +137,6 @@ export function CashierShell() {
                   <span className="pos-user-role">{roleLabel}</span>
                 </div>
               </div>
-              <button
-                className="button button-ghost button-small pos-logout-btn"
-                type="button"
-                onClick={async () => {
-                  await signOut()
-                  navigate('/login', { replace: true })
-                }}
-              >
-                Đăng xuất
-              </button>
             </div>
           </header>
         )}

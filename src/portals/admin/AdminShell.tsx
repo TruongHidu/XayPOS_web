@@ -1,5 +1,6 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../features/auth/store/authStore'
+import { AppSidebar, type SidebarSection } from '../../shared/components/AppSidebar'
 
 export function AdminShell() {
   const navigate = useNavigate()
@@ -11,35 +12,42 @@ export function AdminShell() {
   const canViewRestaurants = Boolean(user?.permissions.includes('RESTAURANT_VIEW'))
   const canViewSubscriptions = Boolean(user?.permissions.includes('SUBSCRIPTION_VIEW'))
   const canViewAudit = Boolean(user?.permissions.includes('AUDIT_VIEW'))
-  const links = [
-    { to: '/admin/dashboard', label: 'Dashboard', visible: canViewDashboard },
-    { to: '/admin/packages', label: 'Packages', visible: canViewCatalog },
-    { to: '/admin/features', label: 'Features', visible: canViewCatalog },
-    { to: '/admin/restaurants', label: 'Restaurants', visible: canViewRestaurants },
-    { to: '/admin/subscriptions', label: 'Subscriptions', visible: canViewSubscriptions },
-    { to: '/admin/audit-logs', label: 'Audit logs', visible: canViewAudit },
+  const sections: SidebarSection[] = [
+    {
+      title: 'Tổng quan',
+      links: [{ to: '/admin/dashboard', label: 'Dashboard', icon: 'dashboard', visible: canViewDashboard }],
+    },
+    {
+      title: 'Danh mục gói',
+      links: [
+        { to: '/admin/packages', label: 'Packages', icon: 'package', visible: canViewCatalog },
+        { to: '/admin/features', label: 'Features', icon: 'feature', visible: canViewCatalog },
+      ],
+    },
+    {
+      title: 'Khách hàng',
+      links: [
+        { to: '/admin/restaurants', label: 'Restaurants', icon: 'store', visible: canViewRestaurants },
+        { to: '/admin/subscriptions', label: 'Subscriptions', icon: 'subscription', visible: canViewSubscriptions },
+      ],
+    },
+    {
+      title: 'Hệ thống',
+      links: [{ to: '/admin/audit-logs', label: 'Audit logs', icon: 'audit', visible: canViewAudit }],
+    },
   ]
   const handleSignOut = async () => { await signOut(); navigate('/login', { replace: true }) }
   return (
     <div className="app-shell">
-      <aside className="sidebar">
-        <a className="brand" href="/admin/dashboard">
-          <span className="brand-mark">P</span>
-          <span><strong>POS SaaS</strong><small>System Admin</small></span>
-        </a>
-        <div className="nav-label">Workspace</div>
-        <nav className="nav-list">
-          {links.filter((link) => link.visible).map((link) => (
-            <NavLink key={link.to} to={link.to} className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
-              <span>{link.label}</span>
-              <span>›</span>
-            </NavLink>
-          ))}
-        </nav>
-        <div className="sidebar-footer">
-          <button className="button button-ghost" type="button" onClick={() => void handleSignOut()}>Đăng xuất</button>
-        </div>
-      </aside>
+      <AppSidebar
+        homeTo="/admin/dashboard"
+        subtitle="System Admin"
+        userName={user?.name ?? 'Admin'}
+        userMeta={user?.email ?? ''}
+        roleBadge="ADMIN"
+        sections={sections}
+        onSignOut={() => void handleSignOut()}
+      />
       <div className="main-area">
         <header className="topbar">
           <div>

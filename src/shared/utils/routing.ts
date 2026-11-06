@@ -23,5 +23,6 @@ export function postLoginRoute(user: Pick<AuthUser, 'role' | 'restaurantId'>, re
   const path = new URL(returnUrl, window.location.origin).pathname
   const isSystemAdminPath = user.role === 'SUPER_ADMIN' && user.restaurantId === null && (path === '/admin' || path.startsWith('/admin/'))
   const isTenantPath = user.role !== 'SUPER_ADMIN' && user.restaurantId !== null && (path === '/cashier' || path.startsWith('/cashier/'))
-  return isSystemAdminPath || isTenantPath ? returnUrl : defaultRouteForUser(user)
+  const isOnboardingPath = user.role === 'OWNER' && user.restaurantId !== null && (path === '/onboarding' || path.startsWith('/onboarding/'))
+  return isSystemAdminPath || isTenantPath || isOnboardingPath ? returnUrl : defaultRouteForUser(user)
 }

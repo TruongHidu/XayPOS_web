@@ -1,5 +1,35 @@
 # POS SaaS Web — System Admin
 
+Cashier Order: `/cashier/pos` gọi món tại bàn/mang đi; `/cashier/orders`
+xem và vận hành đơn theo quyền. Xem [tài liệu Cashier Order](docs/cashier-order.md)
+về API, feature, idempotency, version và các giới hạn MVP.
+
+Prompt dựng giao diện web Cashier gọi món và thanh toán theo ảnh tham chiếu:
+[pos-ui-implementation-prompt.md](docs/pos-ui-implementation-prompt.md).
+API cashier đã hỗ trợ SUBMIT từ bàn, active-order, gọi thêm có idempotency;
+adapter payment đã có để nối vào giao diện thu tiền. Các adapter KDS/complete/close
+đã có nhưng nằm ngoài phạm vi prompt giao diện Cashier.
+
+Prompt triển khai giao diện khách gọi món qua QR bàn hoặc menu mang đi:
+[customer-qr-order-implementation-prompt.md](docs/customer-qr-order-implementation-prompt.md).
+Đã triển khai `/qr/:qrToken`, `/menu/:menuToken` và trang receipt cho khách,
+gồm giỏ món, guest access và gửi yêu cầu chờ nhân viên duyệt. Tải lại trong cùng
+tab khôi phục guest ban đầu và các yêu cầu của chính guest đó bằng `sessionStorage`,
+tách theo backend và đúng QR/link menu; backend vẫn kiểm tra quyền xem mỗi yêu cầu.
+Đóng tab, xóa dữ liệu phiên, hết hạn hoặc bị thu hồi quyền sẽ không khôi phục được.
+Không tự cấp guest mới để đọc yêu cầu cũ hoặc tự gửi lại món sau reload. Xem
+[tài liệu triển khai và ảnh kiểm tra](docs/customer-qr-order.md).
+
+Cashier nhận yêu cầu khách tại cột **Chờ xác nhận → Khách gọi qua QR** trong
+`/cashier/orders`, có xem chi tiết, duyệt/từ chối và tự cập nhật hàng đợi.
+Xem [tài liệu xác nhận QR](docs/cashier-qr-review.md).
+
+Cashier hỗ trợ in bill tạm tính, bill đã thanh toán và in lại theo mẫu 80 mm bằng một lần bấm, từ chi tiết đơn hoặc sau thu tiền. Chỉ yêu cầu kiểm tra bill nếu dữ liệu đơn vừa thay đổi. Xem [hướng dẫn in bill, quyền và cấu hình máy in](docs/bill-printing.md).
+
+Cashier đã đồng bộ `recipeEnabled`/`costConfigured` của private menu và lỗi chấp nhận món theo backend Phase 1. Xem [tích hợp công thức và cấu hình giá vốn](docs/recipe-cost-config.md) về cache cũ, giỏ/idempotency, public QR và các chức năng quản lý không nằm trên web.
+
+Luồng khách mới: `/` là trang giới thiệu; `/register` tạo OWNER + nhà hàng; `/onboarding` thiết lập nhà hàng, chọn gói và tạo đơn mua; `/onboarding/purchases/:purchaseId` xem, hủy đơn và tạo mã VietQR chuyển khoản (render từ `instructions.qrPayload`, chỉ khi backend trả `CREATE_PAYMENT_ATTEMPT`). Mã được tạo tự động một lần ngay sau khi xác nhận gói; tải lại trang hay mở lại đơn không tự tạo thêm, khi đó chủ quán bấm nút tạo mã. Trang poll đơn mỗi 4 giây khi có mã QR còn hiệu lực hoặc đơn đang chờ kích hoạt. OWNER chưa có gói được chuyển về `/onboarding`. Backend chưa có webhook (Phase 4) nên đơn chưa tự chuyển sang PAID sau khi chuyển khoản. Tạo đơn và QR cần backend chạy với `SUBSCRIPTION_PURCHASE_ACCEPT_NEW=true` và cấu hình `SEPAY_*`.
+
 React + TypeScript SPA cho `SUPER_ADMIN`, cùng auth shell cho tenant POS và public QR flow. Phần System Admin dùng API thật, React Query cho server state và URL làm nguồn trạng thái cho các bộ lọc danh sách.
 
 ## Chạy local
@@ -39,14 +69,14 @@ npm run build
 
 API được tách theo domain tại `src/features/admin/api`, không có `AdminService` tổng hợp và component không gọi Axios trực tiếp.
 
-| Module | Endpoint chính |
-| --- | --- |
-| `adminDashboardApi` | `GET /admin/dashboard/summary` |
-| `restaurantsApi` | `GET /admin/restaurants`, `GET /admin/restaurants/{id}`, `PATCH /admin/restaurants/{id}/status` |
-| `adminSubscriptionsApi` | `GET /admin/subscriptions`, list/detail theo restaurant, create/activate/change-package/cancel |
-| `featuresApi` | list/detail/create/update feature |
-| `packagesApi` | list/detail/create/update và add/remove feature mapping |
-| `auditApi` | `GET /admin/audit-logs` |
+| Module                  | Endpoint chính                                                                                  |
+| ----------------------- | ----------------------------------------------------------------------------------------------- |
+| `adminDashboardApi`     | `GET /admin/dashboard/summary`                                                                  |
+| `restaurantsApi`        | `GET /admin/restaurants`, `GET /admin/restaurants/{id}`, `PATCH /admin/restaurants/{id}/status` |
+| `adminSubscriptionsApi` | `GET /admin/subscriptions`, list/detail theo restaurant, create/activate/change-package/cancel  |
+| `featuresApi`           | list/detail/create/update feature                                                               |
+| `packagesApi`           | list/detail/create/update và add/remove feature mapping                                         |
+| `auditApi`              | `GET /admin/audit-logs`                                                                         |
 
 Mọi query key nằm trong `adminKeys.ts`; mutation thành công invalidate các list/detail/dashboard liên quan. Query retry chỉ áp dụng cho network/5xx, không retry lỗi validation, 403 hay 404.
 
@@ -80,8 +110,10 @@ Menu được ẩn theo permission, route vẫn được guard và mutation cũn
 
 Repository hiện không chứa `docs/openapi/admin-api.yaml` hoặc `docs/admin-api.md`; phần admin được triển khai theo contract trong yêu cầu đã cung cấp. Frontend không thêm endpoint ngoài contract và không dùng production mock data. MSW chỉ được dùng trong test.
 
-Các module POS/menu/order/kitchen/payment và public QR vẫn là shell/placeholder ngoài phạm vi admin hiện tại. Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
+POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier duyệt yêu cầu QR tại màn hình đơn. Trang Kitchen riêng vẫn là placeholder. Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
 
 ## Kiểm thử
+
+Cashier hỗ trợ staff realtime qua native WebSocket/STOMP; bật bằng `VITE_REALTIME_ENABLED=true`. Xem [cấu hình, kiến trúc và kịch bản kiểm thử realtime](docs/staff-realtime.md). Public QR và admin giữ luồng HTTP riêng; tắt realtime vẫn sử dụng REST/polling.
 
 Test hiện có bao phủ auth/interceptor/routing, permission guards, API path/DTO, feature/package CRUD, dashboard, restaurant list/detail, subscription list/detail/operations và audit validation/read-only/redaction. Chạy toàn bộ bằng `npm test`.

@@ -1,4 +1,4 @@
-import type { AuditLogCriteria, RestaurantListCriteria, RestaurantSubscriptionCriteria, SubscriptionListCriteria } from '../../../shared/types/admin'
+import type { AuditLogCriteria, RestaurantListCriteria, RestaurantSubscriptionCriteria, SubscriptionListCriteria, RestaurantUserCriteria } from '../../../shared/types/admin'
 
 export const adminKeys = {
   all: ['admin'] as const,
@@ -9,6 +9,8 @@ export const adminKeys = {
   packageDetail: (packageCode: string) => ['admin', 'packages', packageCode] as const,
   restaurants: (criteria: RestaurantListCriteria) => ['admin', 'restaurants', criteria] as const,
   restaurant: (restaurantId: string) => ['admin', 'restaurants', restaurantId] as const,
+  restaurantUsers: (restaurantId: string, criteria: RestaurantUserCriteria) => ['admin', 'restaurants', restaurantId, 'users', criteria] as const,
+  restaurantUser: (restaurantId: string, userId: string) => ['admin', 'restaurants', restaurantId, 'users', userId] as const,
   subscriptions: (criteria: SubscriptionListCriteria) => ['admin', 'subscriptions', criteria] as const,
   restaurantSubscriptions: (restaurantId: string, criteria: RestaurantSubscriptionCriteria) => ['admin', 'restaurants', restaurantId, 'subscriptions', criteria] as const,
   subscription: (restaurantId: string, subscriptionId: string) => ['admin', 'restaurants', restaurantId, 'subscriptions', subscriptionId] as const,

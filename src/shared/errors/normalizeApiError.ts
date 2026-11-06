@@ -9,12 +9,17 @@ const messages: Record<string, string> = {
   FEATURE_ALREADY_EXISTS: 'Mã chức năng đã tồn tại.',
   FEATURE_NOT_FOUND: 'Không tìm thấy chức năng.',
   FEATURE_DISABLED: 'Chức năng đang bị vô hiệu hóa.',
+  INVALID_PACKAGE_LIMIT: 'Giới hạn nhân viên phải là số nguyên dương hoặc không giới hạn.',
+  INVALID_FEATURE_LIMIT: 'Payload feature chứa limit không hợp lệ; kiểm tra mapper không gửi maxStaff trong feature.',
+  DUPLICATE_PACKAGE_FEATURE: 'Danh sách feature bị trùng.',
+  CONCURRENT_PACKAGE_UPDATE: 'Package vừa được cập nhật bởi người khác. Vui lòng tải lại dữ liệu.',
   PACKAGE_ALREADY_EXISTS: 'Mã gói đã tồn tại.',
   PACKAGE_NOT_FOUND: 'Không tìm thấy gói.',
   PACKAGE_INACTIVE: 'Gói đang ngừng hoạt động.',
   PACKAGE_FEATURE_ALREADY_EXISTS: 'Chức năng đã nằm trong gói.',
   PACKAGE_FEATURE_NOT_FOUND: 'Chức năng không thuộc gói.',
   RESTAURANT_NOT_FOUND: 'Không tìm thấy nhà hàng.',
+  USER_NOT_FOUND: 'Không tìm thấy tài khoản trong nhà hàng này.',
   SUBSCRIPTION_NOT_FOUND: 'Không tìm thấy subscription trong nhà hàng này.',
   INVALID_SUBSCRIPTION_PERIOD: 'Thời gian kết thúc phải sau thời gian bắt đầu.',
   INVALID_REQUEST_BODY: 'Dữ liệu gửi lên không đúng định dạng.',
@@ -26,18 +31,44 @@ const messages: Record<string, string> = {
 export function normalizeApiError(error: unknown): NormalizedApiError {
   if (!axios.isAxiosError(error)) {
     const code = error instanceof Error && error.message in messages ? error.message : 'UNKNOWN_ERROR'
-    return { code, message: messages[code] ?? 'Đã xảy ra lỗi. Vui lòng thử lại.', fieldErrors: {}, isNetworkError: false }
+    return {
+      code,
+      message: messages[code] ?? 'Đã xảy ra lỗi. Vui lòng thử lại.',
+      fieldErrors: {},
+      isNetworkError: false,
+    }
   }
-  if (!error.response) return { code: 'NETWORK_ERROR', message: 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.', fieldErrors: {}, isNetworkError: true }
+  if (!error.response)
+    return {
+      code: 'NETWORK_ERROR',
+      message: 'Không thể kết nối máy chủ. Vui lòng kiểm tra kết nối và thử lại.',
+      fieldErrors: {},
+      isNetworkError: true,
+    }
   const data: unknown = error.response.data
   if (typeof data === 'object' && data !== null) {
     const record = data as Record<string, unknown>
     const code = typeof record.code === 'string' ? record.code : `HTTP_${error.response.status}`
-    const fieldErrors = typeof record.fieldErrors === 'object' && record.fieldErrors !== null ? record.fieldErrors as Record<string, string> : {}
-    const message = messages[code] ?? (typeof record.message === 'string' && record.message !== 'Forbidden' ? record.message : 'Máy chủ không thể xử lý yêu cầu.')
+    const fieldErrors =
+      typeof record.fieldErrors === 'object' && record.fieldErrors !== null
+        ? (record.fieldErrors as Record<string, string>)
+        : {}
+    const message =
+      messages[code] ??
+      (typeof record.message === 'string' && record.message !== 'Forbidden'
+        ? record.message
+        : 'Máy chủ không thể xử lý yêu cầu.')
     return { status: error.response.status, code, message, fieldErrors, isNetworkError: false }
   }
-  return { status: error.response.status, code: `HTTP_${error.response.status}`, message: 'Máy chủ không thể xử lý yêu cầu.', fieldErrors: {}, isNetworkError: false }
+  return {
+    status: error.response.status,
+    code: `HTTP_${error.response.status}`,
+    message: 'Máy chủ không thể xử lý yêu cầu.',
+    fieldErrors: {},
+    isNetworkError: false,
+  }
 }
 
-export function errorCode(error: unknown): string { return normalizeApiError(error).code }
+export function errorCode(error: unknown): string {
+  return normalizeApiError(error).code
+}

@@ -1,0 +1,39 @@
+.staff-realtime-indicator {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 12px;
+  font-size: 11px;
+  color: #64748b;
+}
+.staff-realtime-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #94a3b8;
+}
+.staff-realtime-dot.connected {
+  background: #16a34a;
+}
+.staff-realtime-dot.blocked,
+.staff-realtime-dot.reconnecting {
+  background: #d97706;
+}
+.staff-realtime-indicator button {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+}
+.staff-realtime-notice {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 3000;
+  background: #14532d;
+  color: white;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: 0 4px 18px #0002;
+}

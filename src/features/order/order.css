@@ -1,16 +1,16 @@
 /* ==========================================================================
    POS SaaS Design System Tokens & Base Styles
-   Colors: Emerald Green (#009b72), Orange (#ea580c), Purple (#7c3aed), Sky Blue (#0284c7)
+   Colors: Primary Blue (#0863be), Orange (#ea580c), Purple (#7c3aed), Sky Blue (#0284c7)
    Surface: #ffffff, Background: #f6f7f9, Text: #0f172a, Muted: #64748b, Border: #e2e8f0
    ========================================================================== */
 
 :root {
-  --pos-bg: #f6f7f9;
+  --pos-bg: #f4f7fb;
   --pos-surface: #ffffff;
   --pos-text-main: #0f172a;
   --pos-text-muted: #64748b;
   --pos-border: #e2e8f0;
-  --pos-border-focus: #009b72;
+  --pos-border-focus: #0863be;
   --pos-radius-sm: 8px;
   --pos-radius-md: 12px;
   --pos-radius-lg: 16px;
@@ -18,12 +18,12 @@
   --pos-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
   --pos-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
 
-  /* Primary Emerald Green (Takeaway & General primary actions) */
-  --pos-primary: #009b72;
-  --pos-primary-hover: #00825f;
-  --pos-primary-active: #006a4e;
-  --pos-primary-light: #e6f7f2;
-  --pos-primary-border: #a3e6d1;
+  /* Primary Blue #0863BE (brand, shared with sidebar) */
+  --pos-primary: #0863be;
+  --pos-primary-hover: #064f98;
+  --pos-primary-active: #053f7a;
+  --pos-primary-light: #e8f1fb;
+  --pos-primary-border: #b9d4f1;
 
   /* Orange (Dine-in & Pending states) */
   --pos-orange: #ea580c;
@@ -107,7 +107,7 @@
 .cashier-order textarea:focus {
   outline: none;
   border-color: var(--pos-primary);
-  box-shadow: 0 0 0 3px rgba(0, 155, 114, 0.15);
+  box-shadow: 0 0 0 3px rgba(8, 99, 190, 0.15);
 }
 
 .cashier-order textarea {
@@ -440,10 +440,6 @@
   font-weight: 600 !important;
 }
 
-.theme-dine-in .pos-chip.active {
-  background: var(--pos-orange) !important;
-  border-color: var(--pos-orange) !important;
-}
 
 .pos-chip-more {
   border-style: dashed !important;
@@ -479,9 +475,6 @@
   box-shadow: var(--pos-shadow-md);
 }
 
-.theme-dine-in .order-menu-card:hover:not(:disabled) {
-  border-color: var(--pos-orange);
-}
 
 .order-menu-img-wrap {
   width: 100%;
@@ -542,9 +535,6 @@
   color: var(--pos-primary);
 }
 
-.theme-dine-in .pos-menu-price {
-  color: var(--pos-orange);
-}
 
 .pos-menu-unit {
   font-size: 11px;
@@ -568,10 +558,6 @@
   transition: all 0.15s ease;
 }
 
-.theme-dine-in .order-add-sign {
-  background: var(--pos-orange-light);
-  color: var(--pos-orange);
-}
 
 .order-menu-card:hover:not(:disabled) .order-add-sign {
   background: var(--pos-primary);
@@ -579,10 +565,6 @@
   transform: scale(1.1);
 }
 
-.theme-dine-in .order-menu-card:hover:not(:disabled) .order-add-sign {
-  background: var(--pos-orange);
-  color: #ffffff;
-}
 
 /* Skeletons */
 .pos-skeleton-menu-grid {
@@ -804,9 +786,6 @@
   margin-left: 4px;
 }
 
-.theme-dine-in .order-count {
-  background: var(--pos-orange);
-}
 
 .pos-cart-badge {
   font-size: 12px;
@@ -996,9 +975,6 @@
   color: var(--pos-primary);
 }
 
-.theme-dine-in .order-cart-total strong {
-  color: var(--pos-orange);
-}
 
 .order-submit {
   width: 100%;
@@ -1009,21 +985,14 @@
   background: var(--pos-primary) !important;
   color: #ffffff !important;
   border: none !important;
-  box-shadow: 0 4px 6px -1px rgba(0, 155, 114, 0.25);
+  box-shadow: 0 4px 6px -1px rgba(8, 99, 190, 0.25);
 }
 
 .order-submit:hover:not(:disabled) {
   background: var(--pos-primary-hover) !important;
 }
 
-.theme-dine-in .order-submit {
-  background: var(--pos-orange) !important;
-  box-shadow: 0 4px 6px -1px rgba(234, 88, 12, 0.25);
-}
 
-.theme-dine-in .order-submit:hover:not(:disabled) {
-  background: var(--pos-orange-hover) !important;
-}
 
 /* ==========================================================================
    Order Management 3-Column Kanban Board (OrderListPage.tsx)
@@ -1868,9 +1837,6 @@
     cursor: pointer;
   }
 
-  .theme-dine-in .pos-mobile-cart-float-btn {
-    background: var(--pos-orange);
-  }
 
   .order-table-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2158,7 +2124,7 @@
 
 .pos-badge-served {
   background: #e6f7f2;
-  color: #009b72;
+  color: var(--pos-primary);
   border: 1px solid #a3e6d1;
 }
 
@@ -2293,7 +2259,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  box-shadow: 0 2px 4px rgba(0, 155, 114, 0.2);
+  box-shadow: 0 2px 4px rgba(8, 99, 190, 0.2);
   transition: all 0.15s ease;
 }
 
@@ -2494,10 +2460,6 @@
 
 .theme-dine_in button:focus-visible,
 .theme-dine_in input:focus-visible,
-.theme-dine-in button:focus-visible,
-.theme-dine-in input:focus-visible {
-  outline-color: var(--pos-orange);
-}
 
 /* Table skeletons */
 .pos-skeleton-table-grid {
@@ -2538,14 +2500,10 @@
 
 .order-table-card.is-choosing {
   border-color: var(--pos-primary);
-  box-shadow: 0 0 0 3px rgba(0, 155, 114, 0.2);
+  box-shadow: 0 0 0 3px rgba(8, 99, 190, 0.2);
   pointer-events: none;
 }
 
-.theme-dine-in .order-table-card.is-choosing {
-  border-color: var(--pos-orange);
-  box-shadow: 0 0 0 3px rgba(234, 88, 12, 0.2);
-}
 
 /* MenuPicker enhancements */
 .pos-sticky-search {
@@ -2576,9 +2534,6 @@
   animation: posBadgePop var(--pos-duration-fast) var(--pos-ease);
 }
 
-.theme-dine-in .pos-menu-card-badge {
-  background: var(--pos-orange);
-}
 
 .pos-menu-card-badge.pos-badge-soldout {
   background: var(--pos-danger);
@@ -2818,4 +2773,369 @@
     z-index: 40;
     backdrop-filter: blur(2px);
   }
+}
+
+/* ==========================================================================
+   Brand refresh — Primary Blue #0863BE (matches AppSidebar)
+   Overrides earlier rules; keep this block at the end of the file.
+   ========================================================================== */
+
+.cashier-order {
+  --pos-amber: #d97706;
+  --pos-amber-light: #fffbeb;
+  --pos-amber-border: #fde68a;
+  --pos-green: #16a34a;
+  --pos-green-light: #f0fdf4;
+  --pos-green-border: #bbf7d0;
+}
+
+/* ---- Shared surfaces ---------------------------------------------------- */
+.pos-topbar-56,
+.pos-dinein-subnav,
+.pos-filters-toolbar,
+.order-context-panel,
+.order-menu-panel,
+.order-cart-panel,
+.pos-history-view {
+  border-color: #e3e9f2;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.pos-topbar-56 {
+  border-left: 4px solid var(--pos-primary);
+}
+
+.pos-page-title {
+  color: #0b2a4a;
+}
+
+.pos-active-table-badge,
+.pos-subnav-btn.active {
+  background: var(--pos-primary-light) !important;
+  color: var(--pos-primary) !important;
+  border: 1px solid var(--pos-primary-border);
+}
+
+.pos-subnav-switch-table {
+  border-color: var(--pos-primary-border) !important;
+  background: #fff !important;
+  color: var(--pos-primary) !important;
+  font-weight: 600 !important;
+}
+
+.pos-subnav-switch-table:hover {
+  background: var(--pos-primary-light) !important;
+}
+
+.pos-active-table-title h3 {
+  color: var(--pos-primary);
+}
+
+.pos-service-toggle {
+  background: #eef3f9;
+}
+
+.pos-service-btn.takeaway.active,
+.pos-service-btn.dine-in.active {
+  background: var(--pos-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(8, 99, 190, 0.3);
+}
+
+.pos-badge-dine_in,
+.pos-cart-badge.dine-in {
+  background: var(--pos-primary-light);
+  color: var(--pos-primary);
+}
+
+.pos-badge-takeaway,
+.pos-cart-badge.takeaway {
+  background: var(--pos-amber-light);
+  color: var(--pos-amber);
+}
+
+/* ---- Menu (POS) --------------------------------------------------------- */
+.order-search input {
+  background: #f6f9fc;
+  border-color: #e3e9f2;
+}
+
+.order-search input:focus {
+  background: #fff;
+}
+
+.pos-chip {
+  background: #fff !important;
+  border-color: #e3e9f2 !important;
+  font-weight: 600 !important;
+  color: #334155 !important;
+  border-radius: 9px !important;
+}
+
+.pos-chip:hover:not(.active) {
+  border-color: var(--pos-primary-border) !important;
+  color: var(--pos-primary) !important;
+}
+
+.pos-chip.active {
+  background: var(--pos-primary) !important;
+  border-color: var(--pos-primary) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 6px rgba(8, 99, 190, 0.28);
+}
+
+.cashier-order button.order-menu-card {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0;
+  border-color: #e3e9f2;
+  padding: 0;
+  overflow: hidden;
+  min-height: 210px;
+  background: #fff;
+}
+
+.cashier-order button.order-menu-card:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--pos-primary);
+  box-shadow: 0 6px 16px rgba(8, 99, 190, 0.14);
+}
+
+.order-menu-img-wrap {
+  height: 112px;
+  border-radius: 0;
+  margin-bottom: 0;
+  background: linear-gradient(135deg, #eef4fb, #e3ecf7);
+}
+
+.order-food-icon {
+  color: var(--pos-primary);
+  opacity: 0.55;
+}
+
+.order-menu-info {
+  padding: 10px 12px 12px;
+}
+
+.order-menu-price-row {
+  padding-right: 34px;
+}
+
+.pos-menu-price {
+  color: var(--pos-primary);
+  font-weight: 800;
+}
+
+.order-add-sign {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: var(--pos-primary);
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(8, 99, 190, 0.3);
+}
+
+.order-menu-card:hover:not(:disabled) .order-add-sign {
+  background: var(--pos-primary-hover);
+}
+
+.pos-menu-card-badge {
+  background: var(--pos-primary) !important;
+}
+
+.pos-menu-card-badge.pos-badge-soldout {
+  background: #64748b !important;
+}
+
+/* ---- Cart ----------------------------------------------------------------- */
+.pos-cart-header {
+  border-bottom-color: #e3e9f2;
+}
+
+.order-count {
+  background: var(--pos-primary);
+}
+
+.order-cart-line {
+  border: 1px solid #e3e9f2;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin-bottom: 8px;
+  background: #fafcff;
+}
+
+.pos-qty-stepper {
+  background: #fff;
+}
+
+.pos-qty-btn:hover {
+  background: var(--pos-primary-light) !important;
+  color: var(--pos-primary) !important;
+}
+
+.pos-cart-footer {
+  border-top: 1px solid #e3e9f2;
+  background: #f6f9fc;
+  padding: 12px;
+  border: 1px solid #e3e9f2;
+  border-radius: var(--pos-radius-md);
+}
+
+.order-cart-total strong {
+  color: var(--pos-primary);
+  font-size: 22px;
+}
+
+.order-submit {
+  background: var(--pos-primary) !important;
+  box-shadow: 0 6px 14px rgba(8, 99, 190, 0.28);
+}
+
+.order-submit:hover:not(:disabled) {
+  background: var(--pos-primary-hover) !important;
+}
+
+/* ---- Tables --------------------------------------------------------------- */
+.pos-table-filter-btn.active {
+  color: var(--pos-primary) !important;
+}
+
+.order-table-card.is-available:hover:not(:disabled) {
+  border-color: var(--pos-primary);
+  box-shadow: 0 0 0 3px rgba(8, 99, 190, 0.12);
+}
+
+/* ---- Orders kanban ------------------------------------------------------ */
+.pos-orders-header .order-eyebrow {
+  color: var(--pos-primary);
+}
+
+.pos-orders-title-row h2,
+.pos-orders-title-row h1 {
+  color: #0b2a4a;
+}
+
+.pos-filters-toolbar {
+  align-items: center;
+}
+
+.pos-kanban-column {
+  background: #f8fafd;
+  border-color: #e3e9f2;
+  padding: 12px;
+}
+
+.pos-column-header {
+  border-bottom: none;
+  margin-bottom: 8px;
+  padding: 2px 4px 8px;
+}
+
+.pos-column-icon {
+  display: none;
+}
+
+.pos-column-title-group h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: #0b2a4a !important;
+}
+
+.pos-column-title-group h3::before {
+  content: '';
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--col-accent);
+  box-shadow: 0 0 0 3px var(--col-accent-soft);
+}
+
+.pos-column-badge {
+  min-width: 24px;
+  text-align: center;
+  background: var(--col-accent-soft) !important;
+  color: var(--col-accent) !important;
+  border: 1px solid var(--col-accent-border) !important;
+}
+
+.col-pending {
+  --col-accent: var(--pos-amber);
+  --col-accent-soft: var(--pos-amber-light);
+  --col-accent-border: var(--pos-amber-border);
+}
+
+.col-cooking {
+  --col-accent: var(--pos-primary);
+  --col-accent-soft: var(--pos-primary-light);
+  --col-accent-border: var(--pos-primary-border);
+}
+
+.col-ready {
+  --col-accent: var(--pos-green);
+  --col-accent-soft: var(--pos-green-light);
+  --col-accent-border: var(--pos-green-border);
+}
+
+.pos-order-card {
+  border-color: #e3e9f2;
+  border-top: 3px solid var(--col-accent, var(--pos-primary));
+  border-radius: 12px;
+}
+
+.pos-order-card:hover {
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08);
+}
+
+.pos-card-code:hover {
+  color: var(--pos-primary);
+}
+
+.pos-badge-status.status-confirmed {
+  background: var(--pos-amber-light);
+  color: var(--pos-amber);
+}
+
+.pos-badge-status.status-preparing {
+  background: var(--pos-primary-light);
+  color: var(--pos-primary);
+}
+
+.pos-badge-status.status-ready {
+  background: var(--pos-green-light);
+  color: var(--pos-green);
+}
+
+.pos-badge-status.status-served {
+  background: #ecfeff;
+  color: #0e7490;
+}
+
+.pos-badge-qr {
+  background: var(--pos-primary-light);
+  color: var(--pos-primary);
+}
+
+.pos-card-total-amount {
+  color: #0b2a4a;
+}
+
+.pos-card-complete-btn {
+  background: var(--pos-green) !important;
+  border-color: var(--pos-green) !important;
+}
+
+.pos-column-empty {
+  border: 1.5px dashed #d5deea;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.pos-col-tab.active {
+  background: var(--pos-primary) !important;
+  color: #fff !important;
+  border-color: var(--pos-primary) !important;
 }

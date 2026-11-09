@@ -8,8 +8,8 @@
 .onboarding-steps li { display: flex; align-items: center; gap: 8px; }
 .onboarding-step-number { width: 26px; height: 26px; display: grid; place-items: center; border: 1px solid var(--brand-line); border-radius: 50%; background: var(--brand-surface); font-size: 13px; }
 .onboarding-steps .is-current { color: var(--brand-text); }
-.onboarding-steps .is-current .onboarding-step-number { border-color: var(--brand-green); background: var(--brand-green); color: #fff; }
-.onboarding-steps .is-done .onboarding-step-number { border-color: var(--brand-green); color: var(--brand-green-hover); }
+.onboarding-steps .is-current .onboarding-step-number { border-color: var(--brand-primary); background: var(--brand-primary); color: #fff; }
+.onboarding-steps .is-done .onboarding-step-number { border-color: var(--brand-primary); color: var(--brand-primary-hover); }
 
 .onboarding-card { padding: clamp(20px, 3vw, 32px); background: var(--brand-surface); border: 1px solid var(--brand-line); border-radius: var(--brand-radius); }
 .onboarding-card h1, .onboarding-section h1 { margin: 0 0 8px; font-size: 26px; line-height: 1.25; }
@@ -25,7 +25,7 @@
 
 .package-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; }
 .package-card { display: flex; flex-direction: column; padding: 24px; background: var(--brand-surface); border: 1px solid var(--brand-line); border-radius: var(--brand-radius); }
-.package-card.is-selected { border-color: var(--brand-green); box-shadow: 0 0 0 1px var(--brand-green); }
+.package-card.is-selected { border-color: var(--brand-primary); box-shadow: 0 0 0 1px var(--brand-primary); }
 .package-card h3 { margin: 0; font-size: 19px; }
 .package-description { margin: 6px 0 0; color: var(--brand-muted); font-size: 14px; line-height: 1.5; }
 .package-price { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px; margin: 16px 0; color: var(--brand-muted); font-size: 14px; }
@@ -43,7 +43,7 @@
 .purchase-layout { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(280px, 1fr); align-items: start; gap: 20px; }
 .purchase-deadline { display: flex; align-items: baseline; gap: 8px; margin: 18px 0 0; color: var(--brand-muted); }
 .purchase-countdown { color: var(--brand-text); font-size: 28px; font-variant-numeric: tabular-nums; }
-.purchase-status { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--brand-green-soft); color: var(--brand-green-hover); font-size: 12px; font-weight: 700; }
+.purchase-status { display: inline-block; padding: 4px 10px; border-radius: 999px; background: var(--brand-primary-soft); color: var(--brand-primary-hover); font-size: 12px; font-weight: 700; }
 .purchase-summary h2 { margin: 12px 0 0; font-size: 20px; }
 .purchase-meta { margin: 18px 0 0; color: var(--brand-muted); font-size: 12px; overflow-wrap: anywhere; }
 .purchase-confirm { margin-top: 24px; padding-top: 18px; border-top: 1px solid var(--brand-line); }
@@ -60,15 +60,15 @@
 .payment-qr { display: flex; flex-direction: column; align-items: center; gap: 10px; margin: 0; padding: 14px; border: 1px solid var(--brand-line); border-radius: var(--brand-radius); background: #fff; }
 .payment-qr svg, .payment-qr img { display: block; width: 224px; max-width: 100%; height: auto; }
 .payment-qr figcaption { max-width: 224px; color: var(--brand-muted); font-size: 13px; text-align: center; line-height: 1.45; }
-.payment-qr-link { color: var(--brand-green-hover); font-size: 13px; font-weight: 700; }
+.payment-qr-link { color: var(--brand-primary-hover); font-size: 13px; font-weight: 700; }
 .payment-details { display: grid; gap: 2px; margin: 0; }
 .payment-row { padding: 10px 0; border-bottom: 1px solid var(--brand-line); }
 .payment-row dt { color: var(--brand-muted); font-size: 12px; }
 .payment-row dd { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 3px 0 0; font-weight: 600; overflow-wrap: anywhere; }
-.payment-row-highlight { margin-top: 8px; padding: 12px; border: 1px solid var(--brand-green); border-radius: 10px; background: var(--brand-green-soft); }
+.payment-row-highlight { margin-top: 8px; padding: 12px; border: 1px solid var(--brand-primary); border-radius: 10px; background: var(--brand-primary-soft); }
 .payment-row-highlight strong { font-size: 18px; letter-spacing: .03em; font-variant-numeric: tabular-nums; }
 .payment-copy { flex: none; padding: 5px 10px; border: 1px solid var(--brand-line); border-radius: 8px; background: var(--brand-surface); color: var(--brand-text); font-size: 12px; font-weight: 700; cursor: pointer; }
-.payment-copy:hover { border-color: var(--brand-green); }
+.payment-copy:hover { border-color: var(--brand-primary); }
 .payment-waiting { margin: 16px 0 12px; color: var(--brand-muted); font-size: 14px; }
 .purchase-confirm-note { margin-top: 6px !important; color: var(--brand-muted); font-weight: 400 !important; font-size: 14px; }
 

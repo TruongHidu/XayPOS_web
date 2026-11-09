@@ -1,4 +1,4 @@
-# POS SaaS Web — System Admin
+# Xây POS Web — System Admin
 
 Cashier Order: `/cashier/pos` gọi món tại bàn/mang đi; `/cashier/orders`
 xem và vận hành đơn theo quyền. Xem [tài liệu Cashier Order](docs/cashier-order.md)

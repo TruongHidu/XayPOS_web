@@ -1,5 +1,6 @@
 import type { PropsWithChildren } from 'react'
 import { Link } from 'react-router-dom'
+import { BrandMark } from '../../../shared/components/BrandMark'
 import { env } from '../../../shared/config/env'
 import '../../../shared/styles/brand.css'
 import '../auth.css'
@@ -11,7 +12,7 @@ export function AuthLayout({ title, description, children }: PropsWithChildren<{
     <main className="brand-scope auth-page">
       <aside className="auth-aside">
         <Link className="brand-logo brand-logo-light" to="/">
-          <span className="brand-logo-mark">P</span>
+          <BrandMark className="brand-logo-mark" />
           {env.appName}
         </Link>
         <div>
@@ -26,7 +27,7 @@ export function AuthLayout({ title, description, children }: PropsWithChildren<{
       <section className="auth-panel">
         <div className="auth-card">
           <Link className="brand-logo auth-mobile-logo" to="/">
-            <span className="brand-logo-mark">P</span>
+            <BrandMark className="brand-logo-mark" />
             {env.appName}
           </Link>
           <h1>{title}</h1>

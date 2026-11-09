@@ -1,11 +1,18 @@
 import { useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../../auth/store/authStore'
+import { BrandMark } from '../../../shared/components/BrandMark'
 import { env } from '../../../shared/config/env'
 import { PosPreview } from '../components/PosPreview'
 import { PricingSection } from '../components/PricingSection'
 import '../../../shared/styles/brand.css'
 import '../landing.css'
+
+const CONTACT = {
+  phone: '0338730089',
+  phoneDisplay: '0338 730 089',
+  facebook: 'https://www.facebook.com/vantruongvjppro/',
+}
 
 const BENEFITS = [
   { title: 'Gọi món nhanh', text: 'Chọn bàn hoặc đơn mang đi, thêm món và gửi đơn chỉ với vài thao tác.' },
@@ -42,7 +49,7 @@ export function LandingPage() {
       <header className="landing-header">
         <div className="landing-container landing-header-inner">
           <Link className="brand-logo" to="/">
-            <span className="brand-logo-mark">P</span>
+            <BrandMark className="brand-logo-mark" />
             {env.appName}
           </Link>
           <nav className="landing-nav" aria-label="Điều hướng trang">
@@ -137,7 +144,20 @@ export function LandingPage() {
       </main>
 
       <footer className="landing-footer">
-        <div className="landing-container">© {new Date().getFullYear()} {env.appName}</div>
+        <div className="landing-container landing-footer-inner">
+          <span>© {new Date().getFullYear()} {env.appName}</span>
+          <address className="landing-contact" aria-label="Thông tin liên hệ">
+            <span className="landing-contact-label">Liên hệ</span>
+            <a href={`tel:${CONTACT.phone}`}>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.6 10.8a15.1 15.1 0 0 0 6.6 6.6l2.2-2.2a1 1 0 0 1 1-.25 11.4 11.4 0 0 0 3.6.57 1 1 0 0 1 1 1V20a1 1 0 0 1-1 1A17 17 0 0 1 3 4a1 1 0 0 1 1-1h3.5a1 1 0 0 1 1 1c0 1.25.2 2.45.57 3.57a1 1 0 0 1-.25 1z" /></svg>
+              {CONTACT.phoneDisplay}
+            </a>
+            <a href={CONTACT.facebook} target="_blank" rel="noopener noreferrer">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13.5 21v-7.5H16l.4-3h-2.9V8.6c0-.87.25-1.46 1.5-1.46h1.6V4.46A21 21 0 0 0 14.3 4.3c-2.3 0-3.8 1.4-3.8 3.95v2.25H8v3h2.5V21z" /></svg>
+              Facebook
+            </a>
+          </address>
+        </div>
       </footer>
     </div>
   )

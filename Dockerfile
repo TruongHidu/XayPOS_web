@@ -11,7 +11,7 @@ COPY . .
 
 # VITE_* values are baked into the bundle at build time.
 ARG VITE_API_BASE_URL=/api/v1
-ARG VITE_APP_NAME="POS SaaS"
+ARG VITE_APP_NAME="Xây POS"
 ARG VITE_ENABLE_QR_API=true
 ARG VITE_REALTIME_ENABLED=true
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL \

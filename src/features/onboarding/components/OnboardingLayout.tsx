@@ -1,6 +1,7 @@
 import type { PropsWithChildren } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../auth/store/authStore'
+import { BrandMark } from '../../../shared/components/BrandMark'
 import { env } from '../../../shared/config/env'
 import '../../../shared/styles/brand.css'
 import '../onboarding.css'
@@ -16,7 +17,7 @@ export function OnboardingLayout({ step, children }: PropsWithChildren<{ step: 0
     <div className="brand-scope onboarding-page">
       <header className="onboarding-header">
         <Link className="brand-logo" to="/">
-          <span className="brand-logo-mark">P</span>
+          <BrandMark className="brand-logo-mark" />
           {env.appName}
         </Link>
         <div className="onboarding-account">

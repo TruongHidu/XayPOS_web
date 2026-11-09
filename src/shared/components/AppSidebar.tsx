@@ -1,5 +1,6 @@
 import type { ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import { BrandMark } from './BrandMark'
 
 export type SidebarIconName =
   | 'dashboard'
@@ -136,7 +137,7 @@ export function AppSidebar({ homeTo, subtitle, userName, userMeta, roleBadge, se
   return (
     <aside className="sidebar">
       <NavLink className="brand" to={homeTo}>
-        <span className="brand-mark">X</span>
+        <BrandMark className="brand-mark" />
         <span>
           <strong>Xây POS</strong>
           <small>{subtitle}</small>

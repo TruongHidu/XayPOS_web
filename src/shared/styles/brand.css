@@ -1,10 +1,10 @@
-/* Public-facing palette: navy + POS green + neutrals. Scoped so admin and POS keep their own styles. */
+/* Public-facing palette: navy + Xây POS blue (matches logo and mobile app) + neutrals. Scoped so admin and POS keep their own styles. */
 .brand-scope {
   --brand-navy: #102a43;
   --brand-navy-soft: #243b53;
-  --brand-green: #009b72;
-  --brand-green-hover: #00825f;
-  --brand-green-soft: #e6f7f2;
+  --brand-primary: #0863be;
+  --brand-primary-hover: #064f98;
+  --brand-primary-soft: #e8f1fb;
   --brand-text: #102a43;
   --brand-muted: #627d98;
   --brand-line: #e4e7eb;
@@ -21,13 +21,14 @@
 
 .brand-logo { display: inline-flex; align-items: center; gap: 10px; color: var(--brand-text); font-weight: 800; font-size: 17px; text-decoration: none; }
 .brand-logo-light { color: #fff; }
-.brand-logo-mark { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: var(--brand-green); color: #fff; font-weight: 900; }
+.brand-logo-mark { width: 34px; height: 34px; flex: none; display: block; }
+.brand-logo-light .brand-logo-mark { box-sizing: border-box; padding: 4px; border-radius: 10px; background: #fff; }
 
 .brand-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 18px; border: 1px solid transparent; border-radius: 10px; font-weight: 700; font-size: 15px; text-decoration: none; cursor: pointer; transition: background .15s, border-color .15s; }
-.brand-button:focus-visible { outline: 3px solid rgb(0 155 114 / 35%); outline-offset: 2px; }
+.brand-button:focus-visible { outline: 3px solid rgb(8 99 190 / 35%); outline-offset: 2px; }
 .brand-button:disabled { cursor: not-allowed; opacity: .55; }
-.brand-button-primary { background: var(--brand-green); color: #fff; }
-.brand-button-primary:hover:not(:disabled) { background: var(--brand-green-hover); }
+.brand-button-primary { background: var(--brand-primary); color: #fff; }
+.brand-button-primary:hover:not(:disabled) { background: var(--brand-primary-hover); }
 .brand-button-ghost { background: transparent; border-color: var(--brand-line); color: var(--brand-text); }
 .brand-button-ghost:hover:not(:disabled) { border-color: var(--brand-muted); }
 .brand-button-danger { background: transparent; border-color: var(--brand-line); color: var(--brand-danger); }
@@ -36,7 +37,7 @@
 .brand-button-large { min-height: 50px; padding-inline: 24px; font-size: 16px; }
 
 .brand-scope .field input:focus,
-.brand-scope .field textarea:focus { border-color: var(--brand-green); box-shadow: 0 0 0 3px rgb(0 155 114 / 16%); }
+.brand-scope .field textarea:focus { border-color: var(--brand-primary); box-shadow: 0 0 0 3px rgb(8 99 190 / 16%); }
 
 .brand-alert { padding: 12px 14px; margin-bottom: 16px; border: 1px solid var(--brand-line); border-radius: 10px; background: var(--brand-bg); font-size: 14px; line-height: 1.55; }
 .brand-alert-error { border-color: #feb2b2; background: #fff5f5; color: #9b2c2c; }
@@ -44,4 +45,4 @@
 
 .brand-check-list { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; font-size: 14px; line-height: 1.5; }
 .brand-check-list li { position: relative; padding-left: 24px; }
-.brand-check-list li::before { content: ''; position: absolute; left: 3px; top: 4px; width: 6px; height: 11px; border: solid var(--brand-green); border-width: 0 2px 2px 0; transform: rotate(40deg); }
+.brand-check-list li::before { content: ''; position: absolute; left: 3px; top: 4px; width: 6px; height: 11px; border: solid var(--brand-primary); border-width: 0 2px 2px 0; transform: rotate(40deg); }

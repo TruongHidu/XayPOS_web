@@ -235,7 +235,7 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
             <StatusPage
               kind="not-found"
               title="Không tìm thấy trang"
-              description="Đường dẫn này không tồn tại trong POS SaaS."
+              description="Đường dẫn này không tồn tại trong Xây POS."
             />
           }
         />

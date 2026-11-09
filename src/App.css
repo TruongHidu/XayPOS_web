@@ -3,7 +3,7 @@
 .sidebar { --sb-primary: #0863be; --sb-primary-dark: #064f98; --sb-primary-soft: #e8f1fb; width: 260px; flex: 0 0 260px; background: #fff; color: #1e293b; border-right: 1px solid #e2e8f0; padding: 16px 12px; display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; overflow-y: auto; }
 .brand { display: flex; gap: 10px; align-items: center; padding: 2px 6px 14px; color: var(--sb-primary); text-decoration: none; }
 .brand strong { font-size: 16px; font-weight: 800; letter-spacing: -.01em; }
-.brand-mark { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--sb-primary); color: #fff; font-weight: 900; flex: none; }
+.brand-mark { width: 34px; height: 34px; flex: none; display: block; }
 .brand small { display: block; color: var(--sb-primary); font-size: 10px; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; margin-top: 1px; opacity: .75; }
 .sb-user { display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 14px; border-radius: 12px; background: var(--sb-primary-soft); border: 1px solid #cfe1f5; }
 .sb-user-avatar { width: 34px; height: 34px; flex: none; border-radius: 9px; display: grid; place-items: center; background: var(--sb-primary); color: #fff; font-weight: 800; }

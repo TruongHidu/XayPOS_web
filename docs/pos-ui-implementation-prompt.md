@@ -1,6 +1,6 @@
 # Prompt triển khai web Cashier: gọi món và thanh toán
 
-Bạn là lập trình viên frontend phụ trách dự án POS SaaS hiện tại. Hãy tiếp tục triển khai giao diện web dành cho CASHIER để gọi món và thanh toán, dựa trên 4 ảnh tham chiếu người dùng cung cấp. Điều chỉnh giao diện theo mã đang có, quyền và API thực tế của dự án. Hoàn thành mã chạy được và kiểm tra kết quả.
+Bạn là lập trình viên frontend phụ trách dự án Xây POS hiện tại. Hãy tiếp tục triển khai giao diện web dành cho CASHIER để gọi món và thanh toán, dựa trên 4 ảnh tham chiếu người dùng cung cấp. Điều chỉnh giao diện theo mã đang có, quyền và API thực tế của dự án. Hoàn thành mã chạy được và kiểm tra kết quả.
 
 Phạm vi lần triển khai này chỉ gồm POS mang đi/tại bàn, gọi thêm vào đơn hiện tại, xem/tìm đơn để thu tiền, thanh toán tiền mặt hoặc chuyển khoản do thu ngân tự đối soát và xem giao dịch của từng đơn nếu có quyền. Các trạng thái chế biến/giao món chỉ dùng để hiển thị tiến độ từ backend. Không triển khai màn hình bếp/KDS, thao tác bắt đầu nấu/đánh dấu sẵn sàng/giao món, hoàn tất đơn hoặc đóng phiên bàn. Không tự thêm portal quản lý, waiter hoặc chức năng quản trị danh mục. Nếu dự án đã có các module đó thì giữ nguyên, không xóa hoặc mở rộng trong lần triển khai này.
 

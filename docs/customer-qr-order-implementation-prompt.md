@@ -1,6 +1,6 @@
 # Prompt triển khai giao diện khách gọi món qua QR
 
-Hãy tiếp tục triển khai giao diện khách hàng của dự án POS SaaS hiện tại: khách xem menu, chọn món, gửi yêu cầu chờ nhân viên duyệt và theo dõi kết quả. Hỗ trợ cả QR tại bàn và link menu nhà hàng dành cho mang đi. Viết mã hoạt động với API thật, tuân thủ cấu trúc dự án, giữ các thay đổi đang có của người dùng và kiểm tra kết quả trước khi bàn giao.
+Hãy tiếp tục triển khai giao diện khách hàng của dự án Xây POS hiện tại: khách xem menu, chọn món, gửi yêu cầu chờ nhân viên duyệt và theo dõi kết quả. Hỗ trợ cả QR tại bàn và link menu nhà hàng dành cho mang đi. Viết mã hoạt động với API thật, tuân thủ cấu trúc dự án, giữ các thay đổi đang có của người dùng và kiểm tra kết quả trước khi bàn giao.
 
 ## 1. Phạm vi và nguồn contract
 

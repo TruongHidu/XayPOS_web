@@ -1,6 +1,6 @@
 # Prompt triển khai in bill Cashier — tạm tính, đã thanh toán, in lại, giấy 80 mm
 
-Hãy triển khai chức năng in bill cho dự án POS SaaS Web hiện tại, thực hiện đến khi hoàn tất thay vì chỉ đưa ra thiết kế.
+Hãy triển khai chức năng in bill cho dự án Xây POS Web hiện tại, thực hiện đến khi hoàn tất thay vì chỉ đưa ra thiết kế.
 
 Repository web:
 `D:\Đồ án tốt nghiệp\Code\pos-saas-web`

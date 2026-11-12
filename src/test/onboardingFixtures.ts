@@ -89,7 +89,7 @@ export const attemptFixture = (overrides: Partial<PaymentAttempt> = {}): Payment
   instructions: {
     bankCode: 'MBBank',
     accountNumber: '0123456789',
-    accountName: 'POS SAAS DEMO',
+    accountName: 'XAY POS DEMO',
     transferContent: 'PS0123456789ABCDEF0123',
     qrPayload: '00020101021238540010A00000072701240006970422011001234567890208QRIBFTTA53037045406399000',
     qrImageUrl: 'https://qr.sepay.vn/img?acc=0123456789&bank=MBBank&amount=399000&des=PS0123456789ABCDEF0123',

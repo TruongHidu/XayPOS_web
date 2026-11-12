@@ -1,6 +1,6 @@
 # Prompt cải thiện giao diện gọi món — Bàn, Thực đơn, Giỏ & Đơn
 
-Bạn là lập trình viên frontend phụ trách dự án POS SaaS hiện tại (`D:\Đồ án tốt nghiệp\Code\pos-saas-web`). Hãy cải thiện trải nghiệm gọi món của CASHIER trên `/cashier/pos`: chọn bàn, chọn món từ thực đơn, quản lý giỏ, gửi đơn và chuyển sang thu tiền. Mục tiêu là thao tác nhanh, ít bước, chuyển cảnh mượt và **không làm hỏng bất kỳ hành vi hay cấu hình nào đang chạy**. Triển khai đầy đủ, chạy được và tự kiểm tra; không dừng ở mức đề xuất thiết kế.
+Bạn là lập trình viên frontend phụ trách dự án Xây POS hiện tại (`D:\Đồ án tốt nghiệp\Code\pos-saas-web`). Hãy cải thiện trải nghiệm gọi món của CASHIER trên `/cashier/pos`: chọn bàn, chọn món từ thực đơn, quản lý giỏ, gửi đơn và chuyển sang thu tiền. Mục tiêu là thao tác nhanh, ít bước, chuyển cảnh mượt và **không làm hỏng bất kỳ hành vi hay cấu hình nào đang chạy**. Triển khai đầy đủ, chạy được và tự kiểm tra; không dừng ở mức đề xuất thiết kế.
 
 Ràng buộc cứng:
 

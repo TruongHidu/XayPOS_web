@@ -22,14 +22,14 @@ function renderAdmin(ui: ReactElement) {
 describe('admin Phase 2 pages', () => {
   beforeEach(() => { useAuthStore.getState().clearSession(); useAuthStore.setState({ status: 'authenticated', user: adminUser }); setAccessToken('admin-token') })
 
-  it('renders dashboard counts from feature and package responses only', async () => {
+  it('renders dashboard counts and revenue from the dashboard APIs', async () => {
     renderAdmin(<AdminDashboardPage />)
     expect(await screen.findByText('Restaurants')).toBeInTheDocument()
     expect(screen.getByText('Subscriptions')).toBeInTheDocument()
     expect(screen.queryByText('Tổng nhà hàng')).not.toBeInTheDocument()
-    expect(screen.queryByText('Doanh thu')).not.toBeInTheDocument()
-    expect(screen.queryByText('MRR')).not.toBeInTheDocument()
     expect(await screen.findByText('20')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Doanh thu' })).toBeInTheDocument()
+    expect(await screen.findByText('Doanh thu định kỳ / tháng (MRR)')).toBeInTheDocument()
   })
 
   it('lists, searches and filters features with the required query parameter', async () => {

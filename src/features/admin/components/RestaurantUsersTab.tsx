@@ -13,6 +13,8 @@ import {
   SortButton,
 } from '../../../shared/components/AdminUi'
 import { formatDateTime } from '../../../shared/utils/adminFormatting'
+import { useAuthStore } from '../../auth/store/authStore'
+import { RestaurantUserSupportActions } from './RestaurantUserSupportActions'
 
 const defaults: RestaurantUserCriteria = {
   q: '',
@@ -203,6 +205,7 @@ function RestaurantUserDialog({
     retry: retryAdminQuery,
   })
   const user = query.data
+  const canManage = Boolean(useAuthStore((state) => state.user?.permissions.includes('RESTAURANT_MANAGE')))
   return (
     <Modal title="Chi tiết tài khoản" onClose={onClose}>
       {query.isLoading ? (
@@ -230,6 +233,7 @@ function RestaurantUserDialog({
                 </div>
               ))}
             </dl>
+            {canManage && <RestaurantUserSupportActions restaurantId={restaurantId} user={user} />}
           </div>
         )
       )}

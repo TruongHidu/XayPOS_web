@@ -1,4 +1,7 @@
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
+import { adminKeys } from '../../features/admin/api/adminKeys'
+import { adminPaymentEventsApi } from '../../features/admin/api/adminPaymentsApi'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { AppSidebar, type SidebarSection } from '../../shared/components/AppSidebar'
 
@@ -12,6 +15,15 @@ export function AdminShell() {
   const canViewRestaurants = Boolean(user?.permissions.includes('RESTAURANT_VIEW'))
   const canViewSubscriptions = Boolean(user?.permissions.includes('SUBSCRIPTION_VIEW'))
   const canViewAudit = Boolean(user?.permissions.includes('AUDIT_VIEW'))
+  const canReviewPayments = Boolean(user?.permissions.includes('SUBSCRIPTION_PAYMENT_REVIEW'))
+  const reviewCounts = useQuery({
+    queryKey: adminKeys.paymentReviewCounts(),
+    queryFn: adminPaymentEventsApi.counts,
+    enabled: canReviewPayments,
+    refetchInterval: 60_000,
+    retry: false,
+  })
+  const pendingReviews = (reviewCounts.data?.paymentEvents ?? 0) + (reviewCounts.data?.purchases ?? 0)
   const sections: SidebarSection[] = [
     {
       title: 'Tổng quan',
@@ -29,6 +41,19 @@ export function AdminShell() {
       links: [
         { to: '/admin/restaurants', label: 'Restaurants', icon: 'store', visible: canViewRestaurants },
         { to: '/admin/subscriptions', label: 'Subscriptions', icon: 'subscription', visible: canViewSubscriptions },
+      ],
+    },
+    {
+      title: 'Thanh toán',
+      links: [
+        {
+          to: '/admin/payment-reviews',
+          label: 'Đối soát chuyển khoản',
+          icon: 'payment',
+          visible: canReviewPayments,
+          badge: pendingReviews > 0 ? pendingReviews : undefined,
+        },
+        { to: '/admin/purchases', label: 'Đơn mua gói', icon: 'receipt', visible: canViewSubscriptions },
       ],
     },
     {

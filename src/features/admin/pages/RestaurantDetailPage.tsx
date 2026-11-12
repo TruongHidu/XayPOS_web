@@ -23,6 +23,7 @@ import { RestaurantStatusBadge } from './RestaurantsPage'
 import { PackageAssignmentBadge, RestaurantSubscriptionActions } from '../components/RestaurantSubscriptionActions'
 import type { RestaurantStatus } from '../../../shared/types/admin'
 import { RestaurantUsersTab } from '../components/RestaurantUsersTab'
+import { RestaurantSupportTab } from '../components/RestaurantSupportTab'
 import { StatusPage } from '../../../shared/components/StatusPage'
 
 type StatusFormValues = { status: RestaurantStatus; reason: string }
@@ -36,7 +37,7 @@ export function RestaurantDetailPage() {
 }
 
 function RestaurantDetailContent({ restaurantId }: { restaurantId: string }) {
-  const [tab, setTab] = useState<'overview' | 'users' | 'subscriptions'>('overview')
+  const [tab, setTab] = useState<'overview' | 'users' | 'subscriptions' | 'support'>('overview')
   const canViewSubscriptions = Boolean(useAuthStore((state) => state.user?.permissions.includes('SUBSCRIPTION_VIEW')))
   const canManage = Boolean(useAuthStore((state) => state.user?.permissions.includes('RESTAURANT_MANAGE')))
   const [changingStatus, setChangingStatus] = useState(false)
@@ -103,8 +104,17 @@ function RestaurantDetailContent({ restaurantId }: { restaurantId: string }) {
         >
           Gói dịch vụ
         </button>
+        <button
+          type="button"
+          className={tab === 'support' ? 'selected' : ''}
+          aria-pressed={tab === 'support'}
+          onClick={() => setTab('support')}
+        >
+          Hỗ trợ
+        </button>
       </div>
       {tab === 'users' && <RestaurantUsersTab restaurantId={restaurantId} />}
+      {tab === 'support' && <RestaurantSupportTab restaurantId={restaurantId} canManage={canManage} />}
       {tab === 'overview' && (
         <>
           <div className="detail-grid">
@@ -160,7 +170,7 @@ function RestaurantDetailContent({ restaurantId }: { restaurantId: string }) {
           </div>
         </>
       )}
-      {tab !== 'users' && (
+      {(tab === 'overview' || tab === 'subscriptions') && (
         <>
           <section className="card detail-card subscription-summary">
             <div className="section-heading">

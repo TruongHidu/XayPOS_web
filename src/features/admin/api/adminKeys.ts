@@ -1,8 +1,9 @@
+import type { PaymentEventCriteria, PurchaseCriteria } from '../../../shared/types/adminPayments'
 import type { AuditLogCriteria, RestaurantListCriteria, RestaurantSubscriptionCriteria, SubscriptionListCriteria, RestaurantUserCriteria } from '../../../shared/types/admin'
 
 export const adminKeys = {
   all: ['admin'] as const,
-  dashboard: { all: ['admin', 'dashboard'] as const, summary: () => ['admin', 'dashboard', 'summary'] as const },
+  dashboard: { all: ['admin', 'dashboard'] as const, summary: () => ['admin', 'dashboard', 'summary'] as const, revenue: (months: number) => ['admin', 'dashboard', 'revenue', months] as const },
   features: (includeInactive: boolean) => ['admin', 'features', { includeInactive }] as const,
   featureDetail: (featureCode: string) => ['admin', 'features', featureCode] as const,
   packages: (includeInactive: boolean) => ['admin', 'packages', { includeInactive }] as const,
@@ -15,4 +16,10 @@ export const adminKeys = {
   restaurantSubscriptions: (restaurantId: string, criteria: RestaurantSubscriptionCriteria) => ['admin', 'restaurants', restaurantId, 'subscriptions', criteria] as const,
   subscription: (restaurantId: string, subscriptionId: string) => ['admin', 'restaurants', restaurantId, 'subscriptions', subscriptionId] as const,
   audit: (criteria: AuditLogCriteria) => ['admin', 'audit-logs', criteria] as const,
+  purchases: (criteria: PurchaseCriteria) => ['admin', 'purchases', criteria] as const,
+  purchase: (purchaseId: string) => ['admin', 'purchases', purchaseId] as const,
+  paymentEvents: (criteria: PaymentEventCriteria) => ['admin', 'payment-events', criteria] as const,
+  paymentReviewCounts: () => ['admin', 'payment-events', 'counts'] as const,
+  restaurantUsage: (restaurantId: string) => ['admin', 'restaurants', restaurantId, 'usage'] as const,
+  restaurantNotes: (restaurantId: string) => ['admin', 'restaurants', restaurantId, 'notes'] as const,
 }

@@ -22,6 +22,9 @@ import { SubscriptionListPage, RestaurantSubscriptionListPage } from './features
 import { SubscriptionDetailPage } from './features/admin/pages/SubscriptionDetailPage'
 import { RestaurantsPage } from './features/admin/pages/RestaurantsPage'
 import { RestaurantDetailPage } from './features/admin/pages/RestaurantDetailPage'
+import { PurchaseListPage } from './features/admin/pages/PurchaseListPage'
+import { PurchaseDetailPage } from './features/admin/pages/PurchaseDetailPage'
+import { PaymentReviewPage } from './features/admin/pages/PaymentReviewPage'
 import { AuditLogsPage } from './features/admin/pages/AuditLogsPage'
 import { DashboardPage, PlaceholderPage } from './portals/portalPages'
 import { StatusPage } from './shared/components/StatusPage'
@@ -136,6 +139,13 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
               </Route>
               <Route element={<RequirePermission permission="SUBSCRIPTION_MANAGE" />}>
                 <Route path="subscriptions/operations" element={<SubscriptionPage />} />
+              </Route>
+              <Route element={<RequirePermission permission="SUBSCRIPTION_VIEW" />}>
+                <Route path="purchases" element={<PurchaseListPage />} />
+                <Route path="purchases/:purchaseId" element={<PurchaseDetailPage />} />
+              </Route>
+              <Route element={<RequirePermission permission="SUBSCRIPTION_PAYMENT_REVIEW" />}>
+                <Route path="payment-reviews" element={<PaymentReviewPage />} />
               </Route>
               <Route element={<RequirePermission permission="AUDIT_VIEW" />}>
                 <Route path="audit-logs" element={<AuditLogsPage />} />

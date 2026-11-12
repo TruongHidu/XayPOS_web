@@ -12,9 +12,23 @@ export type SidebarIconName =
   | 'store'
   | 'subscription'
   | 'audit'
+  | 'payment'
+  | 'receipt'
   | 'logout'
 
 const iconPaths: Record<SidebarIconName, ReactNode> = {
+  payment: (
+    <>
+      <rect x="2.5" y="5" width="19" height="14" rx="2" />
+      <path d="M2.5 10h19M6.5 15h4" />
+    </>
+  ),
+  receipt: (
+    <>
+      <path d="M6 3h12v18l-3-2-3 2-3-2-3 2z" />
+      <path d="M9 8h6M9 12h6" />
+    </>
+  ),
   dashboard: (
     <>
       <rect x="3" y="3" width="7" height="9" rx="1.5" />

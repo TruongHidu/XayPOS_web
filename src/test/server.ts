@@ -9,6 +9,7 @@ import type {
   RestaurantResponse,
   SubscriptionResponse,
 } from '../shared/types/admin'
+import type { AdminRevenue, PaymentEventSummary, PurchaseSummary } from '../shared/types/adminPayments'
 
 export const adminUser: AuthUser = {
   id: 'admin-1',
@@ -157,6 +158,72 @@ const authResponse = (user: AuthUser, suffix = '1'): AuthResponse => ({
   expiresIn: 900,
   user,
 })
+export const adminRevenue: AdminRevenue = {
+  generatedAt: '2026-11-15T03:00:00Z',
+  currencyCode: 'VND',
+  zoneId: 'Asia/Ho_Chi_Minh',
+  mrr: 1_250_000,
+  payingRestaurants: 9,
+  revenueThisMonth: 3_600_000,
+  revenuePreviousMonth: 3_000_000,
+  churnedLast30Days: 1,
+  series: [
+    { month: '2026-09', revenue: 2_000_000, onlineRevenue: 1_500_000, manualRevenue: 500_000, activatedSubscriptions: 4, newRestaurants: 2 },
+    { month: '2026-10', revenue: 3_000_000, onlineRevenue: 3_000_000, manualRevenue: 0, activatedSubscriptions: 6, newRestaurants: 3 },
+    { month: '2026-11', revenue: 3_600_000, onlineRevenue: 2_400_000, manualRevenue: 1_200_000, activatedSubscriptions: 7, newRestaurants: 1 },
+  ],
+  packageMix: [{ packageCode: 'PRO', packageName: 'Pro', restaurants: 6, mrr: 900_000 }],
+  expiringSoon: [
+    { restaurantId: 'restaurant-1', restaurantCode: 'DEMO01', restaurantName: 'Demo Restaurant', packageCode: 'PRO', endAt: '2026-11-20T03:00:00Z', renewalPending: false },
+  ],
+}
+
+export const adminPurchase: PurchaseSummary = {
+  id: 'purchase-1',
+  restaurant: { id: 'restaurant-1', code: 'DEMO01', name: 'Demo Restaurant', status: 'ACTIVE' },
+  packageCode: 'PRO',
+  packageName: 'Pro',
+  amount: 399_000,
+  currencyCode: 'VND',
+  status: 'REVIEW_REQUIRED',
+  reviewReason: 'AMOUNT_MISMATCH',
+  createdAt: '2026-11-10T03:00:00Z',
+  expiresAt: '2026-11-10T03:15:00Z',
+  paidAt: null,
+  activatedAt: null,
+  closedAt: null,
+  cancelledAt: null,
+  subscriptionId: null,
+  activationErrorCode: null,
+}
+
+export const adminPaymentEvent: PaymentEventSummary = {
+  id: 'event-1',
+  state: 'REVIEW_REQUIRED',
+  reviewReason: 'AMOUNT_MISMATCH',
+  direction: 'in',
+  amount: 398_000,
+  currencyCode: 'VND',
+  occurredAt: '2026-11-10T03:05:00Z',
+  receivedAt: '2026-11-10T03:05:02Z',
+  paymentReference: 'PS0123456789ABCDEF0123',
+  transferContent: 'PS0123456789ABCDEF0123 thanh toan goi PRO',
+  bankReference: 'FT26314000001',
+  receiverAccount: '0123456789',
+  receiverBank: 'MBBank',
+  source: 'WEBHOOK',
+  deliveryCount: 1,
+  restaurant: { id: 'restaurant-1', code: 'DEMO01', name: 'Demo Restaurant', status: 'ACTIVE' },
+  purchaseId: 'purchase-1',
+  purchaseStatus: 'REVIEW_REQUIRED',
+  purchaseAmount: 399_000,
+  reviewedAt: null,
+  reviewerName: null,
+  reviewNote: null,
+  resolutionReference: null,
+  lastErrorCode: null,
+}
+
 export const handlers = [
   http.post('http://localhost:8080/api/v1/auth/login', async ({ request }) => {
     const body = (await request.json()) as { email?: string; password?: string }
@@ -223,6 +290,15 @@ export const handlers = [
       packages: { total: 3, active: 3, inactive: 0 },
       features: { total: 23, active: 23, inactive: 0 },
     }),
+  ),
+  http.get('http://localhost:8080/api/v1/admin/dashboard/revenue', () => HttpResponse.json(adminRevenue)),
+  http.get('http://localhost:8080/api/v1/admin/payment-reviews/counts', () =>
+    HttpResponse.json({ paymentEvents: 1, purchases: 1, paidAwaitingActivation: 0 }),
+  ),
+  http.get('http://localhost:8080/api/v1/admin/payment-events', ({ request }) => HttpResponse.json(page([adminPaymentEvent], request))),
+  http.get('http://localhost:8080/api/v1/admin/subscription-purchases', ({ request }) => HttpResponse.json(page([adminPurchase], request))),
+  http.get('http://localhost:8080/api/v1/admin/subscription-purchases/:purchaseId', () =>
+    HttpResponse.json({ purchase: adminPurchase, createdByName: 'Owner', createdByEmail: 'owner@example.com', cancelReason: null, activationRetryCount: 0, attempts: [], events: [adminPaymentEvent] }),
   ),
   http.get('http://localhost:8080/api/v1/admin/features', () => HttpResponse.json(adminFeatures)),
   http.get('http://localhost:8080/api/v1/admin/features/:featureCode', ({ params }) =>

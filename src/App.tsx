@@ -5,8 +5,10 @@ import { PublicOnlyRoute, RequireAuth, RequirePermission, RequireRole, RequireTe
 import { useAuthStore } from './features/auth/store/authStore'
 import { AuthBootstrap } from './features/auth/components/AuthBootstrap'
 import { AdminShell } from './portals/admin/AdminShell'
-import { CashierShell } from './portals/cashier/CashierShell'
-import { StaffRealtimeBoundary } from './portals/cashier/StaffRealtimeBoundary'
+import { AppShell } from './portals/app/AppShell'
+import { StaffRealtimeBoundary } from './portals/app/StaffRealtimeBoundary'
+import { LegacyCashierRedirect, PortalHome } from './portals/app/appRoutes'
+import { renderSectionRoutes } from './portals/app/sectionRoutes'
 import { ReceiptPrintingProvider } from './features/order/printing/ReceiptPrintingProvider'
 import type { RealtimeRuntime } from './shared/realtime/runtime'
 import { QrMenuPage } from './portals/qr-menu/QrMenuPage'
@@ -26,14 +28,9 @@ import { PurchaseListPage } from './features/admin/pages/PurchaseListPage'
 import { PurchaseDetailPage } from './features/admin/pages/PurchaseDetailPage'
 import { PaymentReviewPage } from './features/admin/pages/PaymentReviewPage'
 import { AuditLogsPage } from './features/admin/pages/AuditLogsPage'
-import { DashboardPage, PlaceholderPage } from './portals/portalPages'
 import { StatusPage } from './shared/components/StatusPage'
 import { defaultRouteForUser } from './shared/utils/routing'
 import { OrderRuntimeBoundary } from './features/order/components/OrderRuntimeBoundary'
-import { OrderGuard } from './features/order/components/OrderGuard'
-import { CashierPosPage } from './features/order/pages/CashierPosPage'
-import { OrderListPage } from './features/order/pages/OrderListPage'
-import { OrderDetailPage } from './features/order/pages/OrderDetailPage'
 import { LandingPage } from './features/marketing/pages/LandingPage'
 import { OnboardingPage } from './features/onboarding/pages/OnboardingPage'
 import { PurchasePage } from './features/onboarding/pages/PurchasePage'
@@ -164,34 +161,21 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
             <Route element={<TenantPortal />}>
               <Route element={<RequireRole roles={['OWNER', 'MANAGER', 'CASHIER', 'WAITER', 'KITCHEN']} />}>
                 <Route
-                  path="/cashier"
+                  path="/app"
                   element={
                     <StaffRealtimeBoundary runtime={realtimeRuntime}>
                       <ReceiptPrintingProvider>
-                        <CashierShell />
+                        <AppShell />
                       </ReceiptPrintingProvider>
                     </StaffRealtimeBoundary>
                   }
                 >
-                  <Route path="dashboard" element={<DashboardPage portal="cashier" />} />
-                  <Route element={<OrderGuard permission="ORDER_CREATE" />}>
-                    <Route path="pos" element={<CashierPosPage />} />
-                  </Route>
-                  <Route element={<OrderGuard permission="ORDER_VIEW" />}>
-                    <Route path="orders" element={<OrderListPage />} />
-                    <Route path="orders/:orderId" element={<OrderDetailPage />} />
-                  </Route>
-                  <Route
-                    path="kitchen"
-                    element={
-                      <PlaceholderPage
-                        title="Kitchen"
-                        description="Kitchen display sẽ được triển khai trong Phase 2."
-                      />
-                    }
-                  />
-                  <Route index element={<DefaultRedirect />} />
+                  <Route index element={<PortalHome />} />
+                  <Route path="home" element={<PortalHome />} />
+                  {renderSectionRoutes()}
+                  <Route path="*" element={<PortalHome />} />
                 </Route>
+                <Route path="/cashier/*" element={<LegacyCashierRedirect />} />
               </Route>
             </Route>
           </Route>

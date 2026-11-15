@@ -9,7 +9,7 @@ export function OrderDetailPage() {
   const valid = resourceId.safeParse(orderId).success
   return (
     <div className="cashier-order">
-      <Link to="/cashier/orders">← Danh sách đơn</Link>
+      <Link to="/app/orders">← Danh sách đơn</Link>
       {valid ? <OrderDetailBody id={orderId} /> : <p role="alert">Mã đơn không hợp lệ.</p>}
     </div>
   )

@@ -1,25 +1,59 @@
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { useAuthStore } from '../../features/auth/store/authStore'
-import { useOrderAccess } from '../../features/order/hooks/useOrderAccess'
-import { canOrder } from '../../features/order/policies/orderAccessPolicy'
 import { useDraftNavigationGuard } from '../../features/order/hooks/useDraftNavigationGuard'
 import '../../features/order/order.css'
 import { RealtimeIndicator } from './RealtimeIndicator'
 import { AppSidebar, type SidebarSection } from '../../shared/components/AppSidebar'
+import { useTenantAccess } from '../../shared/access/useTenantAccess'
+import { Icon } from '../../shared/ui/Icon'
+import { Toaster } from '../../shared/ui/Toaster'
+import { LoadingSkeleton } from '../../shared/components/AdminUi'
+import { readySections, sectionForPath, sectionGroups, sectionPath, type ReadySection } from './sections'
+import { roleLabel } from '../../shared/utils/roleLabels'
 
-export function CashierShell() {
+const SIDEBAR_KEY = 'pos_sidebar_collapsed'
+
+/** Calls every ready section's badge hook in registry order (stable hook order). */
+function useSectionBadges(): Record<string, number | undefined> {
+  const badges: Record<string, number | undefined> = {}
+  for (const section of readySections) {
+    if (section.useBadge) badges[section.id] = section.useBadge()
+  }
+  return badges
+}
+
+function buildSidebar(canSee: (section: ReadySection) => boolean, badges: Record<string, number | undefined>) {
+  return sectionGroups.map<SidebarSection>((group) => ({
+    title: group.title,
+    collapsible: true,
+    links: readySections
+      .filter((section) => section.group === group.id)
+      .map((section) => ({
+        to: sectionPath(section),
+        label: section.label,
+        icon: section.icon,
+        visible: canSee(section),
+        badge: badges[section.id],
+        activePatterns: section.routes.map((route) => `/app/${route.path}`),
+      })),
+  }))
+}
+
+export function AppShell() {
   useDraftNavigationGuard()
-  const { access, scope } = useOrderAccess()
+  const { access, scope } = useTenantAccess()
   const navigate = useNavigate()
   const location = useLocation()
   const user = useAuthStore((state) => state.user)
   const signOut = useAuthStore((state) => state.signOut)
-  const isPos = location.pathname.startsWith('/cashier/pos')
+  const badges = useSectionBadges()
+  const current = sectionForPath(location.pathname)
+  const isFullScreen = !!current?.fullScreen
 
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     try {
-      return localStorage.getItem('pos_sidebar_collapsed') === 'true'
+      return localStorage.getItem(SIDEBAR_KEY) === 'true'
     } catch {
       return false
     }
@@ -29,7 +63,7 @@ export function CashierShell() {
     setSidebarCollapsed((prev) => {
       const next = !prev
       try {
-        localStorage.setItem('pos_sidebar_collapsed', String(next))
+        localStorage.setItem(SIDEBAR_KEY, String(next))
       } catch {
         // ignore
       }
@@ -37,19 +71,7 @@ export function CashierShell() {
     })
   }
 
-  const roleLabel =
-    user?.role === 'OWNER'
-      ? 'Chủ quán'
-      : user?.role === 'MANAGER'
-        ? 'Quản lý'
-        : user?.role === 'CASHIER'
-          ? 'Thu ngân'
-          : user?.role === 'KITCHEN'
-            ? 'Bếp'
-            : user?.role === 'WAITER'
-              ? 'Phục vụ'
-              : (user?.role ?? '')
-
+  const role = roleLabel(user?.role)
   const avatarLetter = (user?.name || user?.role || 'U').trim().charAt(0).toUpperCase()
 
   const handleSignOut = async () => {
@@ -57,41 +79,18 @@ export function CashierShell() {
     navigate('/login', { replace: true })
   }
 
-  const sections: SidebarSection[] = [
-    {
-      title: 'Tổng quan',
-      links: [{ to: '/cashier/dashboard', label: 'Tổng quan', icon: 'dashboard' }],
-    },
-    {
-      title: 'Bán hàng & vận hành',
-      links: [
-        { to: '/cashier/orders', label: 'Đơn hàng', icon: 'order', visible: canOrder(access, 'ORDER_VIEW') },
-        { to: '/cashier/pos', label: 'Gọi món', icon: 'pos', visible: canOrder(access, 'ORDER_CREATE') },
-      ],
-    },
-    {
-      title: 'Bếp',
-      links: [
-        {
-          to: '/cashier/kitchen',
-          label: 'Màn hình bếp',
-          icon: 'kitchen',
-          visible: ['OWNER', 'MANAGER', 'KITCHEN'].includes(user?.role ?? ''),
-        },
-      ],
-    },
-  ]
+  const sections = buildSidebar((section) => section.canSee(access), badges)
 
   return (
     <div
-      className={`app-shell cashier-shell ${isPos ? 'is-pos-fullscreen' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
+      className={`app-shell cashier-shell ${isFullScreen ? 'is-pos-fullscreen' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}
     >
-      {!isPos && (
+      {!isFullScreen && (
         <AppSidebar
-          homeTo="/cashier/dashboard"
+          homeTo="/app/home"
           subtitle="Restaurant Pro"
           userName={user?.name ?? 'Người dùng'}
-          userMeta={user?.restaurantName ?? roleLabel}
+          userMeta={user?.restaurantName ?? role}
           roleBadge={user?.role ?? ''}
           sections={sections}
           onSignOut={() => void handleSignOut()}
@@ -99,7 +98,7 @@ export function CashierShell() {
       )}
       <div className="main-area">
         <RealtimeIndicator />
-        {!isPos && (
+        {!isFullScreen && (
           <header className="topbar pos-shell-topbar">
             <div className="pos-topbar-left">
               <button
@@ -118,6 +117,7 @@ export function CashierShell() {
                   strokeWidth="2.2"
                   strokeLinecap="round"
                   strokeLinejoin="round"
+                  aria-hidden="true"
                 >
                   <line x1="3" y1="6" x2="21" y2="6" />
                   <line x1="3" y1="12" x2="15" y2="12" />
@@ -125,6 +125,12 @@ export function CashierShell() {
                   {sidebarCollapsed ? <polyline points="18 9 21 12 18 15" /> : <polyline points="6 9 3 12 6 15" />}
                 </svg>
               </button>
+              {current && (
+                <div className="app-topbar-title">
+                  <Icon name={current.icon} size={18} />
+                  <span>{current.label}</span>
+                </div>
+              )}
             </div>
 
             <div className="pos-topbar-right">
@@ -134,18 +140,21 @@ export function CashierShell() {
                 </div>
                 <div className="pos-user-details">
                   <span className="pos-user-name">{user?.name ?? 'Người dùng'}</span>
-                  <span className="pos-user-role">{roleLabel}</span>
+                  <span className="pos-user-role">{role}</span>
                 </div>
               </div>
             </div>
           </header>
         )}
-        <main className={`content ${isPos ? 'pos-content-fullscreen' : ''}`}>
+        <main className={`content ${isFullScreen ? 'pos-content-fullscreen' : ''}`}>
           <div key={`${scope ?? ''}:${location.pathname}`} className="pos-page-transition">
-            <Outlet />
+            <Suspense fallback={<LoadingSkeleton rows={6} />}>
+              <Outlet />
+            </Suspense>
           </div>
         </main>
       </div>
+      <Toaster />
     </div>
   )
 }

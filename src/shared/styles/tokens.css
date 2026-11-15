@@ -1,0 +1,54 @@
+/* Design tokens shared by every tenant page (POS, orders, management modules). */
+:root {
+  --pos-bg: #f4f7fb;
+  --pos-surface: #ffffff;
+  --pos-text-main: #0f172a;
+  --pos-text-muted: #64748b;
+  --pos-border: #e2e8f0;
+  --pos-border-focus: #0863be;
+  --pos-radius-sm: 8px;
+  --pos-radius-md: 12px;
+  --pos-radius-lg: 16px;
+  --pos-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.05);
+  --pos-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.07), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+  --pos-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.08), 0 4px 6px -4px rgba(0, 0, 0, 0.04);
+
+  /* Primary Blue #0863BE (brand, shared with sidebar) */
+  --pos-primary: #0863be;
+  --pos-primary-hover: #064f98;
+  --pos-primary-active: #053f7a;
+  --pos-primary-light: #e8f1fb;
+  --pos-primary-border: #b9d4f1;
+
+  /* Orange (Dine-in & Pending states) */
+  --pos-orange: #ea580c;
+  --pos-orange-hover: #c2410c;
+  --pos-orange-light: #fff7ed;
+  --pos-orange-border: #fed7aa;
+
+  /* Purple (Cooking & Kitchen) */
+  --pos-purple: #7c3aed;
+  --pos-purple-hover: #6d28d9;
+  --pos-purple-light: #f5f3ff;
+  --pos-purple-border: #ddd6fe;
+
+  /* Green (Ready & Paid) */
+  --pos-emerald: #059669;
+  --pos-emerald-light: #ecfdf5;
+  --pos-emerald-border: #a7f3d0;
+
+  /* Blue (Served) */
+  --pos-blue: #0284c7;
+  --pos-blue-light: #f0f9ff;
+  --pos-blue-border: #bae6fd;
+
+  /* Danger */
+  --pos-danger: #dc2626;
+  --pos-danger-light: #fef2f2;
+  --pos-danger-border: #fecaca;
+
+  /* Motion tokens */
+  --pos-duration-fast: 150ms;
+  --pos-duration: 220ms;
+  --pos-ease: cubic-bezier(0.16, 1, 0.3, 1);
+}

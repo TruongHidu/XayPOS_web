@@ -11,6 +11,7 @@ import { ReceiptPrint } from '../components/ReceiptPrint'
 import { ReceiptPrintingContext } from './ReceiptPrintingContext'
 import { BrowserPrintSession } from './browserPrint'
 import { loadReceipt, type ReceiptRequest } from './loadReceipt'
+import { TENANT_KEY_ROOT } from '../../../shared/api/tenantKeys'
 import { receiptErrorMessage, type ReceiptDocument } from './receiptModel'
 import './receipt.css'
 import './receiptPreview.css'
@@ -161,7 +162,7 @@ export function ReceiptPrintingProvider({ children }: PropsWithChildren) {
       if (!intent?.receipt || intent.loading || intent.printing || intent.dirty || event.type !== 'updated') return
       const key = event.query.queryKey
       if (
-        key[0] === 'cashier' &&
+        key[0] === TENANT_KEY_ROOT &&
         key[1] === intent.scope &&
         key[2] === 'order' &&
         key[3] === intent.request.orderId.toLowerCase() &&

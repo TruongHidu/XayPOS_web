@@ -24,7 +24,7 @@ function renderFlow(initialEntry = '/onboarding') {
         <Routes>
           <Route path="/onboarding" element={<OnboardingPage />} />
           <Route path="/onboarding/purchases/:purchaseId" element={<PurchasePage />} />
-          <Route path="/cashier/dashboard" element={<div>POS DASHBOARD</div>} />
+          <Route path="/app/home" element={<div>POS DASHBOARD</div>} />
         </Routes>
       </MemoryRouter>
     </QueryClientProvider>,

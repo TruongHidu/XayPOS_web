@@ -1,27 +1,10 @@
-import { tenantScope } from '../../../shared/auth/tenantScope'
-import type { AuthUser, CurrentEntitlement, EntitlementState } from '../../../shared/types/auth'
-export interface OrderAccess {
-  user: AuthUser | null
-  entitlement: CurrentEntitlement | null
-  entitlementState: EntitlementState
-}
-export const orderScope = tenantScope
+import { accessScope, hasFeature, hasPermission, tenantAccess, type TenantAccess } from '../../../shared/access/tenantAccess'
+export { hasFeature, hasPermission, tenantAccess }
+export type OrderAccess = TenantAccess
+export const orderScope = accessScope
 export function sameOrderScope(scope: string | null, access: OrderAccess) {
   return scope !== null && orderScope(access) === scope
 }
-export function tenantAccess(a: OrderAccess) {
-  return (
-    !!a.user?.restaurantId &&
-    a.user.role !== 'SUPER_ADMIN' &&
-    a.entitlementState === 'active' &&
-    a.entitlement?.status === 'ACTIVE'
-  )
-}
-export function hasFeature(a: OrderAccess, feature: string) {
-  return tenantAccess(a) && !!a.entitlement?.features.some((f) => f.code === feature)
-}
-export const hasPermission = (a: OrderAccess, permission: string) =>
-  tenantAccess(a) && !!a.user?.permissions.includes(permission)
 export const canOrder = (a: OrderAccess, permission: string) =>
   hasPermission(a, permission) && hasFeature(a, 'ORDER_MANAGEMENT')
 export const canCreateType = (a: OrderAccess, type: 'DINE_IN' | 'TAKEAWAY') =>

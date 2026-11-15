@@ -28,7 +28,7 @@ export function SessionOrders({ sessionId }: { sessionId: string }) {
     <section className="order-session-orders">
       <h4>Các đơn trong phiên</h4>
       <OrderRows criteria={orderCriteriaSchema.parse({ tableSessionId: sessionId })} />
-      <Link to={'/cashier/orders?tableSessionId=' + encodeURIComponent(sessionId)}>Xem mọi trang đơn của phiên →</Link>
+      <Link to={'/app/orders?tableSessionId=' + encodeURIComponent(sessionId)}>Xem mọi trang đơn của phiên →</Link>
     </section>
   )
 }
@@ -130,7 +130,7 @@ function OrderCardItem({
       <div className="pos-card-topbar">
         <div className="pos-card-code-time">
           <Link
-            to={'/cashier/orders/' + order.id}
+            to={'/app/orders/' + order.id}
             className="pos-card-code"
             onClick={(e) => {
               if (onOpenDetail) {
@@ -284,7 +284,7 @@ function OrderRows({ criteria }: { criteria: OrderCriteria }) {
       {q.data?.content.length === 0 && <p className="order-empty">Không có đơn phù hợp.</p>}
       <div className="order-list-grid">
         {q.data?.content.map((order) => (
-          <Link to={'/cashier/orders/' + order.id} key={order.id} className="order-list-card">
+          <Link to={'/app/orders/' + order.id} key={order.id} className="order-list-card">
             <div>
               <strong>{order.orderCode}</strong>
               <span>{orderLabels[order.serviceType]}</span>
@@ -467,7 +467,7 @@ export function OrderListPage() {
           </button>
 
           {canOrder(access, 'ORDER_CREATE') && (
-            <Link className="button button-primary" to="/cashier/pos">
+            <Link className="button button-primary" to="/app/order-create">
               + Bán hàng (POS)
             </Link>
           )}

@@ -346,7 +346,7 @@ describe('Physical STOMP runtime', () => {
 })
 describe('Debounced query adapter', () => {
   const relevant = (query: { queryKey: readonly unknown[] }) =>
-    query.queryKey[0] === 'cashier' && query.queryKey[1] === 'scope'
+    query.queryKey[0] === 'tenant' && query.queryKey[1] === 'scope'
   it('falls back to the related scope when the bounded key set overflows', async () => {
     vi.useFakeTimers()
     const client = new QueryClient()
@@ -397,7 +397,7 @@ describe('Debounced query adapter', () => {
     expect(publicClient.getQueryState(['public'])?.isInvalidated).toBe(false)
     await vi.advanceTimersByTimeAsync(350)
     expect(client.isFetching()).toBe(0)
-    expect(client.getQueryCache().findAll({ queryKey: ['cashier', 'scope', 'order'] })).toHaveLength(1)
+    expect(client.getQueryCache().findAll({ queryKey: ['tenant', 'scope', 'order'] })).toHaveLength(1)
     batch.dispose()
     client.clear()
     publicClient.clear()

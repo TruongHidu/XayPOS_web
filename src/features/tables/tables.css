@@ -1,0 +1,24 @@
+.tables-group { display: grid; gap: 10px; }
+.tables-group h2 { display: flex; align-items: center; gap: 10px; margin: 6px 0 0; font-size: 15px; font-weight: 800; color: var(--pos-text-main); }
+.tables-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 12px; }
+.tables-card { display: grid; gap: 6px; text-align: left; padding: 14px; min-height: 104px; border-radius: var(--pos-radius-md); border: 1px solid var(--pos-border); border-top-width: 4px; background: var(--pos-surface); box-shadow: var(--pos-shadow-sm); font: inherit; color: var(--pos-text-main); cursor: pointer; transition: transform var(--pos-duration-fast), box-shadow var(--pos-duration-fast); }
+.tables-card:hover { transform: translateY(-1px); box-shadow: var(--pos-shadow-md); }
+.tables-card:focus-visible { outline: 3px solid rgb(8 99 190 / 35%); outline-offset: 2px; }
+.tables-card-head { display: flex; justify-content: space-between; gap: 6px; align-items: baseline; }
+.tables-card-head strong { font-size: 15px; overflow-wrap: anywhere; }
+.tables-card-code { font-size: 11px; font-weight: 700; color: var(--pos-text-muted); }
+.tables-card-state { font-size: 12px; font-weight: 800; }
+.tables-card-meta { font-size: 12px; color: var(--pos-text-muted); }
+.tables-card-empty { border-top-color: var(--pos-emerald); }
+.tables-card-empty .tables-card-state { color: var(--pos-emerald); }
+.tables-card-serving { border-top-color: var(--pos-orange); background: var(--pos-orange-light); }
+.tables-card-serving .tables-card-state { color: var(--pos-orange); }
+.tables-card-inactive { border-top-color: #cbd5e1; background: #f8fafc; opacity: .8; }
+.tables-card-inactive .tables-card-state { color: var(--pos-text-muted); }
+.tables-card-selected { outline: 3px solid var(--pos-primary); outline-offset: 1px; }
+.tables-area-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.tables-area-list li { display: grid; grid-template-columns: 1fr auto auto; gap: 10px; align-items: center; padding: 10px 12px; border: 1px solid var(--pos-border); border-radius: 10px; }
+.tables-area-list li > div:first-child { display: grid; gap: 2px; }
+.tables-transfers { font-size: 13px; }
+.tables-transfers ul { margin: 6px 0 0; padding-left: 18px; }
+@media (max-width: 600px) { .tables-area-list li { grid-template-columns: 1fr; } }

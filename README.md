@@ -1,7 +1,7 @@
 # Xây POS Web — System Admin
 
-Cashier Order: `/cashier/pos` gọi món tại bàn/mang đi; `/cashier/orders`
-xem và vận hành đơn theo quyền. Xem [tài liệu Cashier Order](docs/cashier-order.md)
+Portal nhà hàng dùng `/app/*`, đường dẫn giống app Flutter. Ví dụ: `/app/order-create` để gọi món tại bàn hoặc mang đi, `/app/orders` để xem và vận hành đơn theo quyền. Link cũ `/cashier/*` vẫn tự chuyển hướng.
+Sidebar, route, guard và trang mặc định sau đăng nhập đều sinh từ [`src/portals/app/sections.tsx`](src/portals/app/sections.tsx). Tiến độ đưa từng chức năng của app lên web và checklist thêm module mới nằm trong [docs/app-parity.md](docs/app-parity.md). Xem [tài liệu Cashier Order](docs/cashier-order.md)
 về API, feature, idempotency, version và các giới hạn MVP.
 
 Prompt dựng giao diện web Cashier gọi món và thanh toán theo ảnh tham chiếu:
@@ -21,7 +21,7 @@ Không tự cấp guest mới để đọc yêu cầu cũ hoặc tự gửi lạ
 [tài liệu triển khai và ảnh kiểm tra](docs/customer-qr-order.md).
 
 Cashier nhận yêu cầu khách tại cột **Chờ xác nhận → Khách gọi qua QR** trong
-`/cashier/orders`, có xem chi tiết, duyệt/từ chối và tự cập nhật hàng đợi.
+`/app/orders`, có xem chi tiết, duyệt/từ chối và tự cập nhật hàng đợi.
 Xem [tài liệu xác nhận QR](docs/cashier-qr-review.md).
 
 Cashier hỗ trợ in bill tạm tính, bill đã thanh toán và in lại theo mẫu 80 mm bằng một lần bấm, từ chi tiết đơn hoặc sau thu tiền. Chỉ yêu cầu kiểm tra bill nếu dữ liệu đơn vừa thay đổi. Xem [hướng dẫn in bill, quyền và cấu hình máy in](docs/bill-printing.md).
@@ -112,7 +112,7 @@ Menu được ẩn theo permission, route vẫn được guard và mutation cũn
 
 Repository hiện không chứa `docs/openapi/admin-api.yaml` hoặc `docs/admin-api.md`; phần admin được triển khai theo contract trong yêu cầu đã cung cấp. Frontend không thêm endpoint ngoài contract và không dùng production mock data. MSW chỉ được dùng trong test.
 
-POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier duyệt yêu cầu QR tại màn hình đơn. Trang Kitchen riêng vẫn là placeholder. Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
+POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier duyệt yêu cầu QR tại màn hình đơn. Các module quản lý khác (bếp, thực đơn, bàn, nhân viên, kho, báo cáo, sổ thu chi, cài đặt) đang được đưa lên theo [docs/app-parity.md](docs/app-parity.md). Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
 
 ## Kiểm thử
 

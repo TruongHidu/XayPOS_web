@@ -6,7 +6,7 @@ import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { http, HttpResponse } from 'msw'
 import App from '../App'
-import { StaffRealtimeBoundary } from '../portals/cashier/StaffRealtimeBoundary'
+import { StaffRealtimeBoundary } from '../portals/app/StaffRealtimeBoundary'
 import { RealtimeRuntime } from '../shared/realtime/runtime'
 import { channels } from '../shared/realtime/channelPolicy'
 import { api, refreshWithCoordinator, setAccessToken } from '../shared/api/httpClient'
@@ -123,7 +123,7 @@ describe('Staff realtime composition and lifecycle', () => {
     const user = userEvent.setup()
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/cashier/dashboard']}>
+        <MemoryRouter initialEntries={['/app/home']}>
           <App realtimeRuntime={runtime} />
         </MemoryRouter>
       </QueryClientProvider>,
@@ -639,14 +639,14 @@ describe('Event to REST snapshots and action safety', () => {
         const navigate = useNavigate()
         return (
           <>
-            <button onClick={() => navigate('/cashier/orders/' + ids.order)}>open</button>
+            <button onClick={() => navigate('/app/orders/' + ids.order)}>open</button>
             <App realtimeRuntime={runtime} />
           </>
         )
       }
       render(
         <QueryClientProvider client={queryClient}>
-          <MemoryRouter initialEntries={['/cashier/dashboard']}>
+          <MemoryRouter initialEntries={['/app/home']}>
             <NavigateDetail />
           </MemoryRouter>
         </QueryClientProvider>,

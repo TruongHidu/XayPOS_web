@@ -12,12 +12,12 @@ toán; trạng thái phục vụ chỉ đọc, không triển khai KDS/complete/
 
 ## Routes và service context
 
-- `/cashier/pos?serviceType=TAKEAWAY`: giỏ mang đi, không query bàn/phiên.
-- `/cashier/pos?serviceType=DINE_IN`: chọn bàn.
-- `/cashier/pos?serviceType=DINE_IN&tableId=<uuid>`: bàn trống, giỏ local.
-- `/cashier/pos?tableSessionId=<uuid>`: xác minh phiên OPEN và bàn hiện tại.
-- `/cashier/orders`: danh sách theo URL; `tableSessionId` lọc cả lịch sử phiên.
-- `/cashier/orders/:orderId`: snapshot, sửa nháp, hủy và gọi thêm theo quyền.
+- `/app/order-create?serviceType=TAKEAWAY`: giỏ mang đi, không query bàn/phiên.
+- `/app/order-create?serviceType=DINE_IN`: chọn bàn.
+- `/app/order-create?serviceType=DINE_IN&tableId=<uuid>`: bàn trống, giỏ local.
+- `/app/order-create?tableSessionId=<uuid>`: xác minh phiên OPEN và bàn hiện tại.
+- `/app/orders`: danh sách theo URL; `tableSessionId` lọc cả lịch sử phiên.
+- `/app/orders/:orderId`: snapshot, sửa nháp, hủy và gọi thêm theo quyền.
 
 AVAILABLE/INACTIVE là trạng thái cấu hình. `occupied/currentSession` dùng cho trạng
 thái sử dụng; `canOpen` dùng cho bàn trống có thể chọn. Chọn bàn không POST mở phiên.

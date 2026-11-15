@@ -91,7 +91,7 @@ export function CashierPosPage() {
 
   useEffect(() => {
     if (context?.activeOrderId) {
-      if (confirmDraftExit()) navigate('/cashier/orders/' + context.activeOrderId, { replace: true })
+      if (confirmDraftExit()) navigate('/app/orders/' + context.activeOrderId, { replace: true })
       return
     }
     if (scope && scope === useOrderDraftStore.getState().scope && context) useOrderDraftStore.getState().start(context)
@@ -102,7 +102,7 @@ export function CashierPosPage() {
       if (import.meta.env.MODE !== 'test') {
         const timer = setTimeout(() => {
           draft.discard()
-          navigate('/cashier/orders')
+          navigate('/app/orders')
         }, 600)
         return () => clearTimeout(timer)
       }
@@ -121,7 +121,7 @@ export function CashierPosPage() {
     const state = useOrderDraftStore.getState()
     if (state.result) state.discard()
     if (next.activeOrderId) {
-      navigate('/cashier/orders/' + next.activeOrderId)
+      navigate('/app/orders/' + next.activeOrderId)
       return
     }
     if (next.serviceType === 'TAKEAWAY') {
@@ -145,7 +145,7 @@ export function CashierPosPage() {
 
   const handleBack = () => {
     if (confirmDraftExit()) {
-      navigate('/cashier/orders')
+      navigate('/app/orders')
     }
   }
 
@@ -187,7 +187,7 @@ export function CashierPosPage() {
               onClick={() => {
                 setRedirectCancelled(true)
                 draft.discard()
-                navigate('/cashier/orders')
+                navigate('/app/orders')
               }}
               aria-label="Quay lại"
             >
@@ -218,7 +218,7 @@ export function CashierPosPage() {
                 onClick={() => {
                   setRedirectCancelled(true)
                   draft.discard()
-                  navigate('/cashier/orders')
+                  navigate('/app/orders')
                 }}
               >
                 Xem danh sách đơn
@@ -271,7 +271,7 @@ export function CashierPosPage() {
             onSuccess={(updatedOrder) => {
               setShowPaymentModal(false)
               draft.discard()
-              navigate('/cashier/orders/' + updatedOrder.id)
+              navigate('/app/orders/' + updatedOrder.id)
             }}
           />
         )}
@@ -328,7 +328,7 @@ export function CashierPosPage() {
           </div>
 
           {canOrder(access, 'ORDER_VIEW') && (
-            <Link className="button button-ghost pos-link-orders" to="/cashier/orders">
+            <Link className="button button-ghost pos-link-orders" to="/app/orders">
               📋 Quản lý đơn
             </Link>
           )}

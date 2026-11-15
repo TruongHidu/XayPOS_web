@@ -300,7 +300,7 @@ describe('Direct printing lifecycle and scope', () => {
     order = makeOrder({ ...paidOrder(), version: 6 })
     const invalidator = new QueryInvalidator(
       queryClient,
-      (query) => query.queryKey[0] === 'cashier' && query.queryKey[1] === scope,
+      (query) => query.queryKey[0] === 'tenant' && query.queryKey[1] === scope,
       undefined,
       100000,
     )

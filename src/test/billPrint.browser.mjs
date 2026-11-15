@@ -302,7 +302,7 @@ try {
     currentCase = sample
     await send('Emulation.setEmulatedMedia', { media: '' })
     await viewport(1280, 960)
-    await send('Page.navigate', { url: origin + '/cashier/orders/' + orderId })
+    await send('Page.navigate', { url: origin + '/app/orders/' + orderId })
     const label = sample.paid ? 'In lại bill' : 'In tạm tính'
     await waitFor(
       `[...document.querySelectorAll('button')].some(value => value.textContent.trim() === ${JSON.stringify(label)} && !value.disabled)`,

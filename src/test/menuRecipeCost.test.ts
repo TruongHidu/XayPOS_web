@@ -91,7 +91,7 @@ describe('Private menu recipe application and reference cost DTO', () => {
   })
   it('fresh query version bypasses a still-fresh legacy menu cache; invalidation remains scoped', async () => {
     const criteria = { q: '', page: 0 }
-    const legacyKey = ['cashier', scope, 'menu', criteria] as const
+    const legacyKey = ['tenant', scope, 'menu', criteria] as const
     const legacy: Record<string, unknown> = { ...itemFixture }
     delete legacy.recipeEnabled
     delete legacy.costConfigured

@@ -43,3 +43,13 @@ export const pageSchema = <T extends z.ZodType>(item: T) =>
       totalPages: versionSchema,
     })
     .refine((value) => value.content.length <= value.size, 'Invalid page size')
+
+/** Stock balances and stock-audit counts: like `quantitySchema` but 0 is allowed. */
+export const nonNegativeQuantitySchema = z
+  .number()
+  .finite()
+  .nonnegative()
+  .max(999999999.999)
+  .refine((value) => Number.isInteger(Math.round(value * 1000)) && Math.abs(value * 1000 - Math.round(value * 1000)) < 1e-6, {
+    message: 'Số lượng có tối đa 3 chữ số thập phân.',
+  })

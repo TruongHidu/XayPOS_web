@@ -213,7 +213,7 @@ export const useOrderDraftStore = create<DraftState>((set, get) => ({
         void queryClient.invalidateQueries({ queryKey: orderKeys.tables(scope) })
         void queryClient.invalidateQueries({ queryKey: orderKeys.sessions(scope) })
         void queryClient.invalidateQueries({ queryKey: orderKeys.activeOrders(scope) })
-        void queryClient.invalidateQueries({ queryKey: ['cashier', scope, 'selected-table'] })
+        void queryClient.invalidateQueries({ queryKey: orderKeys.selectedTables(scope) })
       }
       set({
         pending: false,

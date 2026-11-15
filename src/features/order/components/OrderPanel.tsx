@@ -81,7 +81,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
 
   // Payments query
   const paymentsQuery = useQuery({
-    queryKey: ['cashier', scope, 'payments', order.id],
+    queryKey: orderKeys.payments(scope, order.id),
     queryFn: ({ signal }) => paymentsApi.list(scope!, order.id, { page: 0, size: 20 }, signal),
     enabled: !!scope && showPaymentsHistory && canViewPayment(access),
     retry: false,
@@ -220,7 +220,7 @@ export function OrderPanel({ order: propOrder, onReload }: { order: Order; onRel
       const session = await cashierTablesApi.session(scope, order.tableSessionId)
       await cashierTablesApi.close(scope, order.tableSessionId, session.version)
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
-      void client.invalidateQueries({ queryKey: ['cashier', scope, 'tables'] })
+      void client.invalidateQueries({ queryKey: orderKeys.tables(scope) })
       await reload()
     } catch (e) {
       setError(e)

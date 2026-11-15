@@ -1,6 +1,6 @@
 # Xác nhận yêu cầu QR tại màn hình đơn cashier
 
-Tại `/cashier/orders`, cột **Chờ xác nhận** có mục **Khách gọi qua QR**. Yêu cầu
+Tại `/app/orders`, cột **Chờ xác nhận** có mục **Khách gọi qua QR**. Yêu cầu
 PENDING nằm trong hàng đợi riêng, chưa phải order; sau khi xác nhận mới được tạo
 hoặc thêm vào đơn và xuất hiện ở cột đang phục vụ. Bộ đếm chờ gồm yêu cầu QR và
 đơn nháp, còn tổng đơn đang phục vụ chỉ tính order thật.

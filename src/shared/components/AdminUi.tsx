@@ -1,6 +1,7 @@
-import { useEffect, useRef, type PropsWithChildren, type ReactNode } from 'react'
+import { useId, useRef, type PropsWithChildren, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { normalizeApiError } from '../errors/normalizeApiError'
+import { useDialogFocus } from '../ui/useDialogFocus'
 
 export function LoadingSkeleton({ rows = 4 }: { rows?: number }) {
   return (
@@ -41,44 +42,15 @@ export function ErrorState({ error, onRetry }: { error: unknown; onRetry: () => 
   )
 }
 
-export function Modal({ title, children, onClose }: PropsWithChildren<{ title: string; onClose: () => void }>) {
+export function Modal({
+  title,
+  children,
+  onClose,
+  className,
+}: PropsWithChildren<{ title: string; onClose: () => void; className?: string }>) {
   const dialogRef = useRef<HTMLDivElement>(null)
-  const closeRef = useRef(onClose)
-  useEffect(() => {
-    closeRef.current = onClose
-  }, [onClose])
-  useEffect(() => {
-    const previous = document.activeElement as HTMLElement | null
-    const firstControl = dialogRef.current?.querySelector<HTMLElement>('input, select, textarea, button')
-    firstControl?.focus()
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        closeRef.current()
-        return
-      }
-      if (event.key !== 'Tab') return
-      const focusable = Array.from(
-        dialogRef.current?.querySelectorAll<HTMLElement>(
-          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled])',
-        ) ?? [],
-      )
-      if (focusable.length === 0) return
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && document.activeElement === last) {
-        event.preventDefault()
-        first.focus()
-      }
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => {
-      document.removeEventListener('keydown', onKeyDown)
-      previous?.focus()
-    }
-  }, [])
+  const titleId = useId()
+  useDialogFocus(dialogRef, onClose)
   const modalNode = (
     <div
       className="modal-backdrop"
@@ -87,9 +59,15 @@ export function Modal({ title, children, onClose }: PropsWithChildren<{ title: s
         if (event.target === event.currentTarget) onClose()
       }}
     >
-      <div className="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title" ref={dialogRef}>
+      <div
+        className={className ? `modal ${className}` : 'modal'}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        ref={dialogRef}
+      >
         <div className="modal-header">
-          <h2 id="modal-title">{title}</h2>
+          <h2 id={titleId}>{title}</h2>
           <button className="icon-button" type="button" onClick={onClose} aria-label="Đóng">
             ×
           </button>

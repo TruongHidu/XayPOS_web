@@ -1,5 +1,9 @@
 import type { AuthUser } from '../types/auth'
 
+export const TENANT_HOME = '/app/home'
+
+const isPortalPath = (path: string, base: string) => path === base || path.startsWith(base + '/')
+
 export const isInternalPath = (value: string | null | undefined): value is string => Boolean(value && value.startsWith('/') && !value.startsWith('//'))
 
 export function safeReturnUrl(value: string | null | undefined): string | null {
@@ -9,11 +13,9 @@ export function safeReturnUrl(value: string | null | undefined): string | null {
 
 export function defaultRouteForUser(user: Pick<AuthUser, 'role' | 'restaurantId'>): string {
   if (user.role === 'SUPER_ADMIN' && user.restaurantId === null) return '/admin/dashboard'
-  if (user.role === 'OWNER' && user.restaurantId !== null) return '/cashier/dashboard'
-  if (user.role === 'MANAGER' && user.restaurantId !== null) return '/cashier/dashboard'
-  if (user.role === 'CASHIER' && user.restaurantId !== null) return '/cashier/pos'
-  if (user.role === 'WAITER' && user.restaurantId !== null) return '/cashier/orders'
-  if (user.role === 'KITCHEN' && user.restaurantId !== null) return '/cashier/kitchen'
+  // Every restaurant role lands on the portal home, which opens the first section the
+  // user's permissions and package allow (see portals/app/sections.tsx).
+  if (user.role !== 'SUPER_ADMIN' && user.restaurantId !== null) return TENANT_HOME
   return '/forbidden'
 }
 
@@ -22,7 +24,7 @@ export function postLoginRoute(user: Pick<AuthUser, 'role' | 'restaurantId'>, re
   if (!returnUrl) return defaultRouteForUser(user)
   const path = new URL(returnUrl, window.location.origin).pathname
   const isSystemAdminPath = user.role === 'SUPER_ADMIN' && user.restaurantId === null && (path === '/admin' || path.startsWith('/admin/'))
-  const isTenantPath = user.role !== 'SUPER_ADMIN' && user.restaurantId !== null && (path === '/cashier' || path.startsWith('/cashier/'))
+  const isTenantPath = user.role !== 'SUPER_ADMIN' && user.restaurantId !== null && (isPortalPath(path, '/app') || isPortalPath(path, '/cashier'))
   const isOnboardingPath = user.role === 'OWNER' && user.restaurantId !== null && (path === '/onboarding' || path.startsWith('/onboarding/'))
   return isSystemAdminPath || isTenantPath || isOnboardingPath ? returnUrl : defaultRouteForUser(user)
 }

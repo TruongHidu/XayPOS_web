@@ -3,6 +3,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useAuthStore } from '../../features/auth/store/authStore'
 import { orderScope } from '../../features/order/policies/orderAccessPolicy'
 import { orderKeys } from '../../features/order/api/orderKeys'
+import { TENANT_KEY_ROOT } from '../../shared/api/tenantKeys'
 import { invalidateOrderEvent, resyncOrders } from '../../features/order/realtime/orderAdapter'
 import { invalidateQrEvent, invalidateReviewContext } from '../../features/qr-order-review/realtime/qrReviewAdapter'
 import { qrReviewKeys } from '../../features/qr-order-review/api/qrReviewKeys'
@@ -98,9 +99,10 @@ export function StaffRealtimeBoundary({
         invalidator = new QueryInvalidator(
           client,
           (query) =>
-            query.queryKey[0] === 'cashier' &&
+            query.queryKey[0] === TENANT_KEY_ROOT &&
             query.queryKey[1] === capturedScope &&
-            ['orders', 'order', 'tables', 'active-order', 'session', 'selected-table', 'qr-review', 'kitchen'].includes(
+            // table-admin: completing/cancelling orders changes table occupancy on Sơ đồ bàn.
+            ['orders', 'order', 'tables', 'active-order', 'session', 'selected-table', 'qr-review', 'kitchen', 'table-admin'].includes(
               String(query.queryKey[2]),
             ),
           (query) => {
@@ -171,7 +173,7 @@ export function StaffRealtimeBoundary({
     const authSubscription = useAuthStore.subscribe(sync)
     const tokenSubscription = subscribeAccessToken(sync)
     const querySubscription = client.getQueryCache().subscribe((event) => {
-      if (event.query.queryKey[0] !== 'cashier' || event.query.queryKey[1] !== scope) return
+      if (event.query.queryKey[0] !== TENANT_KEY_ROOT || event.query.queryKey[1] !== scope) return
       if (event.query.queryKey[2] === 'kitchen') runtime.setChannels(consumerChannels())
       if (event.type === 'updated' && event.query.state.status === 'error') {
         const failure = event.query.state.error as { response?: { status?: number }; status?: number }

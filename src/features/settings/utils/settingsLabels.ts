@@ -1,0 +1,83 @@
+import { registerTenantErrors } from '../../../shared/errors/tenantErrorMessages'
+
+/** NAPAS banks by 6-digit BIN, most used first (same list as the app). Unknown BINs show as "BIN 970999". */
+export const vietnamBanks: Array<{ bin: string; shortName: string; name: string }> = [
+  { bin: '970436', shortName: 'Vietcombank', name: 'Ngân hàng TMCP Ngoại thương Việt Nam' },
+  { bin: '970415', shortName: 'VietinBank', name: 'Ngân hàng TMCP Công thương Việt Nam' },
+  { bin: '970418', shortName: 'BIDV', name: 'Ngân hàng TMCP Đầu tư và Phát triển Việt Nam' },
+  { bin: '970405', shortName: 'Agribank', name: 'Ngân hàng Nông nghiệp và Phát triển Nông thôn Việt Nam' },
+  { bin: '970407', shortName: 'Techcombank', name: 'Ngân hàng TMCP Kỹ thương Việt Nam' },
+  { bin: '970422', shortName: 'MB', name: 'Ngân hàng TMCP Quân đội' },
+  { bin: '970416', shortName: 'ACB', name: 'Ngân hàng TMCP Á Châu' },
+  { bin: '970432', shortName: 'VPBank', name: 'Ngân hàng TMCP Việt Nam Thịnh Vượng' },
+  { bin: '970423', shortName: 'TPBank', name: 'Ngân hàng TMCP Tiên Phong' },
+  { bin: '970403', shortName: 'Sacombank', name: 'Ngân hàng TMCP Sài Gòn Thương Tín' },
+  { bin: '970441', shortName: 'VIB', name: 'Ngân hàng TMCP Quốc tế Việt Nam' },
+  { bin: '970443', shortName: 'SHB', name: 'Ngân hàng TMCP Sài Gòn - Hà Nội' },
+  { bin: '970437', shortName: 'HDBank', name: 'Ngân hàng TMCP Phát triển Thành phố Hồ Chí Minh' },
+  { bin: '970448', shortName: 'OCB', name: 'Ngân hàng TMCP Phương Đông' },
+  { bin: '970426', shortName: 'MSB', name: 'Ngân hàng TMCP Hàng Hải Việt Nam' },
+  { bin: '970440', shortName: 'SeABank', name: 'Ngân hàng TMCP Đông Nam Á' },
+  { bin: '970431', shortName: 'Eximbank', name: 'Ngân hàng TMCP Xuất Nhập khẩu Việt Nam' },
+  { bin: '970449', shortName: 'LPBank', name: 'Ngân hàng TMCP Lộc Phát Việt Nam' },
+  { bin: '970428', shortName: 'Nam A Bank', name: 'Ngân hàng TMCP Nam Á' },
+  { bin: '970409', shortName: 'Bac A Bank', name: 'Ngân hàng TMCP Bắc Á' },
+  { bin: '970425', shortName: 'ABBANK', name: 'Ngân hàng TMCP An Bình' },
+  { bin: '970454', shortName: 'BVBank', name: 'Ngân hàng TMCP Bản Việt' },
+  { bin: '970452', shortName: 'KienlongBank', name: 'Ngân hàng TMCP Kiên Long' },
+  { bin: '970412', shortName: 'PVcomBank', name: 'Ngân hàng TMCP Đại Chúng Việt Nam' },
+  { bin: '970419', shortName: 'NCB', name: 'Ngân hàng TMCP Quốc Dân' },
+  { bin: '970427', shortName: 'VietABank', name: 'Ngân hàng TMCP Việt Á' },
+  { bin: '970433', shortName: 'Vietbank', name: 'Ngân hàng TMCP Việt Nam Thương Tín' },
+  { bin: '970438', shortName: 'BAOVIET Bank', name: 'Ngân hàng TMCP Bảo Việt' },
+  { bin: '970430', shortName: 'PGBank', name: 'Ngân hàng TMCP Thịnh vượng và Phát triển' },
+  { bin: '970400', shortName: 'Saigonbank', name: 'Ngân hàng TMCP Sài Gòn Công Thương' },
+  { bin: '970429', shortName: 'SCB', name: 'Ngân hàng TMCP Sài Gòn' },
+  { bin: '970424', shortName: 'Shinhan Bank', name: 'Ngân hàng TNHH MTV Shinhan Việt Nam' },
+  { bin: '970457', shortName: 'Woori Bank', name: 'Ngân hàng TNHH MTV Woori Việt Nam' },
+  { bin: '970458', shortName: 'UOB', name: 'Ngân hàng United Overseas Bank Việt Nam' },
+  { bin: '546034', shortName: 'Cake', name: 'Ngân hàng số Cake by VPBank' },
+  { bin: '546035', shortName: 'Ubank', name: 'Ngân hàng số Ubank by VPBank' },
+]
+
+export const bankLabel = (bin: string) => vietnamBanks.find((bank) => bank.bin === bin)?.shortName ?? `BIN ${bin}`
+
+/** Vietnamese names of package feature codes; unknown codes show as sent. */
+export const packageFeatureLabels: Record<string, string> = {
+  MENU_MANAGEMENT: 'Quản lý thực đơn',
+  POS_QUICK_ORDER: 'Gọi món nhanh',
+  ORDER_MANAGEMENT: 'Quản lý đơn hàng',
+  PAYMENT_MANAGEMENT: 'Thanh toán',
+  DAILY_REVENUE: 'Doanh thu ngày',
+  DETAIL_REPORT: 'Báo cáo chi tiết',
+  QR_MENU_VIEW: 'Thực đơn QR',
+  QR_STATIC_ORDER: 'Gọi món qua QR chung',
+  QR_TABLE_ORDER: 'Gọi món qua QR tại bàn',
+  RECEIPT_PRINT: 'In hóa đơn',
+  RECEIPT_REPRINT: 'In lại hóa đơn',
+  TABLE_MANAGEMENT: 'Quản lý bàn',
+  STAFF_MANAGEMENT: 'Quản lý nhân viên',
+  STAFF_PERMISSION: 'Phân quyền nhân viên',
+  KITCHEN_DISPLAY: 'Màn hình bếp',
+  KITCHEN_TICKET_PRINT: 'In phiếu bếp',
+  KITCHEN_TICKET_REPRINT: 'In lại phiếu bếp',
+  INVENTORY_MANAGEMENT: 'Quản lý kho',
+  RECIPE_MANAGEMENT: 'Công thức món',
+  LOW_STOCK_ALERT: 'Cảnh báo tồn thấp',
+  STOCK_AUDIT: 'Kiểm kê',
+  ADVANCED_ANALYTICS: 'Phân tích nâng cao',
+  AI_DEMAND_FORECAST: 'Dự báo nhu cầu (AI)',
+  AI_MENU_RECOMMENDATION: 'Gợi ý thực đơn (AI)',
+}
+export const packageFeatureLabel = (code: string) => packageFeatureLabels[code] ?? code
+
+registerTenantErrors({
+  INVALID_SETTINGS_RESPONSE: 'Dữ liệu cài đặt trả về không hợp lệ. Vui lòng tải lại.',
+  EMPTY_UPDATE_REQUEST: 'Chưa có thay đổi nào để lưu.',
+  INVALID_TIMEZONE: 'Múi giờ không hợp lệ.',
+  INVALID_CURRENCY_CODE: 'Mã tiền tệ không hợp lệ.',
+  PUBLIC_MENU_LINK_NOT_INITIALIZED: 'Chưa tạo link menu cho khách mang đi.',
+  CONCURRENT_MENU_LINK_UPDATE: 'Link menu vừa được đổi ở nơi khác. Tải lại để xem link mới.',
+  PUBLIC_MENU_TOKEN_CONFLICT: 'Không tạo được link mới, vui lòng thử lại.',
+  INVALID_TRANSFER_ACCOUNT: 'Thông tin tài khoản nhận chuyển khoản chưa hợp lệ.',
+})

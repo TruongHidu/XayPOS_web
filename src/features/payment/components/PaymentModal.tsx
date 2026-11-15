@@ -166,7 +166,7 @@ export function PaymentModal({
       void client.invalidateQueries({ queryKey: orderKeys.detail(scope, order.id) })
       void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
       void client.invalidateQueries({ queryKey: orderKeys.activeOrders(scope) })
-      void client.invalidateQueries({ queryKey: ['cashier', scope, 'payments', order.id] })
+      void client.invalidateQueries({ queryKey: orderKeys.payments(scope, order.id) })
 
       await refreshConfirmedOrder(res.payment, revision)
     } catch (err) {

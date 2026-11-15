@@ -39,7 +39,7 @@ export interface NormalizedApiError {
   status?: number; code: string; message: string; fieldErrors: Record<string, string>; isNetworkError: boolean
 }
 
-export interface CurrentEntitlement { subscriptionId: string; packageCode: string; status: string; startAt: string; endAt: string; features: FeatureEntitlement[] }
+export interface CurrentEntitlement { subscriptionId: string; packageCode: string; status: string; startAt: string; endAt: string; features: FeatureEntitlement[]; /** Staff seat limit of the active subscription; null or absent means unlimited. */ maxStaff?: number | null; packageName?: string | null }
 export type EntitlementState = 'idle' | 'loading' | 'active' | 'inactive' | 'error'
 
 export type { FeatureEntitlement, FeatureResponse, AdminPackageResponse as PackageResponse, SubscriptionResponse, SubscriptionStatus } from './admin'

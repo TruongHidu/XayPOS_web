@@ -78,7 +78,7 @@ describe('tenant routing', () => {
   it('sends an owner without a subscription to onboarding', async () => {
     server.use(...onboardingHandlers)
     useAuthStore.setState({ status: 'authenticated', user: onboardingOwner, entitlementState: 'inactive' })
-    renderApp('/cashier/dashboard')
+    renderApp('/app/home')
     expect(await screen.findByRole('heading', { name: 'Thông tin nhà hàng' })).toBeInTheDocument()
   })
 
@@ -101,7 +101,7 @@ describe('tenant routing', () => {
 
   it('keeps managers on the subscription notice', async () => {
     useAuthStore.setState({ status: 'authenticated', user: staff('MANAGER'), entitlementState: 'inactive' })
-    renderApp('/cashier/dashboard')
+    renderApp('/app/home')
     expect(await screen.findByRole('heading', { name: 'Nhà hàng chưa có gói hoạt động' })).toBeInTheDocument()
   })
 
@@ -118,7 +118,7 @@ describe('tenant routing', () => {
 
   it('allows only owners to return to onboarding after login', () => {
     expect(postLoginRoute(onboardingOwner, '/onboarding/purchases/1')).toBe('/onboarding/purchases/1')
-    expect(postLoginRoute(staff('MANAGER'), '/onboarding')).toBe('/cashier/dashboard')
+    expect(postLoginRoute(staff('MANAGER'), '/onboarding')).toBe('/app/home')
   })
 })
 

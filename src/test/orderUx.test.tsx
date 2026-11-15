@@ -26,18 +26,18 @@ import {
   page,
 } from './orderFixtures'
 
-function mount(path = '/cashier/pos?serviceType=TAKEAWAY') {
+function mount(path = '/app/order-create?serviceType=TAKEAWAY') {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
         <OrderRuntimeBoundary>
           <Routes>
             <Route element={<OrderGuard permission="ORDER_CREATE" />}>
-              <Route path="/cashier/pos" element={<CashierPosPage />} />
+              <Route path="/app/order-create" element={<CashierPosPage />} />
             </Route>
             <Route element={<OrderGuard permission="ORDER_VIEW" />}>
-              <Route path="/cashier/orders" element={<OrderListPage />} />
-              <Route path="/cashier/orders/:orderId" element={<OrderDetailPage />} />
+              <Route path="/app/orders" element={<OrderListPage />} />
+              <Route path="/app/orders/:orderId" element={<OrderDetailPage />} />
             </Route>
             <Route path="/access-unavailable" element={<p>Feature unavailable</p>} />
             <Route path="/forbidden" element={<p>Forbidden page</p>} />
@@ -79,7 +79,7 @@ describe('Order UX Enhanced Workflows', () => {
     )
 
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
 
     // Click table card
     const tableBtn = await screen.findByRole('button', { name: /Bàn Trống 1 Còn trống/ }, { timeout: 8000 })
@@ -110,7 +110,7 @@ describe('Order UX Enhanced Workflows', () => {
   // 2. Luồng mang đi: thêm món → gửi đơn, không yêu cầu chọn bàn.
   it('2. Takeaway flow: adds item directly without table selection and submits successfully', async () => {
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     const addBtn = await screen.findByRole('button', { name: 'Thêm Phở bò' })
     await user.click(addBtn)
@@ -148,7 +148,7 @@ describe('Order UX Enhanced Workflows', () => {
       http.get(base + '/tables', () => HttpResponse.json(page([inactiveTable, inactiveAreaTable]))),
     )
 
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
 
     const table1 = await screen.findByRole('button', { name: /Bàn Hỏng/ })
     expect(table1).toBeDisabled()
@@ -162,7 +162,7 @@ describe('Order UX Enhanced Workflows', () => {
   // 4. Badge số lượng trên thẻ món khớp với giỏ.
   it('4. Corner quantity badge on menu card reflects items in cart', async () => {
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     const addBtn = await screen.findByRole('button', { name: 'Thêm Phở bò' })
     expect(screen.queryByLabelText(/Đã có .* trong giỏ/)).not.toBeInTheDocument()
@@ -187,7 +187,7 @@ describe('Order UX Enhanced Workflows', () => {
       http.get(base + '/menu/items', () => HttpResponse.json(page([unsellableItem]))),
     )
 
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     const itemBtn = await screen.findByRole('button', { name: 'Thêm Bún chả hết hàng' })
     expect(itemBtn).toBeDisabled()
@@ -206,7 +206,7 @@ describe('Order UX Enhanced Workflows', () => {
     )
 
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     const submitBtn = screen.getByRole('button', { name: 'Gửi đơn' })
@@ -239,7 +239,7 @@ describe('Order UX Enhanced Workflows', () => {
     )
 
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     await user.click(screen.getByRole('button', { name: 'Gửi đơn' }))
@@ -265,7 +265,7 @@ describe('Order UX Enhanced Workflows', () => {
     )
 
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     await user.click(screen.getByRole('button', { name: 'Gửi đơn' }))
@@ -278,7 +278,7 @@ describe('Order UX Enhanced Workflows', () => {
   it('9. Changing table or switching service type with items prompts confirmDraftExit', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm')
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN&tableId=' + ids.table)
+    mount('/app/order-create?serviceType=DINE_IN&tableId=' + ids.table)
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     expect(useOrderDraftStore.getState().lines).toHaveLength(1)
@@ -295,7 +295,7 @@ describe('Order UX Enhanced Workflows', () => {
     seedOrderAccess(allPermissions.filter((p) => !p.startsWith('PAYMENT_')), allFeatures.filter((f) => f !== 'PAYMENT_MANAGEMENT'))
 
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     await user.click(screen.getByRole('button', { name: 'Gửi đơn' }))
@@ -312,7 +312,7 @@ describe('Order UX Enhanced Workflows', () => {
     )
 
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     await user.click(screen.getByRole('button', { name: 'Gửi đơn' }))
@@ -328,7 +328,7 @@ describe('Order UX Enhanced Workflows', () => {
   it('12. Clearing cart prompts confirmation and resets draft lines', async () => {
     const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true)
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     expect(useOrderDraftStore.getState().lines).toHaveLength(1)
@@ -344,7 +344,7 @@ describe('Order UX Enhanced Workflows', () => {
   // 13. Tab mobile giữ từ khóa tìm kiếm khi chuyển qua lại.
   it('13. Mobile tabs preserve search query when toggling between tabs', async () => {
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     const searchInput = await screen.findByPlaceholderText('Nhập tên món...')
     await user.type(searchInput, 'Phở')

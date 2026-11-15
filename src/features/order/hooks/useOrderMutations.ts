@@ -72,7 +72,7 @@ export function useOrderMutations(order: Order) {
   const uncertain = useOrderOperationState((s) => s.uncertain.has(key) || s.refusals.has(key))
   const appendIntent = useOrderOperationState((s) => s.appends.get(key))
   const mutation = useMutation({
-    mutationKey: ['cashier', scope, 'mutation', order.id],
+    mutationKey: [...orderKeys.root(scope), 'mutation', order.id],
     retry: false,
     mutationFn: async (command: OrderCommand) => {
       const replay = command.kind === 'add' && command.retry === true
@@ -137,7 +137,7 @@ export function useOrderMutations(order: Order) {
         verifyOrder(key)
         void client.invalidateQueries({ queryKey: orderKeys.lists(scope) })
         void client.invalidateQueries({ queryKey: orderKeys.activeOrders(scope) })
-        void client.invalidateQueries({ queryKey: ['cashier', scope, 'kitchen'] })
+        void client.invalidateQueries({ queryKey: orderKeys.kitchens(scope) })
         const draft = useOrderDraftStore.getState()
         if (draft.scope === scope && draft.result?.id === response.id) useOrderDraftStore.setState({ result: response })
         return response

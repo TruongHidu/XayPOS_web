@@ -1,0 +1,28 @@
+.menu-fieldset { border: 1px solid var(--pos-border); border-radius: var(--pos-radius-md); padding: 4px 14px 10px; margin: 0 0 16px; }
+.menu-fieldset legend { padding: 0 6px; font-weight: 800; font-size: 13px; color: var(--pos-text-main); }
+.menu-mode-options { display: grid; gap: 8px; }
+.menu-mode { display: flex; gap: 10px; align-items: flex-start; padding: 10px 12px; border: 1px solid var(--pos-border); border-radius: 10px; cursor: pointer; }
+.menu-mode input { margin-top: 3px; }
+.menu-mode span { display: grid; gap: 2px; }
+.menu-mode small { color: var(--pos-text-muted); font-size: 12px; line-height: 1.4; }
+.menu-mode-on { border-color: var(--pos-primary); background: var(--pos-primary-light); }
+.menu-mode[aria-disabled='true'] { cursor: not-allowed; opacity: .55; }
+
+/* Recipe page */
+.recipe-header { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.recipe-header img { width: 64px; height: 64px; border-radius: 12px; object-fit: cover; border: 1px solid var(--pos-border); }
+.recipe-meta { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.recipe-lines { display: grid; gap: 8px; }
+.recipe-line { display: grid; grid-template-columns: minmax(0, 1fr) 150px 110px 36px; gap: 8px; align-items: start; }
+.recipe-line .field { margin-bottom: 0; }
+.recipe-line-name { display: grid; gap: 2px; padding: 9px 0; }
+.recipe-line-name small { color: var(--pos-text-muted); }
+.recipe-picker { position: relative; }
+.recipe-picker-list { position: absolute; z-index: 20; left: 0; right: 0; top: calc(100% + 4px); max-height: 260px; overflow-y: auto; background: var(--pos-surface); border: 1px solid var(--pos-border); border-radius: 10px; box-shadow: var(--pos-shadow-lg); padding: 4px; margin: 0; list-style: none; }
+.recipe-picker-list button { width: 100%; text-align: left; border: 0; background: transparent; padding: 8px 10px; border-radius: 8px; font: inherit; cursor: pointer; display: flex; justify-content: space-between; gap: 8px; }
+.recipe-picker-list button:hover, .recipe-picker-list button:focus-visible { background: var(--pos-primary-light); outline: none; }
+.recipe-cost-total { display: flex; gap: 24px; flex-wrap: wrap; margin-bottom: 12px; }
+.recipe-cost-total div { display: grid; gap: 2px; }
+.recipe-cost-total strong { font-size: 20px; }
+@media (max-width: 760px) { .recipe-line { grid-template-columns: 1fr 1fr; } .recipe-line-name { grid-column: 1 / -1; } }
+.recipe-row-selected { background: var(--pos-primary-light); }

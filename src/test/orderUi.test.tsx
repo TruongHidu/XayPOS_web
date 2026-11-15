@@ -32,18 +32,18 @@ import {
   page,
   makeOrder,
 } from './orderFixtures'
-function mount(path = '/cashier/pos?serviceType=TAKEAWAY') {
+function mount(path = '/app/order-create?serviceType=TAKEAWAY') {
   return render(
     <QueryClientProvider client={queryClient}>
       <MemoryRouter initialEntries={[path]}>
         <OrderRuntimeBoundary>
           <Routes>
             <Route element={<OrderGuard permission="ORDER_CREATE" />}>
-              <Route path="/cashier/pos" element={<CashierPosPage />} />
+              <Route path="/app/order-create" element={<CashierPosPage />} />
             </Route>
             <Route element={<OrderGuard permission="ORDER_VIEW" />}>
-              <Route path="/cashier/orders" element={<OrderListPage />} />
-              <Route path="/cashier/orders/:orderId" element={<OrderDetailPage />} />
+              <Route path="/app/orders" element={<OrderListPage />} />
+              <Route path="/app/orders/:orderId" element={<OrderDetailPage />} />
             </Route>
             <Route path="/access-unavailable" element={<p>Feature unavailable</p>} />
             <Route path="/forbidden" element={<p>Forbidden page</p>} />
@@ -200,7 +200,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
     await user.click(await screen.findByRole('button', { name: 'Thêm khu vực' }))
     await screen.findByRole('button', { name: 'Tầng 2' })
   })
@@ -214,7 +214,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/pos')
+    mount('/app/order-create')
     await user.click(await screen.findByRole('button', { name: /Bàn 1 Đang sử dụng/ }))
     await screen.findByRole('button', { name: 'Thêm Phở bò' })
     expect(opens).toBe(0)
@@ -250,7 +250,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
     await user.click(await screen.findByRole('button', { name: /Bàn 1 Còn trống/ }))
     expect(posts).toBe(0)
     expect(creates).toBe(0)
@@ -277,7 +277,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
     await user.click(await screen.findByRole('button', { name: /Bàn 1 Còn trống/ }))
     await screen.findByText(/Cần nhân viên có TABLE_OPEN/)
     expect(posts).toBe(0)
@@ -291,7 +291,7 @@ describe('Cashier Order UI and lifecycle', () => {
         return HttpResponse.json(page([itemFixture]))
       }),
     )
-    mount('/cashier/pos?tableSessionId=' + ids.session)
+    mount('/app/order-create?tableSessionId=' + ids.session)
     await screen.findByText(/Phiên bàn không còn mở/)
     expect(menus).toBe(0)
   })
@@ -309,7 +309,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
     await screen.findByRole('button', { name: /Bàn 1 Đang sử dụng/ })
     expect(current).toBe(0)
     await user.click(screen.getByRole('button', { name: 'Sử dụng' }))
@@ -323,7 +323,7 @@ describe('Cashier Order UI and lifecycle', () => {
         HttpResponse.json(page([orderFixture(), { ...orderFixture(), id: ids.item, orderCode: 'OD-SECOND' }])),
       ),
     )
-    mount('/cashier/orders?tableSessionId=' + ids.session)
+    mount('/app/orders?tableSessionId=' + ids.session)
     await screen.findByText('OD-SECOND')
     expect(screen.getByText('OD-TEST')).toBeInTheDocument()
   })
@@ -336,7 +336,7 @@ describe('Cashier Order UI and lifecycle', () => {
         return HttpResponse.json(orderFixture())
       }),
     )
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     await screen.findByText('Forbidden page')
     expect(calls).toBe(0)
   })
@@ -344,7 +344,7 @@ describe('Cashier Order UI and lifecycle', () => {
     seedOrderAccess(['ORDER_VIEW', 'ORDER_UPDATE'])
     const confirmed = { ...orderFixture(), status: 'CONFIRMED', confirmedAt: '2026-10-08T00:00:00Z' }
     server.use(http.get(base + '/orders/:id', () => HttpResponse.json(confirmed)))
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     await screen.findByText('Phở bò snapshot')
     expect(screen.queryByRole('button', { name: 'Hủy món' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Sửa món' })).not.toBeInTheDocument()
@@ -359,7 +359,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     await user.click(await screen.findByRole('button', { name: 'Sửa thông tin' }))
     await user.type(screen.getByLabelText('Ghi chú đơn'), 'draft giữ lại')
     await user.click(screen.getByRole('button', { name: 'Xác nhận' }))
@@ -377,7 +377,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     await user.click(await screen.findByRole('button', { name: 'Sửa thông tin' }))
     await user.type(screen.getByLabelText('Ghi chú đơn'), 'draft')
     act(() =>
@@ -394,7 +394,7 @@ describe('Cashier Order UI and lifecycle', () => {
   it('cancel last pending line uses ORDER_UPDATE before confirm and receives root CANCELLED', async () => {
     seedOrderAccess(['ORDER_VIEW', 'ORDER_UPDATE'])
     const user = userEvent.setup()
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     await user.click(await screen.findByRole('button', { name: 'Hủy món' }))
     await user.type(screen.getByLabelText('Lý do hủy'), 'Đổi món')
     await user.click(screen.getByRole('button', { name: 'Xác nhận' }))
@@ -448,7 +448,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
     await user.click(screen.getByRole('button', { name: 'Sử dụng' }))
     await user.click(await screen.findByRole('button', { name: /Bàn 1 Đang sử dụng/ }))
     await screen.findByRole('heading', { name: 'OD-TEST' })
@@ -471,7 +471,7 @@ describe('Cashier Order UI and lifecycle', () => {
       }),
     )
     const user = userEvent.setup()
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     await user.click(await screen.findByRole('button', { name: 'Thêm món' }))
     await user.click(await screen.findByRole('button', { name: 'Thêm Phở bò' }))
     await user.click(screen.getByRole('button', { name: 'Gửi món thêm' }))
@@ -529,7 +529,7 @@ describe('Cashier Order UI and lifecycle', () => {
     )
 
     const user = userEvent.setup()
-    mount('/cashier/orders/' + ids.order)
+    mount('/app/orders/' + ids.order)
     const payBtn = await screen.findByRole('button', { name: /Thu tiền/ })
     await user.click(payBtn)
 
@@ -559,7 +559,7 @@ describe('Cashier Order UI and lifecycle', () => {
   })
 
   it('OrderListPage renders 3-column kanban board with accurate column headers and filters', async () => {
-    mount('/cashier/orders')
+    mount('/app/orders')
 
     expect(await screen.findByRole('region', { name: 'Chờ xử lý' })).toBeInTheDocument()
     expect(screen.getByRole('region', { name: 'Đang chế biến' })).toBeInTheDocument()
@@ -615,7 +615,7 @@ describe('Cashier Order UI and lifecycle', () => {
       http.get(base + '/table-sessions/e5555555-5555-4555-8555-555555555555/active-order', () => HttpResponse.json(orderFixture())),
     )
 
-    mount('/cashier/pos?serviceType=DINE_IN')
+    mount('/app/order-create?serviceType=DINE_IN')
 
     // 1. Bàn trống (không session) hiển thị
     expect(await screen.findByRole('button', { name: /Bàn Trống/ })).toBeInTheDocument()
@@ -629,7 +629,7 @@ describe('Cashier Order UI and lifecycle', () => {
 
   it('1 lần gọi thì cộng dồn số lượng khi bấm cùng món nhiều lần trong POS', async () => {
     const user = userEvent.setup()
-    mount('/cashier/pos?serviceType=TAKEAWAY')
+    mount('/app/order-create?serviceType=TAKEAWAY')
 
     const addBtn = await screen.findByRole('button', { name: 'Thêm Phở bò' })
     await user.click(addBtn)
@@ -666,7 +666,7 @@ describe('Cashier Order UI and lifecycle', () => {
       http.get(base + '/orders/:id', () => HttpResponse.json(initialOrder)),
     )
 
-    mount(`/cashier/orders/${initialOrder.id}`)
+    mount(`/app/orders/${initialOrder.id}`)
 
     expect(await screen.findByText('Phở bò ban đầu')).toBeInTheDocument()
     expect(screen.getByText('Coca gọi thêm')).toBeInTheDocument()

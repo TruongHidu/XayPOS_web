@@ -43,7 +43,7 @@ Backend chưa có immutable bill snapshot, số bill riêng hoặc audit số l�
 - `printing/receiptModel.ts`: policy loại bill, kiểm PAID/SUCCESS/tender và model allowlist frozen.
 - `components/ReceiptPrint.tsx`: một template chung cho preview và print, không tự gọi HTTP/auth.
 - `printing/loadReceipt.ts`: REST qua ordersApi/paymentsApi, scope/generation/AbortSignal, cacheOrderSnapshot version guard và paging payment.
-- `printing/ReceiptPrintingProvider.tsx`: mount trong nhánh `/cashier`, bên trong StaffRealtimeBoundary; giữ một print intent, tự mở in khi REST hợp lệ và root `#staff-receipt-print-root` portal vào body. Chỉ hiện bản bill để kiểm tra khi version/loại bill thay đổi hoặc realtime báo stale.
+- `printing/ReceiptPrintingProvider.tsx`: mount trong nhánh `/app`, bên trong StaffRealtimeBoundary; giữ một print intent, tự mở in khi REST hợp lệ và root `#staff-receipt-print-root` portal vào body. Chỉ hiện bản bill để kiểm tra khi version/loại bill thay đổi hoặc realtime báo stale.
 - `printing/browserPrint.ts`: một native print session/tab, chờ render/font có giới hạn, kiểm root/scope, quản lý afterprint/print-media/focus/pagehide/dispose.
 - `printing/ReceiptButton.tsx`: nút chung tại OrderPanel/OrderDetailModal, chỉ dùng prop order để chọn nhãn; dữ liệu in thực tế được đọc lại qua REST.
 - `payment/utils/paymentConfirmation.ts`: kiểm response dựa vào payment intent đã freeze trước khi hiển thị success.

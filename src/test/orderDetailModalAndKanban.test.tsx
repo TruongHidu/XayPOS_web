@@ -174,9 +174,9 @@ describe('OrderDetailModal and Kanban Flow Integration Tests', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/cashier/orders']}>
+        <MemoryRouter initialEntries={['/app/orders']}>
           <Routes>
-            <Route path="/cashier/orders" element={<OrderListPage />} />
+            <Route path="/app/orders" element={<OrderListPage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,
@@ -257,9 +257,9 @@ describe('OrderDetailModal and Kanban Flow Integration Tests', () => {
 
     render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={['/cashier/orders']}>
+        <MemoryRouter initialEntries={['/app/orders']}>
           <Routes>
-            <Route path="/cashier/orders" element={<OrderListPage />} />
+            <Route path="/app/orders" element={<OrderListPage />} />
           </Routes>
         </MemoryRouter>
       </QueryClientProvider>,

@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, it, expect } from 'vitest'
 import { http, HttpResponse } from 'msw'
-import { server } from './server'
+import { seedBrowserSession, server } from './server'
 import { ordersApi } from '../features/order/api/ordersApi'
 import { orderSchema, orderSummarySchema, orderPageSchema, orderCriteriaSchema } from '../features/order/schemas'
 import { moneyMinor, quantityMilli, previewLine } from '../shared/utils/scaledDecimal'
@@ -8,7 +8,7 @@ import { newOrderId } from '../features/order/utils/orderId'
 import { cashierTablesApi } from '../features/tables/api/cashierTablesApi'
 import { orderError } from '../features/order/utils/orderErrors'
 import { useAuthStore } from '../features/auth/store/authStore'
-import { tokenStorage, setAccessToken } from '../shared/api/httpClient'
+import { setAccessToken } from '../shared/api/httpClient'
 import {
   seedOrderAccess,
   resetOrderTest,
@@ -171,7 +171,7 @@ describe('Order contract and precision', () => {
     expect(refresh).toBe(0)
   })
   it('401 retry keeps payload/key through entitlement reload', async () => {
-    tokenStorage.writeRefreshToken('order-refresh')
+    seedBrowserSession('order-refresh')
     setAccessToken('old')
     const bodies: unknown[] = []
     const keys: (string | null)[] = []
@@ -186,7 +186,7 @@ describe('Order contract and precision', () => {
       http.post(base + '/auth/refresh', () =>
         HttpResponse.json({
           accessToken: 'rotated',
-          refreshToken: 'rotated-refresh',
+          refreshToken: null,
           tokenType: 'Bearer',
           expiresIn: 900,
           user: cashierUser,

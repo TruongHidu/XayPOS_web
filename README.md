@@ -93,7 +93,9 @@ Admin route yêu cầu `SUPER_ADMIN` và `restaurantId === null`. Các permissio
 Menu được ẩn theo permission, route vẫn được guard và mutation cũng kiểm tra permission ở handler. Tất cả domain API dùng Axios client chung của Phase 1:
 
 - access token chỉ ở memory;
-- refresh token rotation dùng single-flight coordinator và `sessionStorage` hiện tại;
+- refresh token nằm trong cookie `HttpOnly; SameSite=Strict` do backend đặt (header `X-Auth-Transport: cookie`), JavaScript không đọc được; đóng tab hay mở tab mới vẫn giữ phiên tới khi refresh token hết hạn (30 ngày);
+- `localStorage` chỉ giữ cờ `pos.session` (không phải token) để bỏ qua refresh với khách chưa đăng nhập và đồng bộ đăng xuất giữa các tab;
+- refresh dùng single-flight coordinator trong tab và Web Locks giữa các tab, vì backend coi việc dùng lại refresh token đã xoay vòng là bị đánh cắp;
 - business `403` không bị refresh/logout nhầm;
 - logout clear auth state và TanStack Query cache.
 

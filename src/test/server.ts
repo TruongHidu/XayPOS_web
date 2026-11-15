@@ -1,6 +1,7 @@
 import { http, HttpResponse } from 'msw'
 import { setupServer } from 'msw/node'
 import type { AuthResponse, AuthUser } from '../shared/types/auth'
+import { sessionHint } from '../shared/storage/sessionHint'
 import type {
   AdminPackageResponse,
   AuditLogResponse,
@@ -224,6 +225,23 @@ export const adminPaymentEvent: PaymentEventSummary = {
   lastErrorCode: null,
 }
 
+/**
+ * Emulates the HttpOnly refresh cookie: the "browser" keeps it, the backend rotates it on refresh and clears it on
+ * logout or rejection. Responses in cookie mode never carry the refresh token in JSON, like the real backend.
+ */
+export const mockRefreshCookie = { value: null as string | null }
+const COOKIE_MODE = (request: Request) => request.headers.get('X-Auth-Transport') === 'cookie'
+/** A browser that signed in earlier: session flag present and a valid (or given) refresh cookie. */
+export function seedBrowserSession(token = 'refresh-old') {
+  mockRefreshCookie.value = token
+  sessionHint.mark()
+}
+const issue = (request: Request, response: AuthResponse): AuthResponse => {
+  if (!COOKIE_MODE(request)) return response
+  mockRefreshCookie.value = response.refreshToken
+  return { ...response, refreshToken: null }
+}
+
 export const handlers = [
   http.post('http://localhost:8080/api/v1/auth/login', async ({ request }) => {
     const body = (await request.json()) as { email?: string; password?: string }
@@ -238,11 +256,12 @@ export const handlers = [
         },
         { status: 401 },
       )
-    return HttpResponse.json(authResponse(body.email?.includes('owner') ? ownerUser : adminUser))
+    return HttpResponse.json(issue(request, authResponse(body.email?.includes('owner') ? ownerUser : adminUser)))
   }),
-  http.post('http://localhost:8080/api/v1/auth/refresh', async ({ request }) => {
-    const body = (await request.json()) as { refreshToken?: string }
-    if (!body.refreshToken || body.refreshToken === 'invalid')
+  http.post('http://localhost:8080/api/v1/auth/refresh', ({ request }) => {
+    const token = COOKIE_MODE(request) ? mockRefreshCookie.value : null
+    if (!token || token === 'invalid') {
+      mockRefreshCookie.value = null
       return HttpResponse.json(
         {
           success: false,
@@ -253,7 +272,8 @@ export const handlers = [
         },
         { status: 401 },
       )
-    return HttpResponse.json(authResponse(ownerUser, 'rotated'))
+    }
+    return HttpResponse.json(issue(request, authResponse(ownerUser, 'rotated')))
   }),
   http.get('http://localhost:8080/api/v1/me/entitlements', () =>
     HttpResponse.json({
@@ -265,7 +285,10 @@ export const handlers = [
       features: [],
     }),
   ),
-  http.post('http://localhost:8080/api/v1/auth/logout', () => new HttpResponse(null, { status: 204 })),
+  http.post('http://localhost:8080/api/v1/auth/logout', ({ request }) => {
+    if (COOKIE_MODE(request)) mockRefreshCookie.value = null
+    return new HttpResponse(null, { status: 204 })
+  }),
   http.get('http://localhost:8080/api/v1/admin/dashboard/summary', () =>
     HttpResponse.json({
       generatedAt: '2026-08-27T00:00:00Z',

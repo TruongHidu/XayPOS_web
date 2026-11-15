@@ -6,7 +6,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { http, HttpResponse, delay } from 'msw'
 import { QrMenuPage } from '../portals/qr-menu/QrMenuPage'
 import { useAuthStore } from '../features/auth/store/authStore'
-import { setAccessToken, tokenStorage } from '../shared/api/httpClient'
+import { setAccessToken } from '../shared/api/httpClient'
+import { sessionHint } from '../shared/storage/sessionHint'
 import { server } from './server'
 
 // A valid 43-character base64url token for testing
@@ -111,7 +112,7 @@ describe('QR Menu', () => {
   // 3. Browser with old staff tokens still uses public API without Authorization
   it('does not send Authorization header even when staff token exists', async () => {
     setAccessToken('old-staff-token')
-    tokenStorage.writeRefreshToken('old-refresh-token')
+    sessionHint.mark()
     let authHeader: string | null = null
     server.use(
       http.get(`${API_BASE}/public/menu/tables/:qrToken`, ({ request }) => {
@@ -124,7 +125,7 @@ describe('QR Menu', () => {
     expect(authHeader).toBeNull()
     // Cleanup
     setAccessToken(null)
-    tokenStorage.clearRefreshToken()
+    sessionHint.clear()
   })
 
   // 5. Route uses table qrToken, not publicOrderToken

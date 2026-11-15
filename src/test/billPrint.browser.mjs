@@ -276,7 +276,7 @@ try {
   await send('Fetch.enable', { patterns: [{ urlPattern: '*' }] })
   await send('Page.addScriptToEvaluateOnNewDocument', {
     source: `
-    sessionStorage.setItem('pos.refreshToken', 'qa-bill-refresh');
+    localStorage.setItem('pos.session', '1');
     Object.defineProperty(navigator, 'onLine', { configurable: true, get: () => false });
     window.__billPrintCalls = 0;
     window.print = () => { window.__billPrintCalls++; };

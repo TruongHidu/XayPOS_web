@@ -1,7 +1,6 @@
 import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { env } from '../config/env'
 import { normalizeApiError } from '../errors/normalizeApiError'
-import { tokenStorage } from '../storage/tokenStorage'
 import { ensureRequestScope } from './requestScope'
 
 type RetryConfig = InternalAxiosRequestConfig & { _retry?: boolean }
@@ -90,4 +89,3 @@ api.interceptors.response.use(undefined, async (error: AxiosError) => {
   }
 })
 
-export { tokenStorage }

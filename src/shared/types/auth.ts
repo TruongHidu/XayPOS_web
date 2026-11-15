@@ -17,7 +17,8 @@ export interface AuthUser {
 
 export interface AuthResponse {
   accessToken: string
-  refreshToken: string
+  /** Null for the web: the refresh token travels in an HttpOnly cookie. */
+  refreshToken: string | null
   tokenType: 'Bearer'
   expiresIn: number
   user: AuthUser
@@ -25,8 +26,6 @@ export interface AuthResponse {
 
 export interface MeResponse extends AuthUser { lastLoginAt: string | null }
 export interface LoginRequest { email: string; password: string; deviceInfo?: string }
-export interface RefreshRequest { refreshToken: string }
-export interface LogoutRequest { refreshToken: string }
 export interface RegisterRestaurantRequest {
   restaurantCode: string; restaurantName: string; legalName?: string; phone?: string; address?: string
   timezone: string; currencyCode: string; ownerName: string; ownerEmail: string; ownerPhone?: string; password: string

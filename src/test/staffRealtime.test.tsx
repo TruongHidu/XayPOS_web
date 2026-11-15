@@ -9,7 +9,8 @@ import App from '../App'
 import { StaffRealtimeBoundary } from '../portals/cashier/StaffRealtimeBoundary'
 import { RealtimeRuntime } from '../shared/realtime/runtime'
 import { channels } from '../shared/realtime/channelPolicy'
-import { api, refreshWithCoordinator, setAccessToken, tokenStorage } from '../shared/api/httpClient'
+import { api, refreshWithCoordinator, setAccessToken } from '../shared/api/httpClient'
+import { sessionHint } from '../shared/storage/sessionHint'
 import { env } from '../shared/config/env'
 import { queryClient } from '../shared/api/queryClient'
 import { useAuthStore } from '../features/auth/store/authStore'
@@ -162,7 +163,7 @@ describe('Staff realtime composition and lifecycle', () => {
       http.get(base + '/public/*', () => new HttpResponse(null, { status: 404 })),
       http.post(base + '/public/*', () => new HttpResponse(null, { status: 404 })),
     )
-    if (publicRoute) tokenStorage.writeRefreshToken('previous-staff-session')
+    if (publicRoute) sessionHint.mark()
     render(
       <QueryClientProvider client={queryClient}>
         <MemoryRouter initialEntries={[route]}>
@@ -218,7 +219,7 @@ describe('Staff realtime composition and lifecycle', () => {
   })
   it('REST 401 and socket expiry share the same refresh request', async () => {
     await mountConnected(null)
-    tokenStorage.writeRefreshToken('refresh-old')
+    sessionHint.mark()
     const gate = deferred<void>()
     let refreshes = 0
     server.use(
@@ -232,7 +233,7 @@ describe('Staff realtime composition and lifecycle', () => {
         await gate.promise
         return HttpResponse.json({
           accessToken: 'rotated',
-          refreshToken: 'refresh-new',
+          refreshToken: null,
           tokenType: 'Bearer',
           expiresIn: 900,
           user: cashierUser,
@@ -250,7 +251,7 @@ describe('Staff realtime composition and lifecycle', () => {
     expect(fake.latest.config.connectHeaders?.Authorization).toBe('Bearer rotated')
   })
   it('late refresh cannot resurrect a signed-out session or clear a new session', async () => {
-    tokenStorage.writeRefreshToken('old')
+    sessionHint.mark()
     const gate = deferred<void>()
     const called = vi.fn()
     server.use(
@@ -259,7 +260,7 @@ describe('Staff realtime composition and lifecycle', () => {
         await gate.promise
         return HttpResponse.json({
           accessToken: 'stale',
-          refreshToken: 'stale',
+          refreshToken: null,
           tokenType: 'Bearer',
           expiresIn: 900,
           user: cashierUser,
@@ -274,7 +275,7 @@ describe('Staff realtime composition and lifecycle', () => {
     await refresh
     expect(useAuthStore.getState().status).toBe('authenticated')
     expect(orderScope(useAuthStore.getState())).toBe(scope)
-    expect(tokenStorage.readRefreshToken()).toBeNull()
+    expect(sessionHint.present()).toBe(false)
   })
   it('old frames are ignored after logout/login to the same account and then a different account', async () => {
     await mountConnected(null)

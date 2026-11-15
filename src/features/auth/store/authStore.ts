@@ -2,13 +2,9 @@ import { create } from 'zustand'
 import { authApi } from '../api/authApi'
 import { errorCode, normalizeApiError } from '../../../shared/errors/normalizeApiError'
 import { queryClient } from '../../../shared/api/queryClient'
-import {
-  getAccessToken,
-  refreshWithCoordinator,
-  resetRefreshCoordinator,
-  setAccessToken,
-  tokenStorage,
-} from '../../../shared/api/httpClient'
+import { refreshWithCoordinator, resetRefreshCoordinator, setAccessToken } from '../../../shared/api/httpClient'
+import { withCrossTabLock } from '../../../shared/api/crossTabLock'
+import { sessionHint } from '../../../shared/storage/sessionHint'
 import type {
   AuthResponse,
   AuthStatus,
@@ -38,7 +34,7 @@ interface AuthState {
 
 const applyAuthResponse = (response: AuthResponse) => {
   setAccessToken(response.accessToken)
-  tokenStorage.writeRefreshToken(response.refreshToken)
+  sessionHint.mark()
   useAuthStore.setState({ status: 'authenticated', user: response.user, lastError: null })
   if (proactiveTimer) clearTimeout(proactiveTimer)
   proactiveTimer = setTimeout(
@@ -49,6 +45,7 @@ const applyAuthResponse = (response: AuthResponse) => {
   )
 }
 
+const REFRESH_LOCK = 'xaypos-auth-refresh'
 let proactiveTimer: ReturnType<typeof setTimeout> | null = null
 let bootstrapPromise: Promise<void> | null = null
 
@@ -79,10 +76,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
   refreshSession: async () => {
     const revision = get().sessionRevision
-    const refreshToken = tokenStorage.readRefreshToken()
-    if (!refreshToken) throw new Error('No refresh token')
     try {
-      const response = await authApi.refresh({ refreshToken })
+      const response = await withCrossTabLock(REFRESH_LOCK, () => authApi.refresh())
       if (revision !== get().sessionRevision) throw new Error('ORDER_ACCESS_CHANGED')
       applyAuthResponse(response)
       await get().loadEntitlement()
@@ -97,7 +92,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     const revision = get().sessionRevision
     bootstrapPromise = (async () => {
       set({ status: 'bootstrapping', lastError: null })
-      if (!tokenStorage.readRefreshToken()) {
+      if (!sessionHint.present()) {
         set({ status: 'unauthenticated' })
         return
       }
@@ -147,9 +142,9 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ user: currentUser, entitlement, entitlementState: entitlement.status === 'ACTIVE' ? 'active' : 'inactive' })
   },
   signOut: async () => {
-    const refreshToken = tokenStorage.readRefreshToken()
     try {
-      if (refreshToken && getAccessToken()) await authApi.logout({ refreshToken })
+      // The cookie proves the session, so logout also works after the access token expired.
+      if (sessionHint.present()) await authApi.logout()
     } catch {
       /* Local logout must still complete when the server is unavailable. */
     } finally {
@@ -161,7 +156,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     proactiveTimer = null
     set({ sessionRevision: get().sessionRevision + 1 })
     setAccessToken(null)
-    tokenStorage.clearRefreshToken()
+    sessionHint.clear()
     resetRefreshCoordinator()
     queryClient.clear()
     set({ status: 'unauthenticated', user: null, entitlement: null, entitlementState: 'idle', lastError: null })

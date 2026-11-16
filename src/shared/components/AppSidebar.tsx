@@ -55,10 +55,11 @@ export function AppSidebar({ homeTo, subtitle, userName, userMeta, roleBadge, se
     .map((section) => ({ ...section, links: section.links.filter((link) => link.visible !== false) }))
     .filter((section) => section.links.length > 0)
 
+  // The link itself matches its sub-paths; extra patterns (a section's routes) match exactly,
+  // so `/app/inventory` (a redirect route) does not light up every inventory page.
   const isLinkActive = (link: SidebarLink) =>
-    [link.to.split('?')[0], ...(link.activePatterns ?? [])].some(
-      (pattern) => matchPath({ path: pattern, end: false }, location.pathname) !== null,
-    )
+    matchPath({ path: link.to.split('?')[0], end: false }, location.pathname) !== null ||
+    (link.activePatterns ?? []).some((pattern) => matchPath({ path: pattern, end: true }, location.pathname) !== null)
 
   const toggle = (title: string) =>
     setCollapsed((current) => {

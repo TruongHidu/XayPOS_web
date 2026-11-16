@@ -8,6 +8,7 @@ import { invalidateOrderEvent, resyncOrders } from '../../features/order/realtim
 import { invalidateQrEvent, invalidateReviewContext } from '../../features/qr-order-review/realtime/qrReviewAdapter'
 import { qrReviewKeys } from '../../features/qr-order-review/api/qrReviewKeys'
 import { invalidateKitchenEvent } from '../../features/kitchen/realtime/kitchenAdapter'
+import { createLowStockNotifier, invalidateInventoryEvent, resyncInventory } from '../../features/inventory/realtime/inventoryAdapter'
 import { operationKey, useOrderOperationState } from '../../features/order/store/orderOperationState'
 import { getAccessToken, refreshWithCoordinator, subscribeAccessToken } from '../../shared/api/httpClient'
 import { env } from '../../shared/config/env'
@@ -47,6 +48,7 @@ export function StaffRealtimeBoundary({
     let invalidator: QueryInvalidator | undefined
     let caches = new Map<Channel, EventCache>()
     let notificationCache = new EventCache()
+    const lowStockNotifier = createLowStockNotifier()
     let noticeTimer: ReturnType<typeof setTimeout> | undefined
     let revalidation: Promise<void> | undefined
     let lastRevalidation = -Infinity
@@ -71,7 +73,8 @@ export function StaffRealtimeBoundary({
           .getQueryCache()
           .findAll({ queryKey: orderKeys.kitchens(scope) })
           .some((query) => query.isActive()),
-        inventory: false,
+        // Low-stock alerts reach every page (toast + badge); channelPolicy checks role/permission/feature.
+        inventory: true,
       })
     const sync = () => {
       if (disposed) return
@@ -102,7 +105,7 @@ export function StaffRealtimeBoundary({
             query.queryKey[0] === TENANT_KEY_ROOT &&
             query.queryKey[1] === capturedScope &&
             // table-admin: completing/cancelling orders changes table occupancy on Sơ đồ bàn.
-            ['orders', 'order', 'tables', 'active-order', 'session', 'selected-table', 'qr-review', 'kitchen', 'table-admin'].includes(
+            ['orders', 'order', 'tables', 'active-order', 'session', 'selected-table', 'qr-review', 'kitchen', 'table-admin', 'inventory'].includes(
               String(query.queryKey[2]),
             ),
           (query) => {
@@ -128,6 +131,8 @@ export function StaffRealtimeBoundary({
             if (allowed.includes('orders')) resyncOrders(batch, client, capturedScope)
             if (allowed.includes('qr')) batch.invalidate(qrReviewKeys.root(capturedScope))
             if (allowed.includes('kitchen')) batch.invalidate(orderKeys.kitchens(capturedScope))
+            // No replay after a reconnect: read inventory alerts/balances again.
+            if (allowed.includes('inventory')) resyncInventory(batch, capturedScope)
           },
           onEvent: (channel, event) => {
             if (!current() || !consumerChannels().includes(channel)) return
@@ -143,6 +148,10 @@ export function StaffRealtimeBoundary({
             }
             if (channel === 'kitchen' && event.type === 'ORDER_CHANGED')
               invalidateKitchenEvent(batch, capturedScope, event)
+            if (channel === 'inventory' && event.type === 'INVENTORY_LOW_STOCK_ALERT_CHANGED') {
+              invalidateInventoryEvent(batch, capturedScope, event)
+              lowStockNotifier.push(event)
+            }
             if (channel === 'qr' && event.type === 'QR_ORDER_REQUEST_CHANGED') {
               invalidateQrEvent(batch, capturedScope, event)
               if (
@@ -217,6 +226,7 @@ export function StaffRealtimeBoundary({
       operationSubscription()
       caches.forEach((cache) => cache.clear())
       notificationCache.clear()
+      lowStockNotifier.dispose()
       if (noticeTimer) clearTimeout(noticeTimer)
       if (hiddenTimer) clearTimeout(hiddenTimer)
       window.removeEventListener('online', online)

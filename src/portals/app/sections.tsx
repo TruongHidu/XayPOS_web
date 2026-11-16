@@ -10,6 +10,9 @@ import { canTable } from '../../features/tables/policies/tableAccessPolicy'
 import { canStaff } from '../../features/staff/policies/staffAccessPolicy'
 import { canKitchenView } from '../../features/kitchen/policies/kitchenAccessPolicy'
 import { canDailyReport, canDetailReport, canReferenceMargin } from '../../features/reports/policies/reportAccessPolicy'
+import { canViewInventory, canViewInventoryAlerts, canViewStockAudits } from '../../features/inventory/policies/inventoryAccessPolicy'
+import { useOpenAlertCount } from '../../features/inventory/hooks/useInventoryCounts'
+import { InventoryIndexRedirect } from './InventoryIndexRedirect'
 import { canOpenSettings } from '../../features/settings/policies/settingsAccessPolicy'
 
 /**
@@ -86,6 +89,18 @@ const OverviewPage = lazyPage(() => import('../../features/reports/pages/Overvie
 const DailyRevenuePage = lazyPage(() => import('../../features/reports/pages/DailyRevenuePage'), 'DailyRevenuePage')
 const ReportsPage = lazyPage(() => import('../../features/reports/pages/ReportsPage'), 'ReportsPage')
 const ReferenceMarginPage = lazyPage(() => import('../../features/reports/pages/ReferenceMarginPage'), 'ReferenceMarginPage')
+const BalancesPage = lazyPage(() => import('../../features/inventory/pages/BalancesPage'), 'BalancesPage')
+const WarehousesPage = lazyPage(() => import('../../features/inventory/pages/WarehousesPage'), 'WarehousesPage')
+const TransactionsPage = lazyPage(() => import('../../features/inventory/pages/TransactionsPage'), 'TransactionsPage')
+const DocumentsPage = lazyPage(() => import('../../features/inventory/pages/DocumentsPage'), 'DocumentsPage')
+const DocumentCreatePage = lazyPage(() => import('../../features/inventory/pages/DocumentCreatePage'), 'DocumentCreatePage')
+const DocumentDetailPage = lazyPage(() => import('../../features/inventory/pages/DocumentDetailPage'), 'DocumentDetailPage')
+const AlertsPage = lazyPage(() => import('../../features/inventory/pages/AlertsPage'), 'AlertsPage')
+const AlertDetailPage = lazyPage(() => import('../../features/inventory/pages/AlertsPage'), 'AlertDetailPage')
+const LowStockPage = lazyPage(() => import('../../features/inventory/pages/LowStockPage'), 'LowStockPage')
+const AuditsPage = lazyPage(() => import('../../features/inventory/pages/AuditsPage'), 'AuditsPage')
+const AuditCreatePage = lazyPage(() => import('../../features/inventory/pages/AuditsPage'), 'AuditCreatePage')
+const AuditDetailPage = lazyPage(() => import('../../features/inventory/pages/AuditDetailPage'), 'AuditDetailPage')
 const KitchenPage = lazyPage(() => import('../../features/kitchen/pages/KitchenPage'), 'KitchenPage')
 const MenuPage = lazyPage(() => import('../../features/menu/pages/MenuPage'), 'MenuPage')
 const RecipePage = lazyPage(() => import('../../features/menu/pages/RecipePage'), 'RecipePage')
@@ -241,15 +256,34 @@ export const appSections: AppSection[] = [
   { id: 'cashbook', label: 'Sổ thu chi', icon: 'cashbook', group: 'reports', path: 'cashbook', status: 'planned', phase: 5 },
 
   // ── Kho ─────────────────────────────────────────────
-  { id: 'inventory', label: 'Tồn kho', icon: 'box', group: 'inventory', path: 'inventory/balances', status: 'planned', phase: 4 },
+  {
+    id: 'inventory',
+    label: 'Tồn kho',
+    icon: 'box',
+    group: 'inventory',
+    path: 'inventory/balances',
+    status: 'ready',
+    canSee: canViewInventory,
+    routes: [
+      { path: 'inventory', element: <InventoryIndexRedirect /> },
+      { path: 'inventory/balances', element: <BalancesPage /> },
+      { path: 'inventory/warehouses', element: <WarehousesPage /> },
+      { path: 'inventory/transactions', element: <TransactionsPage /> },
+    ],
+  },
   {
     id: 'inventory-documents',
     label: 'Chứng từ kho',
     icon: 'receipt',
     group: 'inventory',
     path: 'inventory/stock-documents',
-    status: 'planned',
-    phase: 4,
+    status: 'ready',
+    canSee: canViewInventory,
+    routes: [
+      { path: 'inventory/stock-documents', element: <DocumentsPage /> },
+      { path: 'inventory/stock-documents/new', element: <DocumentCreatePage /> },
+      { path: 'inventory/stock-documents/:documentId', element: <DocumentDetailPage /> },
+    ],
   },
   {
     id: 'inventory-alerts',
@@ -257,10 +291,29 @@ export const appSections: AppSection[] = [
     icon: 'bell',
     group: 'inventory',
     path: 'inventory/alerts',
-    status: 'planned',
-    phase: 4,
+    status: 'ready',
+    canSee: canViewInventoryAlerts,
+    routes: [
+      { path: 'inventory/alerts', element: <AlertsPage /> },
+      { path: 'inventory/alerts/:alertId', element: <AlertDetailPage /> },
+      { path: 'inventory/low-stock', element: <LowStockPage /> },
+    ],
+    useBadge: useOpenAlertCount,
   },
-  { id: 'inventory-audits', label: 'Kiểm kê', icon: 'checklist', group: 'inventory', path: 'inventory/audits', status: 'planned', phase: 4 },
+  {
+    id: 'inventory-audits',
+    label: 'Kiểm kê',
+    icon: 'checklist',
+    group: 'inventory',
+    path: 'inventory/audits',
+    status: 'ready',
+    canSee: canViewStockAudits,
+    routes: [
+      { path: 'inventory/audits', element: <AuditsPage /> },
+      { path: 'inventory/audits/new', element: <AuditCreatePage /> },
+      { path: 'inventory/audits/:auditId', element: <AuditDetailPage /> },
+    ],
+  },
 
   // ── Tài khoản ───────────────────────────────────────
   {

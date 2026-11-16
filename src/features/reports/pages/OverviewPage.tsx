@@ -16,6 +16,7 @@ import { orderKeys } from '../../order/api/orderKeys'
 import { useTakeawayCount } from '../../order/hooks/useTakeawayCount'
 import { canTakeawayOrders } from '../../order/policies/orderAccessPolicy'
 import { useQrPendingCount } from '../../qr-order-review/hooks/useQrPendingCount'
+import { useLowStockCount } from '../../inventory/hooks/useInventoryCounts'
 import { canTable } from '../../tables/policies/tableAccessPolicy'
 import { tableKeys } from '../../tables/api/tablesAdminApi'
 import { reportKeys, reportsApi } from '../api/reportsApi'
@@ -61,6 +62,7 @@ export function OverviewPage() {
   })
   const takeaway = useTakeawayCount()
   const qrPending = useQrPendingCount()
+  const lowStock = useLowStockCount()
 
   const currency = daily.data?.meta.currencyCode ?? 'VND'
   const hour = new Date().getHours()
@@ -110,6 +112,17 @@ export function OverviewPage() {
               value={qrPending}
               hint={qrPending > 0 ? 'Duyệt tại Đơn hàng' : undefined}
               onClick={() => navigate('/app/orders')}
+            />
+          )}
+          {lowStock.enabled && (
+            <StatCard
+              label="Nguyên liệu sắp hết"
+              icon="bell"
+              tone={lowStock.count ? 'danger' : 'success'}
+              loading={lowStock.loading}
+              value={lowStock.count ?? '—'}
+              hint={lowStock.count ? 'Dưới ngưỡng cảnh báo' : undefined}
+              onClick={() => navigate('/app/inventory/low-stock')}
             />
           )}
           {canKitchenView(access) && (

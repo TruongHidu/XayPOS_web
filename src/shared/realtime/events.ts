@@ -48,10 +48,24 @@ export const qrEventSchema = envelope.extend({
     approvedSessionId: context,
   }),
 })
-const schema = z.discriminatedUnion('type', [orderEventSchema, qrEventSchema])
+/** Low-stock alert episode changed (inventory-alert-realtime.md); metadata only, REST holds the data. */
+export const inventoryAlertEventSchema = envelope.extend({
+  type: z.literal('INVENTORY_LOW_STOCK_ALERT_CHANGED'),
+  resourceType: z.literal('LOW_STOCK_ALERT'),
+  payload: z.object({
+    warehouseId: id,
+    ingredientId: id.nullable().optional(),
+    itemId: id.nullable().optional(),
+    itemType: z.enum(['INGREDIENT', 'MENU_ITEM']).nullable().optional(),
+    status: z.enum(['OPEN', 'ACKNOWLEDGED', 'RESOLVED']),
+    resolutionReason: z.string().nullable(),
+  }),
+})
+const schema = z.discriminatedUnion('type', [orderEventSchema, qrEventSchema, inventoryAlertEventSchema])
 export type RealtimeEvent = z.infer<typeof schema>
 export type OrderEvent = z.infer<typeof orderEventSchema>
 export type QrEvent = z.infer<typeof qrEventSchema>
+export type InventoryAlertEvent = z.infer<typeof inventoryAlertEventSchema>
 export function parseRealtimeEvent(body: string): RealtimeEvent | null {
   if (body.length > 65536) return null
   try {

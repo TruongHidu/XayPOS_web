@@ -20,11 +20,20 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | `reports`                  | Báo cáo             | `/app/reports`                       | Đã có         | 3     | `/reports/summary`, `revenue-series`, `payment-methods`, `top-items`, `orders` |
 | `reference-margin-reports` | Báo cáo             | `/app/reference-margin`              | Đã có         | 3     | `/reports/reference-margin/{summary,series,orders}`                            |
 | `cashbook`                 | Báo cáo             | `/app/cashbook`                      | Chưa làm         | 5     | `/cashbook/*`                                                                  |
-| `inventory`                | Kho                 | `/app/inventory/balances`, `.../warehouses`, `.../transactions`, `.../low-stock` | Chưa làm | 4 | `/inventory/warehouses*`, `/inventory/transactions`, `/inventory/low-stock` |
-| `inventory-documents`      | Kho                 | `/app/inventory/stock-documents[/new\|/:id]` | Chưa làm | 4     | `/inventory/stock-documents*`                                                  |
-| `inventory-alerts`         | Kho                 | `/app/inventory/alerts[/:id]`        | Chưa làm         | 4     | `/inventory/alerts*`, realtime `/user/queue/inventory-alerts`                  |
-| `inventory-audits`         | Kho                 | `/app/inventory/audits[/new\|/:id]`  | Chưa làm         | 4     | `/inventory/audits*`                                                           |
+| `inventory`                | Kho                 | `/app/inventory/balances`, `.../warehouses`, `.../transactions`, `.../low-stock` | Đã có | 4 | `/inventory/warehouses*`, `/inventory/transactions`, `/inventory/low-stock` |
+| `inventory-documents`      | Kho                 | `/app/inventory/stock-documents[/new\|/:id]` | Đã có | 4     | `/inventory/stock-documents*`                                                  |
+| `inventory-alerts`         | Kho                 | `/app/inventory/alerts[/:id]`        | Đã có         | 4     | `/inventory/alerts*`, realtime `/user/queue/inventory-alerts`                  |
+| `inventory-audits`         | Kho                 | `/app/inventory/audits[/new\|/:id]`  | Đã có         | 4     | `/inventory/audits*`                                                           |
 | `settings`                 | Tài khoản           | `/app/settings`                      | Đã có         | 1     | `/restaurants/me`, `/restaurants/me/menu-link`, `/restaurants/me/transfer-account` |
+
+Phase 4 (đã xong, xem `docs/phase4-inventory-plan.md`):
+
+- **Tồn kho** (`/app/inventory/balances`): chọn kho (mặc định sẵn), tồn vật lý / đang giữ / khả dụng / ngưỡng, lọc tồn thấp, đặt ngưỡng (lần đầu gửi `expectedVersion: null`), nút Nhập thêm và Lịch sử. Kèm **Quản lý kho** (`/warehouses`) và **Biến động kho** (`/transactions`, giá chưa biết hiện "Chưa có giá").
+- **Chứng từ kho**: danh sách lọc loại/trạng thái/kho/ngày; tạo phiếu nhập/xuất/điều chỉnh với `Idempotency-Key` theo nội dung (thử lại không tạo trùng), cảnh báo đơn giá 0; chi tiết sửa dòng/ghi chú, xác nhận, hủy; phiếu từ kiểm kê chỉ xem.
+- **Cảnh báo tồn kho**: tab Chưa xem / Đã xem / Đã kết thúc, "Đã xem" (không phải "đã nhập kho"), chi tiết lịch sử đợt, số hiện tại null hiện "Không còn dữ liệu so sánh"; **Tồn thấp** (`/low-stock`). Badge sidebar = số đợt chưa xem; thẻ "Nguyên liệu sắp hết" trên Tổng quan.
+- **Realtime**: sự kiện `INVENTORY_LOW_STOCK_ALERT_CHANGED` làm mới cảnh báo/tồn và gom đợt mới thành một thông báo (400 ms); kết nối lại thì đọc lại REST.
+- **Kiểm kê**: tạo (idempotent), bắt đầu đếm, phiếu đếm 100 dòng/trang, ô trống = chưa đếm, nút "Khớp", lưu theo batch ≤100 dòng tuần tự, cảnh báo rời trang khi chưa lưu, chốt (xử lý lỗi số liệu không còn khớp), hủy, link phiếu điều chỉnh tự sinh.
+- `/app/inventory?tab=…` (link của app) chuyển đúng trang con.
 
 Phase 3 (đã xong):
 

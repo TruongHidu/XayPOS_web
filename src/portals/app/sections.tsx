@@ -9,6 +9,7 @@ import { AccessGate } from './AccessGate'
 import { canTable } from '../../features/tables/policies/tableAccessPolicy'
 import { canStaff } from '../../features/staff/policies/staffAccessPolicy'
 import { canKitchenView } from '../../features/kitchen/policies/kitchenAccessPolicy'
+import { canDailyReport, canDetailReport, canReferenceMargin } from '../../features/reports/policies/reportAccessPolicy'
 import { canOpenSettings } from '../../features/settings/policies/settingsAccessPolicy'
 
 /**
@@ -81,6 +82,10 @@ export function lazyPage<M, K extends keyof M>(load: () => Promise<M>, name: K):
   return lazy(async () => ({ default: (await load())[name] as ComponentType }))
 }
 
+const OverviewPage = lazyPage(() => import('../../features/reports/pages/OverviewPage'), 'OverviewPage')
+const DailyRevenuePage = lazyPage(() => import('../../features/reports/pages/DailyRevenuePage'), 'DailyRevenuePage')
+const ReportsPage = lazyPage(() => import('../../features/reports/pages/ReportsPage'), 'ReportsPage')
+const ReferenceMarginPage = lazyPage(() => import('../../features/reports/pages/ReferenceMarginPage'), 'ReferenceMarginPage')
 const KitchenPage = lazyPage(() => import('../../features/kitchen/pages/KitchenPage'), 'KitchenPage')
 const MenuPage = lazyPage(() => import('../../features/menu/pages/MenuPage'), 'MenuPage')
 const RecipePage = lazyPage(() => import('../../features/menu/pages/RecipePage'), 'RecipePage')
@@ -94,7 +99,17 @@ const OrderDetailPage = lazyPage(() => import('../../features/order/pages/OrderD
 
 export const appSections: AppSection[] = [
   // ── Bán hàng & vận hành ─────────────────────────────
-  { id: 'overview', label: 'Tổng quan', icon: 'dashboard', group: 'operations', path: 'overview', status: 'planned', phase: 3 },
+  {
+    id: 'overview',
+    label: 'Tổng quan',
+    icon: 'dashboard',
+    group: 'operations',
+    path: 'overview',
+    status: 'ready',
+    // Tổng quan leads with today's takings, so it follows the daily report (as in the app).
+    canSee: canDailyReport,
+    routes: [{ path: 'overview', element: <OverviewPage /> }],
+  },
   {
     id: 'orders',
     label: 'Đơn hàng',
@@ -193,16 +208,35 @@ export const appSections: AppSection[] = [
   },
 
   // ── Báo cáo ─────────────────────────────────────────
-  { id: 'daily-revenue', label: 'Doanh thu ngày', icon: 'chart', group: 'reports', path: 'daily-revenue', status: 'planned', phase: 3 },
-  { id: 'reports', label: 'Báo cáo', icon: 'report', group: 'reports', path: 'reports', status: 'planned', phase: 3 },
+  {
+    id: 'daily-revenue',
+    label: 'Doanh thu ngày',
+    icon: 'chart',
+    group: 'reports',
+    path: 'daily-revenue',
+    status: 'ready',
+    canSee: canDailyReport,
+    routes: [{ path: 'daily-revenue', element: <DailyRevenuePage /> }],
+  },
+  {
+    id: 'reports',
+    label: 'Báo cáo',
+    icon: 'report',
+    group: 'reports',
+    path: 'reports',
+    status: 'ready',
+    canSee: canDetailReport,
+    routes: [{ path: 'reports', element: <ReportsPage /> }],
+  },
   {
     id: 'reference-margin-reports',
     label: 'Giá vốn & lãi tham chiếu',
     icon: 'wallet',
     group: 'reports',
     path: 'reference-margin',
-    status: 'planned',
-    phase: 3,
+    status: 'ready',
+    canSee: canReferenceMargin,
+    routes: [{ path: 'reference-margin', element: <ReferenceMarginPage /> }],
   },
   { id: 'cashbook', label: 'Sổ thu chi', icon: 'cashbook', group: 'reports', path: 'cashbook', status: 'planned', phase: 5 },
 

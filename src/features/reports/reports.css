@@ -1,0 +1,27 @@
+.report-filters { display: grid; gap: 10px; padding: 14px 16px; background: var(--pos-surface); border: 1px solid var(--pos-border); border-radius: var(--pos-radius-lg); }
+.report-filters-row { display: flex; gap: 10px; align-items: flex-end; flex-wrap: wrap; }
+.report-meta { margin-left: auto; font-size: 12px; color: var(--pos-text-muted); }
+.report-segment { display: inline-flex; border: 1px solid var(--pos-border); border-radius: 9px; overflow: hidden; }
+.report-segment button { border: 0; background: var(--pos-surface); padding: 6px 12px; font: inherit; font-size: 13px; font-weight: 600; color: var(--pos-text-muted); cursor: pointer; }
+.report-segment button + button { border-left: 1px solid var(--pos-border); }
+.report-segment button[aria-pressed='true'] { background: var(--pos-primary); color: #fff; }
+.report-breakdown { display: grid; gap: 8px; margin: 0; }
+.report-breakdown div { display: flex; justify-content: space-between; gap: 12px; font-size: 14px; }
+.report-breakdown dt { color: var(--pos-text-muted); }
+.report-breakdown dd { margin: 0; font-weight: 600; }
+.report-breakdown .report-total { padding-top: 8px; border-top: 1px dashed var(--pos-border); font-size: 15px; }
+.report-breakdown .report-total dd { font-weight: 800; }
+.report-two { display: grid; grid-template-columns: minmax(0, 2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.report-methods { display: grid; gap: 12px; }
+.report-method-head { display: flex; justify-content: space-between; font-size: 14px; }
+.report-method-bar { height: 10px; border-radius: 999px; background: #eef2f7; overflow: hidden; margin-top: 6px; }
+.report-method-bar span { display: block; height: 100%; background: var(--pos-primary); border-radius: inherit; }
+.report-method-bar.report-transfer span { background: var(--pos-emerald); }
+.report-day-nav { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.report-day-nav input { height: 38px; padding: 0 10px; border: 1px solid var(--pos-border); border-radius: 9px; font: inherit; }
+.report-hint { margin: 0; font-size: 12px; color: var(--pos-text-muted); }
+.report-negative { color: var(--pos-danger); }
+.report-positive { color: var(--pos-emerald); }
+.overview-live { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; }
+.overview-links { display: flex; flex-wrap: wrap; gap: 8px; }
+@media (max-width: 1024px) { .report-two { grid-template-columns: 1fr; } }

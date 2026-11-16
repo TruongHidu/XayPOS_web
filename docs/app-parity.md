@@ -8,7 +8,7 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 
 | Section (id app)           | Nhóm sidebar        | Route web                            | Trạng thái       | Phase | API chính                                                                      |
 | -------------------------- | ------------------- | ------------------------------------ | ---------------- | ----- | ------------------------------------------------------------------------------ |
-| `overview`                 | Bán hàng & vận hành | `/app/overview`                      | Chưa làm         | 3     | `/reports/daily`, đếm đơn mang đi / QR / sắp hết                               |
+| `overview`                 | Bán hàng & vận hành | `/app/overview`                      | Đã có         | 3     | `/reports/daily`, đếm đơn mang đi / QR / sắp hết                               |
 | `orders`                   | Bán hàng & vận hành | `/app/orders`, `/app/orders/:id`     | Đã có            | –     | `/orders`, `/orders/{id}/*`, `/qr-order-requests`                              |
 | `order-create`             | Bán hàng & vận hành | `/app/order-create`                  | Đã có (POS)      | 2     | `/orders`, `/tables`, `/table-areas`, `/menu/*`      |
 | `takeaway-orders`          | Bán hàng & vận hành | `/app/takeaway[/:id]`                | Đã có         | 2     | `/orders?serviceType=TAKEAWAY`                                                 |
@@ -16,15 +16,23 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | `staff`                    | Quản lý             | `/app/staff`                         | Đã có         | 1     | `/staff`, `/staff/roles`, `/staff/permissions`, `/staff/{id}/*`                |
 | `menu`                     | Quản lý             | `/app/menu`, `.../items/:id/recipes` | Đã có         | 1     | `/menu/groups`, `/menu/items`, `/menu/images`, `/menu/ingredients`, recipes    |
 | `tables`                   | Quản lý             | `/app/tables`                        | Đã có         | 1     | `/table-areas`, `/tables`, `/tables/{id}/qr*`, `/table-sessions/*`             |
-| `daily-revenue`            | Báo cáo             | `/app/daily-revenue`                 | Chưa làm         | 3     | `/reports/daily`                                                               |
-| `reports`                  | Báo cáo             | `/app/reports`                       | Chưa làm         | 3     | `/reports/summary`, `revenue-series`, `payment-methods`, `top-items`, `orders` |
-| `reference-margin-reports` | Báo cáo             | `/app/reference-margin`              | Chưa làm         | 3     | `/reports/reference-margin/{summary,series,orders}`                            |
+| `daily-revenue`            | Báo cáo             | `/app/daily-revenue`                 | Đã có         | 3     | `/reports/daily`                                                               |
+| `reports`                  | Báo cáo             | `/app/reports`                       | Đã có         | 3     | `/reports/summary`, `revenue-series`, `payment-methods`, `top-items`, `orders` |
+| `reference-margin-reports` | Báo cáo             | `/app/reference-margin`              | Đã có         | 3     | `/reports/reference-margin/{summary,series,orders}`                            |
 | `cashbook`                 | Báo cáo             | `/app/cashbook`                      | Chưa làm         | 5     | `/cashbook/*`                                                                  |
 | `inventory`                | Kho                 | `/app/inventory/balances`, `.../warehouses`, `.../transactions`, `.../low-stock` | Chưa làm | 4 | `/inventory/warehouses*`, `/inventory/transactions`, `/inventory/low-stock` |
 | `inventory-documents`      | Kho                 | `/app/inventory/stock-documents[/new\|/:id]` | Chưa làm | 4     | `/inventory/stock-documents*`                                                  |
 | `inventory-alerts`         | Kho                 | `/app/inventory/alerts[/:id]`        | Chưa làm         | 4     | `/inventory/alerts*`, realtime `/user/queue/inventory-alerts`                  |
 | `inventory-audits`         | Kho                 | `/app/inventory/audits[/new\|/:id]`  | Chưa làm         | 4     | `/inventory/audits*`                                                           |
 | `settings`                 | Tài khoản           | `/app/settings`                      | Đã có         | 1     | `/restaurants/me`, `/restaurants/me/menu-link`, `/restaurants/me/transfer-account` |
+
+Phase 3 (đã xong):
+
+- **Tổng quan** (`/app/overview`): số liệu hôm nay (Tiền đã thu, Doanh số đơn hoàn tất, TB/đơn, đơn tạo/hủy) và "Đang diễn ra" (bàn đang phục vụ, đơn mang đi, yêu cầu QR chờ duyệt, món chờ bếp), mỗi thẻ chỉ hiện khi có quyền. Là trang mặc định sau đăng nhập cho người có quyền xem doanh thu ngày.
+- **Doanh thu ngày** (`/app/daily-revenue?date=`): chọn ngày, lùi/tiến từng ngày, cấu thành doanh số.
+- **Báo cáo** (`/app/reports`): khoảng ngày (tối đa 366 ngày) + loại phục vụ + kênh tạo đơn trên URL; tab Tổng quan (KPI, biểu đồ theo ngày/tháng, phương thức thanh toán), Món bán chạy, Đối soát đơn (theo ngày tạo/hoàn tất/hủy/thu tiền).
+- **Giá vốn & lãi tham chiếu** (`/app/reference-margin`): KPI phạm vi đủ giá vốn, cảnh báo độ phủ và lý do bị loại, biểu đồ, bảng đơn lọc theo độ phủ; giá vốn thiếu hiện "Chưa đủ", không bao giờ hiện 0.
+- Tiền đã thu và Doanh số đơn hoàn tất luôn hiện riêng, kèm múi giờ và tiền tệ của báo cáo (theo report-fe-sync.md).
 
 Phase 2 (đã xong):
 

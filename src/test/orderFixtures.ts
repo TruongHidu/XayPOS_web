@@ -185,6 +185,8 @@ export function resetOrderTest() {
 }
 export const base = 'http://localhost:8080/api/v1'
 export const orderHandlers = [
+  // No receiving account configured: the transfer QR panel shows its notice.
+  http.get(base + '/orders/:id/transfer-qr', () => failure('TRANSFER_ACCOUNT_NOT_CONFIGURED', 409)),
   http.get(base + '/qr-order-requests', () => HttpResponse.json(page([]))),
   http.get(base + '/menu/items', () => HttpResponse.json(page([itemFixture]))),
   http.get(base + '/menu/groups', () => HttpResponse.json(page([groupFixture]))),

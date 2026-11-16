@@ -36,6 +36,8 @@ export function LegacyCashierRedirect() {
     ? `/app/${rest}`
     : rest === 'pos' || rest.startsWith('pos/')
       ? '/app/order-create'
-      : '/app/home'
+      : rest === 'kitchen'
+        ? '/app/kitchen'
+        : '/app/home'
   return <Navigate to={target + location.search} replace />
 }

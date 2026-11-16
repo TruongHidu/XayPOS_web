@@ -3086,3 +3086,10 @@
   color: #fff !important;
   border-color: var(--pos-primary) !important;
 }
+
+/* Stock shortage details (409 INSUFFICIENT_AVAILABLE_STOCK) */
+.order-shortage ul { margin: 6px 0 0; padding-left: 18px; display: grid; gap: 4px; }
+.order-shortage ul ul { margin-top: 2px; font-size: 13px; }
+.order-shortage p { margin: 4px 0 0; }
+.pos-line-ingredients-btn { justify-self: start; margin-top: 2px; padding: 0; border: 0; background: none; color: var(--pos-primary); font: inherit; font-size: 12px; font-weight: 700; cursor: pointer; }
+.pos-line-ingredients-btn:hover { text-decoration: underline; }

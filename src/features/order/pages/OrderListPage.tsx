@@ -302,7 +302,11 @@ function OrderRows({ criteria }: { criteria: OrderCriteria }) {
   )
 }
 
-export function OrderListPage() {
+/**
+ * Đơn hàng board. With `fixedServiceType="TAKEAWAY"` it is the Đơn mang đi
+ * work queue of the app (same columns and actions, takeaway only).
+ */
+export function OrderListPage({ fixedServiceType }: { fixedServiceType?: 'TAKEAWAY' } = {}) {
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
   const [params, setParams] = useSearchParams()
@@ -310,7 +314,9 @@ export function OrderListPage() {
   const parsed = orderCriteriaSchema.safeParse(
     Object.fromEntries([...params.entries()].map(([k, v]) => [k, ['page', 'size'].includes(k) ? Number(v) : v])),
   )
-  const criteria = parsed.success ? parsed.data : orderCriteriaSchema.parse({})
+  const parsedCriteria = parsed.success ? parsed.data : orderCriteriaSchema.parse({})
+  const criteria = fixedServiceType ? { ...parsedCriteria, serviceType: fixedServiceType } : parsedCriteria
+  const takeaway = fixedServiceType === 'TAKEAWAY'
 
   const [search, setSearch] = useState(params.get('q') ?? '')
   const [activeMobileCol, setActiveMobileCol] = useState<'pending' | 'cooking' | 'ready' | 'history'>('pending')
@@ -435,7 +441,7 @@ export function OrderListPage() {
         <div className="pos-orders-header-title">
           <span className="order-eyebrow">Quản lý phục vụ</span>
           <div className="pos-orders-title-row">
-            <h2>Quản lý đơn hàng</h2>
+            <h2>{takeaway ? 'Đơn mang đi' : 'Quản lý đơn hàng'}</h2>
             <span className="pos-orders-total-badge" title="Tổng số đơn đang phục vụ">
               {totalServingCount} đơn đang phục vụ
             </span>
@@ -467,8 +473,8 @@ export function OrderListPage() {
           </button>
 
           {canOrder(access, 'ORDER_CREATE') && (
-            <Link className="button button-primary" to="/app/order-create">
-              + Bán hàng (POS)
+            <Link className="button button-primary" to={takeaway ? '/app/order-create?serviceType=TAKEAWAY' : '/app/order-create'}>
+              {takeaway ? '+ Đơn mang đi mới' : '+ Bán hàng (POS)'}
             </Link>
           )}
         </div>
@@ -539,17 +545,19 @@ export function OrderListPage() {
           </select>
         </label>
 
-        <label>
-          Loại đơn
-          <select value={criteria.serviceType ?? ''} onChange={(e) => set('serviceType', e.target.value)}>
-            <option value="">Tất cả</option>
-            {serviceTypeSchema.options.map((s) => (
-              <option value={s} key={s}>
-                {orderLabels[s]}
-              </option>
-            ))}
-          </select>
-        </label>
+        {!takeaway && (
+          <label>
+            Loại đơn
+            <select value={criteria.serviceType ?? ''} onChange={(e) => set('serviceType', e.target.value)}>
+              <option value="">Tất cả</option>
+              {serviceTypeSchema.options.map((s) => (
+                <option value={s} key={s}>
+                  {orderLabels[s]}
+                </option>
+              ))}
+            </select>
+          </label>
+        )}
 
         <label>
           Sắp xếp

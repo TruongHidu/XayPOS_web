@@ -1,13 +1,14 @@
 import { lazy, type ComponentType, type LazyExoticComponent, type ReactElement } from 'react'
 import type { IconName } from '../../shared/ui/Icon'
 import type { TenantAccess } from '../../shared/access/tenantAccess'
-import { canOrder } from '../../features/order/policies/orderAccessPolicy'
+import { canOrder, canTakeawayOrders } from '../../features/order/policies/orderAccessPolicy'
 import { OrderGuard } from '../../features/order/components/OrderGuard'
-import { useQrPendingBadge } from './sectionBadges'
+import { useQrPendingBadge, useTakeawayBadge } from './sectionBadges'
 import { canMenuWorkspace, canRecipe } from '../../features/menu/policies/menuAccessPolicy'
 import { AccessGate } from './AccessGate'
 import { canTable } from '../../features/tables/policies/tableAccessPolicy'
 import { canStaff } from '../../features/staff/policies/staffAccessPolicy'
+import { canKitchenView } from '../../features/kitchen/policies/kitchenAccessPolicy'
 import { canOpenSettings } from '../../features/settings/policies/settingsAccessPolicy'
 
 /**
@@ -80,6 +81,7 @@ export function lazyPage<M, K extends keyof M>(load: () => Promise<M>, name: K):
   return lazy(async () => ({ default: (await load())[name] as ComponentType }))
 }
 
+const KitchenPage = lazyPage(() => import('../../features/kitchen/pages/KitchenPage'), 'KitchenPage')
 const MenuPage = lazyPage(() => import('../../features/menu/pages/MenuPage'), 'MenuPage')
 const RecipePage = lazyPage(() => import('../../features/menu/pages/RecipePage'), 'RecipePage')
 const TablesPage = lazyPage(() => import('../../features/tables/pages/TablesPage'), 'TablesPage')
@@ -87,6 +89,7 @@ const StaffPage = lazyPage(() => import('../../features/staff/pages/StaffPage'),
 const SettingsPage = lazyPage(() => import('../../features/settings/pages/SettingsPage'), 'SettingsPage')
 const CashierPosPage = lazyPage(() => import('../../features/order/pages/CashierPosPage'), 'CashierPosPage')
 const OrderListPage = lazyPage(() => import('../../features/order/pages/OrderListPage'), 'OrderListPage')
+const TakeawayOrdersPage = lazyPage(() => import('../../features/order/pages/TakeawayOrdersPage'), 'TakeawayOrdersPage')
 const OrderDetailPage = lazyPage(() => import('../../features/order/pages/OrderDetailPage'), 'OrderDetailPage')
 
 export const appSections: AppSection[] = [
@@ -119,10 +122,33 @@ export const appSections: AppSection[] = [
     fullScreen: true,
     routes: [{ path: 'order-create', element: <CashierPosPage /> }],
   },
-  { id: 'takeaway-orders', label: 'Đơn mang đi', icon: 'takeaway', group: 'operations', path: 'takeaway', status: 'planned', phase: 2 },
+  {
+    id: 'takeaway-orders',
+    label: 'Đơn mang đi',
+    icon: 'takeaway',
+    group: 'operations',
+    path: 'takeaway',
+    status: 'ready',
+    canSee: canTakeawayOrders,
+    guard: <OrderGuard permission="ORDER_VIEW" />,
+    routes: [
+      { path: 'takeaway', element: <TakeawayOrdersPage /> },
+      { path: 'takeaway/:orderId', element: <OrderDetailPage /> },
+    ],
+    useBadge: useTakeawayBadge,
+  },
 
   // ── Bếp ─────────────────────────────────────────────
-  { id: 'kitchen-display', label: 'Màn hình bếp', icon: 'kitchen', group: 'kitchen', path: 'kitchen', status: 'planned', phase: 2 },
+  {
+    id: 'kitchen-display',
+    label: 'Màn hình bếp',
+    icon: 'kitchen',
+    group: 'kitchen',
+    path: 'kitchen',
+    status: 'ready',
+    canSee: canKitchenView,
+    routes: [{ path: 'kitchen', element: <KitchenPage /> }],
+  },
 
   // ── Quản lý ─────────────────────────────────────────
   {

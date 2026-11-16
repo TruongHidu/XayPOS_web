@@ -7,12 +7,13 @@ import { ordersApi } from '../api/ordersApi'
 import { orderKeys } from '../api/orderKeys'
 import { cacheOrderSnapshot } from '../api/orderSnapshot'
 import { useOrderAccess } from '../hooks/useOrderAccess'
-import { canMarkServed, canCompleteOrder, canSubmitType, canOrder } from '../policies/orderAccessPolicy'
+import { canMarkServed, canCompleteOrder, canSubmitType, canOrder, canViewLineAllocation, canViewLineRecipe } from '../policies/orderAccessPolicy'
 import { cancellable, appendable, liveItems } from '../policies/orderActionPolicy'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { orderError } from '../utils/orderErrors'
 import { OrderFeedback } from './OrderUi'
 import { ReceiptButton } from '../printing/ReceiptButton'
+import { LineIngredientsDialog } from './LineIngredientsDialog'
 
 interface OrderDetailModalProps {
   orderId: string
@@ -24,6 +25,8 @@ interface OrderDetailModalProps {
 
 export function OrderDetailModal({ orderId, onClose, onOpenPay, onOpenAddItems, onRefresh }: OrderDetailModalProps) {
   const { access, scope } = useOrderAccess()
+  const [ingredientLine, setIngredientLine] = useState<Order['items'][number] | null>(null)
+  const showIngredients = canViewLineRecipe(access) || canViewLineAllocation(access)
   const client = useQueryClient()
 
   const [busy, setBusy] = useState(false)
@@ -249,6 +252,11 @@ export function OrderDetailModal({ orderId, onClose, onOpenPay, onOpenAddItems, 
                     {line.cancelReason && (
                       <span className="pos-modal-item-note text-danger">Lý do hủy: {line.cancelReason}</span>
                     )}
+                    {showIngredients && line.status !== 'CANCELLED' && (
+                      <button type="button" className="pos-line-ingredients-btn" onClick={() => setIngredientLine(line)}>
+                        Nguyên liệu
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -353,6 +361,7 @@ export function OrderDetailModal({ orderId, onClose, onOpenPay, onOpenAddItems, 
           </div>
         </div>
       </div>
+      {ingredientLine && <LineIngredientsDialog orderId={order.id} line={ingredientLine} onClose={() => setIngredientLine(null)} />}
     </div>
   )
 

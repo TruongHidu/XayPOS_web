@@ -10,9 +10,9 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | -------------------------- | ------------------- | ------------------------------------ | ---------------- | ----- | ------------------------------------------------------------------------------ |
 | `overview`                 | Bán hàng & vận hành | `/app/overview`                      | Chưa làm         | 3     | `/reports/daily`, đếm đơn mang đi / QR / sắp hết                               |
 | `orders`                   | Bán hàng & vận hành | `/app/orders`, `/app/orders/:id`     | Đã có            | –     | `/orders`, `/orders/{id}/*`, `/qr-order-requests`                              |
-| `order-create`             | Bán hàng & vận hành | `/app/order-create`                  | Đã có (POS)      | 2     | `/orders`, `/tables`, `/table-areas`, `/menu/*` (thiếu màn chọn ngữ cảnh)      |
-| `takeaway-orders`          | Bán hàng & vận hành | `/app/takeaway[/:id]`                | Chưa làm         | 2     | `/orders?serviceType=TAKEAWAY`                                                 |
-| `kitchen-display`          | Bếp                 | `/app/kitchen`                       | Chưa làm         | 2     | `/kitchen/items`, `/orders/{id}/items/{line}/start-cooking`, `.../mark-ready`  |
+| `order-create`             | Bán hàng & vận hành | `/app/order-create`                  | Đã có (POS)      | 2     | `/orders`, `/tables`, `/table-areas`, `/menu/*`      |
+| `takeaway-orders`          | Bán hàng & vận hành | `/app/takeaway[/:id]`                | Đã có         | 2     | `/orders?serviceType=TAKEAWAY`                                                 |
+| `kitchen-display`          | Bếp                 | `/app/kitchen`                       | Đã có         | 2     | `/kitchen/items`, `/orders/{id}/items/{line}/start-cooking`, `.../mark-ready`  |
 | `staff`                    | Quản lý             | `/app/staff`                         | Đã có         | 1     | `/staff`, `/staff/roles`, `/staff/permissions`, `/staff/{id}/*`                |
 | `menu`                     | Quản lý             | `/app/menu`, `.../items/:id/recipes` | Đã có         | 1     | `/menu/groups`, `/menu/items`, `/menu/images`, `/menu/ingredients`, recipes    |
 | `tables`                   | Quản lý             | `/app/tables`                        | Đã có         | 1     | `/table-areas`, `/tables`, `/tables/{id}/qr*`, `/table-sessions/*`             |
@@ -26,12 +26,18 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | `inventory-audits`         | Kho                 | `/app/inventory/audits[/new\|/:id]`  | Chưa làm         | 4     | `/inventory/audits*`                                                           |
 | `settings`                 | Tài khoản           | `/app/settings`                      | Đã có         | 1     | `/restaurants/me`, `/restaurants/me/menu-link`, `/restaurants/me/transfer-account` |
 
-Các phần còn thiếu trong Đơn hàng so với app (Phase 2):
+Phase 2 (đã xong):
 
-- QR chuyển khoản `/orders/{id}/transfer-qr`;
-- dialog thiếu kho;
-- nguyên liệu dòng món: `recipe-snapshot` và `inventory/orders/{id}/items/{line}/allocation`;
-- route gọi thêm `/app/orders/:id/add-items`.
+- **Màn hình bếp** (`/app/kitchen`):
+  - Phiếu theo đơn (vào trước làm trước, đổi màu khi chờ quá 10/20 phút) hoặc tổng hợp theo món.
+  - Thao tác: Bắt đầu nấu / Đã xong / Đã giao từng món; "Xong cả đơn" (có xác nhận) và "Đã giao cả đơn".
+  - Âm báo món mới, toàn màn hình, tự cập nhật qua realtime (hoặc 10 giây/lần khi không có realtime).
+- **Đơn mang đi** (`/app/takeaway`): bảng đơn của Đơn hàng cố định loại mang đi (xác nhận, thu tiền, giao, hoàn tất, gọi thêm, yêu cầu QR mang đi); badge đếm đơn đang phục vụ.
+- **Đơn hàng**:
+  - Thu tiền chuyển khoản hiện mã VietQR theo đúng số tiền cần thu (phóng to cho khách quét, sao chép số tài khoản/nội dung, cảnh báo khi số tiền lệch).
+  - Lỗi thiếu kho hiện từng món: làm được tối đa bao nhiêu, nguyên liệu còn/cần.
+  - Nút "Nguyên liệu" ở từng dòng món: công thức đã chốt và hàng hóa đã giữ/tiêu thụ.
+- **Gọi món**: POS web đã gộp chọn bàn (lưới bàn đang phục vụ), mang đi và chọn món trong một màn; hộp yêu cầu QR nằm ở Đơn hàng (badge). Không thêm màn chọn ngữ cảnh riêng như app để tránh thêm một bước bấm.
 
 Phase 1 (đã xong):
 

@@ -28,3 +28,17 @@ export const canCompleteOrder = (a: OrderAccess, serviceType?: 'DINE_IN' | 'TAKE
   }
   return true
 }
+/**
+ * Đơn mang đi is a work queue (AccessPolicy.canTakeawayOrders in the app): it
+ * shows to staff who can move a takeaway order along, not to read-only viewers.
+ */
+export const canTakeawayOrders = (a: OrderAccess) =>
+  canOrder(a, 'ORDER_VIEW') &&
+  hasFeature(a, 'POS_QUICK_ORDER') &&
+  (canOrder(a, 'ORDER_CREATE') || canOrder(a, 'ORDER_UPDATE') || canOrder(a, 'ORDER_COMPLETE') || canPayment(a))
+/** Historical recipe snapshot of a line (AccessPolicy.canViewOrderRecipeSnapshot). */
+export const canViewLineRecipe = (a: OrderAccess) =>
+  canOrder(a, 'ORDER_VIEW') && hasPermission(a, 'RECIPE_VIEW') && hasFeature(a, 'RECIPE_MANAGEMENT')
+/** Stock reserved/consumed by a line (AccessPolicy.canViewOrderItemAllocation). */
+export const canViewLineAllocation = (a: OrderAccess) =>
+  canOrder(a, 'ORDER_VIEW') && hasPermission(a, 'INVENTORY_VIEW') && hasFeature(a, 'INVENTORY_MANAGEMENT')

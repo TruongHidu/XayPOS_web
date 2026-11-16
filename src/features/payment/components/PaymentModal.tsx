@@ -19,6 +19,7 @@ import { cacheOrderSnapshot } from '../../order/api/orderSnapshot'
 import { paymentConfirmsIntent } from '../utils/paymentConfirmation'
 import { useOrderBaseline } from '../../order/hooks/useOrderBaseline'
 import { payable } from '../../order/policies/orderActionPolicy'
+import { TransferQrPanel } from './TransferQrPanel'
 
 interface PaymentIntent {
   orderId: string
@@ -433,6 +434,7 @@ export function PaymentModal({
                 {/* Transfer fields */}
                 {method === 'TRANSFER' && (
                   <div className="pos-payment-transfer-section">
+                    <TransferQrPanel order={order} />
                     <label>
                       <span>
                         Mã giao dịch / Mã tham chiếu <strong className="text-danger">*</strong>

@@ -14,6 +14,7 @@ import { canViewInventory, canViewInventoryAlerts, canViewStockAudits } from '..
 import { useOpenAlertCount } from '../../features/inventory/hooks/useInventoryCounts'
 import { InventoryIndexRedirect } from './InventoryIndexRedirect'
 import { canOpenSettings } from '../../features/settings/policies/settingsAccessPolicy'
+import { canViewCashbook } from '../../features/cashbook/policies/cashbookAccessPolicy'
 
 /**
  * Single source of truth for the restaurant portal (`/app/*`).
@@ -89,6 +90,7 @@ const OverviewPage = lazyPage(() => import('../../features/reports/pages/Overvie
 const DailyRevenuePage = lazyPage(() => import('../../features/reports/pages/DailyRevenuePage'), 'DailyRevenuePage')
 const ReportsPage = lazyPage(() => import('../../features/reports/pages/ReportsPage'), 'ReportsPage')
 const ReferenceMarginPage = lazyPage(() => import('../../features/reports/pages/ReferenceMarginPage'), 'ReferenceMarginPage')
+const CashbookPage = lazyPage(() => import('../../features/cashbook/pages/CashbookPage'), 'CashbookPage')
 const BalancesPage = lazyPage(() => import('../../features/inventory/pages/BalancesPage'), 'BalancesPage')
 const WarehousesPage = lazyPage(() => import('../../features/inventory/pages/WarehousesPage'), 'WarehousesPage')
 const TransactionsPage = lazyPage(() => import('../../features/inventory/pages/TransactionsPage'), 'TransactionsPage')
@@ -253,7 +255,16 @@ export const appSections: AppSection[] = [
     canSee: canReferenceMargin,
     routes: [{ path: 'reference-margin', element: <ReferenceMarginPage /> }],
   },
-  { id: 'cashbook', label: 'Sổ thu chi', icon: 'cashbook', group: 'reports', path: 'cashbook', status: 'planned', phase: 5 },
+  {
+    id: 'cashbook',
+    label: 'Sổ thu chi',
+    icon: 'cashbook',
+    group: 'reports',
+    path: 'cashbook',
+    status: 'ready',
+    canSee: canViewCashbook,
+    routes: [{ path: 'cashbook', element: <CashbookPage /> }],
+  },
 
   // ── Kho ─────────────────────────────────────────────
   {

@@ -17,6 +17,8 @@ import { StockItemPicker } from '../components/InventoryCommon'
 import { canWriteDocument } from '../policies/inventoryAccessPolicy'
 import { stockItemId, type DocumentDetail, type DocumentItem } from '../schemas'
 import { documentStatusLabels, documentTypeLabels, qty } from '../utils/inventoryLabels'
+import { canReconcileReceipts } from '../../cashbook/policies/cashbookAccessPolicy'
+import { rangeLength, toIsoDate } from '../../../shared/ui/dateRange'
 import '../inventory.css'
 
 type Dialog = { kind: 'confirm' | 'cancel' } | { kind: 'line'; line: DocumentItem } | { kind: 'remove'; line: DocumentItem } | { kind: 'note' } | null
@@ -124,6 +126,11 @@ export function DocumentDetailPage() {
             {doc.status === 'CONFIRMED' && (
               <Link className="button button-small button-ghost" to={`/app/inventory/transactions?documentId=${encodeURIComponent(doc.id)}`}>
                 Xem biến động kho
+              </Link>
+            )}
+            {doc.status === 'CONFIRMED' && doc.documentType === 'RECEIPT' && canReconcileReceipts(access) && (
+              <Link className="button button-small button-ghost" to={cashbookReceiptLink(doc.documentCode, doc.confirmedAt ?? doc.updatedAt)}>
+                Đối chiếu sổ thu chi
               </Link>
             )}
             {editable && (
@@ -294,4 +301,16 @@ function NoteDialog({ doc, onSaved, onClose }: { doc: DocumentDetail; onSaved: (
       </form>
     </Modal>
   )
+}
+
+/** Cashbook reconciliation filtered on this receipt, from its confirmation day to today when that fits in 366 days. */
+function cashbookReceiptLink(code: string, confirmedAt: string | null | undefined) {
+  const params = new URLSearchParams({ tab: 'receipts', rq: code })
+  const to = toIsoDate(new Date())
+  const from = confirmedAt ? toIsoDate(new Date(confirmedAt)) : null
+  if (from && rangeLength({ from, to }) <= 366) {
+    params.set('from', from)
+    params.set('to', to)
+  }
+  return `/app/cashbook?${params.toString()}`
 }

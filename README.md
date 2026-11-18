@@ -112,7 +112,7 @@ Menu được ẩn theo permission, route vẫn được guard và mutation cũn
 
 Repository hiện không chứa `docs/openapi/admin-api.yaml` hoặc `docs/admin-api.md`; phần admin được triển khai theo contract trong yêu cầu đã cung cấp. Frontend không thêm endpoint ngoài contract và không dùng production mock data. MSW chỉ được dùng trong test.
 
-POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier duyệt yêu cầu QR tại màn hình đơn. Các module quản lý khác (bếp, thực đơn, bàn, nhân viên, kho, báo cáo, sổ thu chi, cài đặt) đang được đưa lên theo [docs/app-parity.md](docs/app-parity.md). Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
+POS, quản lý đơn, thanh toán và public QR đã có giao diện; cashier duyệt yêu cầu QR tại màn hình đơn. Các module quản lý (bếp, thực đơn, bàn, nhân viên, kho, báo cáo, sổ thu chi, cài đặt) đã có trên web, đủ các mục của app; tiến độ và checklist thêm module mới ở [docs/app-parity.md](docs/app-parity.md). Backend vẫn cần bảo đảm các quy tắc domain tương ứng, đặc biệt snapshot bất biến và mọi transition `EXPIRED` đi qua service expiration dùng chung.
 
 ## Kiểm thử
 

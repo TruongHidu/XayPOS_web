@@ -19,12 +19,22 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | `daily-revenue`            | Báo cáo             | `/app/daily-revenue`                 | Đã có         | 3     | `/reports/daily`                                                               |
 | `reports`                  | Báo cáo             | `/app/reports`                       | Đã có         | 3     | `/reports/summary`, `revenue-series`, `payment-methods`, `top-items`, `orders` |
 | `reference-margin-reports` | Báo cáo             | `/app/reference-margin`              | Đã có         | 3     | `/reports/reference-margin/{summary,series,orders}`                            |
-| `cashbook`                 | Báo cáo             | `/app/cashbook`                      | Chưa làm         | 5     | `/cashbook/*`                                                                  |
+| `cashbook`                 | Báo cáo             | `/app/cashbook`                      | Đã có         | 5     | `/cashbook/{categories,entries,summary,series,expenses,stock-receipts}`        |
 | `inventory`                | Kho                 | `/app/inventory/balances`, `.../warehouses`, `.../transactions`, `.../low-stock` | Đã có | 4 | `/inventory/warehouses*`, `/inventory/transactions`, `/inventory/low-stock` |
 | `inventory-documents`      | Kho                 | `/app/inventory/stock-documents[/new\|/:id]` | Đã có | 4     | `/inventory/stock-documents*`                                                  |
 | `inventory-alerts`         | Kho                 | `/app/inventory/alerts[/:id]`        | Đã có         | 4     | `/inventory/alerts*`, realtime `/user/queue/inventory-alerts`                  |
 | `inventory-audits`         | Kho                 | `/app/inventory/audits[/new\|/:id]`  | Đã có         | 4     | `/inventory/audits*`                                                           |
 | `settings`                 | Tài khoản           | `/app/settings`                      | Đã có         | 1     | `/restaurants/me`, `/restaurants/me/menu-link`, `/restaurants/me/transfer-account` |
+
+**Tổng kết:** cả 17/17 mục trên sidebar của app đã có trên web. Chức năng mới của app sau này thêm theo checklist bên dưới.
+
+Phase 5 (đã xong):
+
+- **Sổ thu chi** (`/app/cashbook`, quyền `CASHBOOK_VIEW` + gói `DETAIL_REPORT`; thu ngân có quyền vẫn dùng được). Một trang, khoảng ngày chung (mặc định Tháng này, tối đa 366 ngày), tab lưu trên URL:
+  - **Dòng tiền**: Tổng thu / Tổng chi / **Chênh lệch thu chi** (ghi rõ không phải lợi nhuận hay số dư quỹ) lấy từ `/summary`, tách Chi nhập hàng (có phiếu nhập) / Chi khác; biểu đồ thu, chi, chênh lệch theo ngày/tháng; bảng sổ (key `sourceType:sourceId`) lọc Thu/Chi, danh mục, phương thức, tìm kiếm; link sang đơn hàng, phiếu nhập hoặc mở phiếu chi.
+  - **Phiếu chi**: lịch sử gồm cả phiếu đã hủy, lọc theo ngày đã chi; chi tiết tách Ngày đã chi tiền / Ngày ghi sổ; **Hủy phiếu ghi nhầm** (`CASHBOOK_VOID`) bắt nhập lý do, gửi `expectedVersion`, lỗi 409 thì tải lại.
+  - **Đối chiếu phiếu nhập** (cần thêm quyền kho): giá trị phiếu và số đã ghi chi; tiền tệ chưa rõ thì không gắn ký hiệu và hiện "Chưa rõ"; không suy ra còn nợ.
+  - **Ghi nhận chi** (`CASHBOOK_CREATE`): `Idempotency-Key` theo nội dung (thử lại không ghi trùng); chọn phiếu nhập thì khóa danh mục "Mua nguyên liệu", giá trị phiếu chỉ là gợi ý qua nút "Dùng giá trị phiếu làm số tiền"; replay trả phiếu đã hủy thì báo rõ, không tạo mới. Phiếu nhập đã xác nhận có nút "Đối chiếu sổ thu chi".
 
 Phase 4 (đã xong, xem `docs/phase4-inventory-plan.md`):
 

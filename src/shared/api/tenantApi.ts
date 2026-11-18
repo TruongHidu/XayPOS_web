@@ -73,6 +73,33 @@ export async function tenantSend<T>(
   return parseTenantResponse(schema, response.data, options.code)
 }
 
+/**
+ * Like `tenantSend`, but also returns the HTTP status and lower-cased headers
+ * (e.g. `idempotency-replayed`) for endpoints whose replay must be told apart.
+ */
+export async function tenantSendWithHeaders<T>(
+  scope: string,
+  method: 'post' | 'put' | 'patch',
+  url: string,
+  body: unknown,
+  schema: z.ZodType<T>,
+  options: { headers?: Record<string, string>; code?: string; params?: Params } = {},
+): Promise<{ data: T; status: number; headers: Record<string, string> }> {
+  const config = tenantRequest(scope)
+  const response = await api.request<unknown>({
+    ...config,
+    method,
+    url,
+    data: body,
+    params: cleanParams(options.params),
+    headers: options.headers,
+  })
+  ensureRequestScope(config)
+  const headers: Record<string, string> = {}
+  for (const [name, value] of Object.entries(response.headers ?? {})) if (value !== undefined && value !== null) headers[name.toLowerCase()] = String(value)
+  return { data: parseTenantResponse(schema, response.data, options.code), status: response.status, headers }
+}
+
 /** Mutation without a response body (DELETE …?expectedVersion=, 204). */
 export async function tenantSendVoid(
   scope: string,

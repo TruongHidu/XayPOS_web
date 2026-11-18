@@ -91,7 +91,7 @@ export function AppSidebar({ homeTo, subtitle, userName, userMeta, roleBadge, se
         {roleBadge && <span className="sb-role-badge">{roleBadge}</span>}
       </div>
 
-      <nav className="sb-nav">
+      <nav className="sb-nav" aria-label="Chức năng">
         {visibleSections.map((section) => {
           const containsActive = section.links.some(isLinkActive)
           const open = !section.collapsible || containsActive || !collapsed.includes(section.title)

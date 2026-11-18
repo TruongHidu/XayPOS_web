@@ -1,10 +1,12 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { useOrders } from '../hooks/useOrders'
-import { orderCriteriaSchema, orderStatusSchema, serviceTypeSchema } from '../schemas'
+import { orderCriteriaSchema, orderStatusSchema } from '../schemas'
 import type { Order, OrderCriteria, OrderSummary } from '../types'
 import { useOrderAccess } from '../hooks/useOrderAccess'
-import { canOrder, canSubmitType, canMarkServed, canCompleteOrder } from '../policies/orderAccessPolicy'
+import { useTakeawayCount } from '../hooks/useTakeawayCount'
+import { canOrder, canCreateType, canSubmitType, canMarkServed, canCompleteOrder } from '../policies/orderAccessPolicy'
+import { Tabs } from '../../../shared/ui/Tabs'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { OrderFeedback, OrderPager } from '../components/OrderUi'
 import { orderLabels } from '../utils/orderLabels'
@@ -302,21 +304,25 @@ function OrderRows({ criteria }: { criteria: OrderCriteria }) {
   )
 }
 
+type ServiceTab = 'ALL' | 'DINE_IN' | 'TAKEAWAY'
+
 /**
- * Đơn hàng board. With `fixedServiceType="TAKEAWAY"` it is the Đơn mang đi
- * work queue of the app (same columns and actions, takeaway only).
+ * Đơn hàng board. The app's separate "Đơn mang đi" tab is the `Mang đi` quick
+ * filter here (`?serviceType=TAKEAWAY`, same columns and actions); old
+ * `/app/takeaway` links redirect to it.
  */
-export function OrderListPage({ fixedServiceType }: { fixedServiceType?: 'TAKEAWAY' } = {}) {
+export function OrderListPage() {
   const { access, scope } = useOrderAccess()
   const client = useQueryClient()
   const [params, setParams] = useSearchParams()
+  const takeawayCount = useTakeawayCount()
 
   const parsed = orderCriteriaSchema.safeParse(
     Object.fromEntries([...params.entries()].map(([k, v]) => [k, ['page', 'size'].includes(k) ? Number(v) : v])),
   )
-  const parsedCriteria = parsed.success ? parsed.data : orderCriteriaSchema.parse({})
-  const criteria = fixedServiceType ? { ...parsedCriteria, serviceType: fixedServiceType } : parsedCriteria
-  const takeaway = fixedServiceType === 'TAKEAWAY'
+  const criteria = parsed.success ? parsed.data : orderCriteriaSchema.parse({})
+  const takeaway = criteria.serviceType === 'TAKEAWAY'
+  const canCreateTakeaway = canCreateType(access, 'TAKEAWAY')
 
   const [search, setSearch] = useState(params.get('q') ?? '')
   const [activeMobileCol, setActiveMobileCol] = useState<'pending' | 'cooking' | 'ready' | 'history'>('pending')
@@ -441,7 +447,7 @@ export function OrderListPage({ fixedServiceType }: { fixedServiceType?: 'TAKEAW
         <div className="pos-orders-header-title">
           <span className="order-eyebrow">Quản lý phục vụ</span>
           <div className="pos-orders-title-row">
-            <h2>{takeaway ? 'Đơn mang đi' : 'Quản lý đơn hàng'}</h2>
+            <h2>Quản lý đơn hàng</h2>
             <span className="pos-orders-total-badge" title="Tổng số đơn đang phục vụ">
               {totalServingCount} đơn đang phục vụ
             </span>
@@ -472,13 +478,30 @@ export function OrderListPage({ fixedServiceType }: { fixedServiceType?: 'TAKEAW
             {isHistoryMode ? '← Đơn đang phục vụ' : '📜 Lịch sử đơn'}
           </button>
 
-          {canOrder(access, 'ORDER_CREATE') && (
-            <Link className="button button-primary" to={takeaway ? '/app/order-create?serviceType=TAKEAWAY' : '/app/order-create'}>
-              {takeaway ? '+ Đơn mang đi mới' : '+ Bán hàng (POS)'}
+          {takeaway && canCreateTakeaway ? (
+            <Link className="button button-primary" to="/app/order-create?serviceType=TAKEAWAY">
+              + Đơn mang đi mới
             </Link>
+          ) : (
+            canOrder(access, 'ORDER_CREATE') && (
+              <Link className="button button-primary" to="/app/order-create">
+                + Bán hàng (POS)
+              </Link>
+            )
           )}
         </div>
       </header>
+
+      <Tabs<ServiceTab>
+        label="Loại đơn"
+        active={criteria.serviceType ?? 'ALL'}
+        onChange={(tab) => set('serviceType', tab === 'ALL' ? '' : tab)}
+        items={[
+          { id: 'ALL', label: 'Tất cả' },
+          { id: 'DINE_IN', label: orderLabels.DINE_IN },
+          { id: 'TAKEAWAY', label: orderLabels.TAKEAWAY, badge: takeawayCount },
+        ]}
+      />
 
       {qrNotice?.scope === scope && (
         <div className="qr-review-notice" role="status">
@@ -544,20 +567,6 @@ export function OrderListPage({ fixedServiceType }: { fixedServiceType?: 'TAKEAW
             ))}
           </select>
         </label>
-
-        {!takeaway && (
-          <label>
-            Loại đơn
-            <select value={criteria.serviceType ?? ''} onChange={(e) => set('serviceType', e.target.value)}>
-              <option value="">Tất cả</option>
-              {serviceTypeSchema.options.map((s) => (
-                <option value={s} key={s}>
-                  {orderLabels[s]}
-                </option>
-              ))}
-            </select>
-          </label>
-        )}
 
         <label>
           Sắp xếp

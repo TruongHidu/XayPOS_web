@@ -7,6 +7,7 @@ import App from '../App'
 import { queryClient } from '../shared/api/queryClient'
 import { useAuthStore } from '../features/auth/store/authStore'
 import { LegacyCashierRedirect } from '../portals/app/appRoutes'
+import { LegacyTakeawayRedirect } from '../portals/app/LegacyTakeawayRedirect'
 import { appSections, homePathFor, readySections, sectionForPath } from '../portals/app/sections'
 import { allFeatures, allPermissions, base, orderHandlers, page, resetOrderTest, seedOrderAccess } from './orderFixtures'
 import { server } from './server'
@@ -48,7 +49,6 @@ describe('section registry', () => {
         'overview',
         'orders',
         'order-create',
-        'takeaway-orders',
         'kitchen-display',
         'staff',
         'menu',
@@ -64,6 +64,8 @@ describe('section registry', () => {
         'settings',
       ]),
     )
+    // Đơn mang đi is the `Mang đi` filter of Đơn hàng on the web, not its own section.
+    expect(ids).not.toContain('takeaway-orders')
   })
 
   it('lands on the first section the user may open', () => {
@@ -114,17 +116,44 @@ describe('restaurant portal routes', () => {
     expect(screen.getByTestId('location')).toHaveTextContent(to)
   })
 
+  it.each([
+    ['/app/takeaway', '/app/orders?serviceType=TAKEAWAY'],
+    ['/app/takeaway?status=COMPLETED', '/app/orders?status=COMPLETED&serviceType=TAKEAWAY'],
+    ['/app/takeaway/abc', '/app/orders/abc'],
+  ])('redirects old takeaway link %s to %s', (from, to) => {
+    render(
+      <MemoryRouter initialEntries={[from]}>
+        <Routes>
+          <Route path="/app/takeaway" element={<LegacyTakeawayRedirect />} />
+          <Route path="/app/takeaway/:orderId" element={<LegacyTakeawayRedirect />} />
+          <Route path="/app/orders/*" element={<LocationProbe />} />
+          <Route path="/app/orders" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    )
+    expect(screen.getByTestId('location')).toHaveTextContent(to)
+  })
+
+  it('opens the Mang đi filter of Đơn hàng with the serving takeaway count', async () => {
+    renderApp('/app/takeaway')
+    // The fixture answers one serving takeaway order per status.
+    const tab = await screen.findByRole('tab', { name: /Mang đi/ })
+    expect(tab).toHaveAttribute('aria-selected', 'true')
+    await waitFor(() => expect(within(tab).getByText('5')).toBeInTheDocument())
+    expect(screen.getByRole('link', { name: '+ Đơn mang đi mới' })).toHaveAttribute('href', '/app/order-create?serviceType=TAKEAWAY')
+    screen.getByRole('tab', { name: 'Tất cả' }).click()
+    await waitFor(() => expect(screen.getByRole('tab', { name: 'Tất cả' })).toHaveAttribute('aria-selected', 'true'))
+    expect(screen.getByRole('link', { name: '+ Bán hàng (POS)' })).toBeInTheDocument()
+  })
+
   it('builds the sidebar from the registry and shows the QR backlog badge', async () => {
     server.use(http.get(base + '/qr-order-requests', () => HttpResponse.json({ ...page([]), totalElements: 3 })))
     renderApp('/app/home')
-    const nav = await screen.findByRole('navigation')
+    const nav = await screen.findByRole('navigation', { name: 'Chức năng' })
     expect(await within(nav).findByLabelText('3 mục cần xử lý')).toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: /Đơn hàng/ })).toHaveAttribute('href', '/app/orders')
     expect(within(nav).getByRole('link', { name: /Gọi món/ })).toHaveAttribute('href', '/app/order-create')
-    // Đơn mang đi counts serving takeaway orders (the fixture answers one per status).
-    const takeaway = within(nav).getByRole('link', { name: /Đơn mang đi/ })
-    expect(takeaway).toHaveAttribute('href', '/app/takeaway')
-    await waitFor(() => expect(within(takeaway).getByLabelText('5 mục cần xử lý')).toBeInTheDocument())
+    expect(within(nav).queryByRole('link', { name: /Đơn mang đi/ })).not.toBeInTheDocument()
     // No STAFF_MANAGEMENT/role: Nhân viên stays hidden; planned sections too.
     expect(within(nav).queryByRole('link', { name: /Nhân viên/ })).not.toBeInTheDocument()
     expect(within(nav).getByRole('link', { name: /Thực đơn/ })).toHaveAttribute('href', '/app/menu')

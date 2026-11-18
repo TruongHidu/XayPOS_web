@@ -11,7 +11,7 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | `overview`                 | Bán hàng & vận hành | `/app/overview`                      | Đã có         | 3     | `/reports/daily`, đếm đơn mang đi / QR / sắp hết                               |
 | `orders`                   | Bán hàng & vận hành | `/app/orders`, `/app/orders/:id`     | Đã có            | –     | `/orders`, `/orders/{id}/*`, `/qr-order-requests`                              |
 | `order-create`             | Bán hàng & vận hành | `/app/order-create`                  | Đã có (POS)      | 2     | `/orders`, `/tables`, `/table-areas`, `/menu/*`      |
-| `takeaway-orders`          | Bán hàng & vận hành | `/app/takeaway[/:id]`                | Đã có         | 2     | `/orders?serviceType=TAKEAWAY`                                                 |
+| `takeaway-orders`          | Bán hàng & vận hành | gộp vào `/app/orders?serviceType=TAKEAWAY` | Đã có (gộp)   | 2     | `/orders?serviceType=TAKEAWAY`                                                 |
 | `kitchen-display`          | Bếp                 | `/app/kitchen`                       | Đã có         | 2     | `/kitchen/items`, `/orders/{id}/items/{line}/start-cooking`, `.../mark-ready`  |
 | `staff`                    | Quản lý             | `/app/staff`                         | Đã có         | 1     | `/staff`, `/staff/roles`, `/staff/permissions`, `/staff/{id}/*`                |
 | `menu`                     | Quản lý             | `/app/menu`, `.../items/:id/recipes` | Đã có         | 1     | `/menu/groups`, `/menu/items`, `/menu/images`, `/menu/ingredients`, recipes    |
@@ -26,7 +26,7 @@ Nguồn sự thật của sidebar, route, guard và trang mặc định sau đă
 | `inventory-audits`         | Kho                 | `/app/inventory/audits[/new\|/:id]`  | Đã có         | 4     | `/inventory/audits*`                                                           |
 | `settings`                 | Tài khoản           | `/app/settings`                      | Đã có         | 1     | `/restaurants/me`, `/restaurants/me/menu-link`, `/restaurants/me/transfer-account` |
 
-**Tổng kết:** cả 17/17 mục trên sidebar của app đã có trên web. Chức năng mới của app sau này thêm theo checklist bên dưới.
+**Tổng kết:** cả 17/17 mục trên sidebar của app đã có trên web. Riêng Đơn mang đi là bộ lọc "Mang đi" của Đơn hàng thay vì mục sidebar riêng (xem Phase 2), nên sidebar web có 16 mục. Chức năng mới của app sau này thêm theo checklist bên dưới.
 
 Phase 5 (đã xong):
 
@@ -59,7 +59,7 @@ Phase 2 (đã xong):
   - Phiếu theo đơn (vào trước làm trước, đổi màu khi chờ quá 10/20 phút) hoặc tổng hợp theo món.
   - Thao tác: Bắt đầu nấu / Đã xong / Đã giao từng món; "Xong cả đơn" (có xác nhận) và "Đã giao cả đơn".
   - Âm báo món mới, toàn màn hình, tự cập nhật qua realtime (hoặc 10 giây/lần khi không có realtime).
-- **Đơn mang đi** (`/app/takeaway`): bảng đơn của Đơn hàng cố định loại mang đi (xác nhận, thu tiền, giao, hoàn tất, gọi thêm, yêu cầu QR mang đi); badge đếm đơn đang phục vụ.
+- **Đơn mang đi**: trên app là tab riêng (hợp với thanh tab dưới đáy điện thoại); trên web gộp vào Đơn hàng thành nút chọn nhanh **Tất cả | Tại bàn | Mang đi** (lưu trên URL `serviceType`). Tab Mang đi có badge đếm đơn đang phục vụ (chỉ với người có `canTakeawayOrders`) và nút "+ Đơn mang đi mới" khi được tạo đơn mang đi. Link cũ `/app/takeaway[/:id]` tự chuyển sang `/app/orders?serviceType=TAKEAWAY` hoặc chi tiết đơn.
 - **Đơn hàng**:
   - Thu tiền chuyển khoản hiện mã VietQR theo đúng số tiền cần thu (phóng to cho khách quét, sao chép số tài khoản/nội dung, cảnh báo khi số tiền lệch).
   - Lỗi thiếu kho hiện từng món: làm được tối đa bao nhiêu, nguyên liệu còn/cần.

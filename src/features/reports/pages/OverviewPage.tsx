@@ -102,7 +102,7 @@ export function OverviewPage() {
             />
           )}
           {canTakeawayOrders(access) && (
-            <StatCard label="Đơn mang đi đang phục vụ" icon="takeaway" tone="info" loading={takeaway === undefined} value={takeaway ?? '—'} onClick={() => navigate('/app/takeaway')} />
+            <StatCard label="Đơn mang đi đang phục vụ" icon="takeaway" tone="info" loading={takeaway === undefined} value={takeaway ?? '—'} onClick={() => navigate('/app/orders?serviceType=TAKEAWAY')} />
           )}
           {qrPending !== undefined && (
             <StatCard

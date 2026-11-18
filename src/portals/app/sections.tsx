@@ -1,9 +1,10 @@
 import { lazy, type ComponentType, type LazyExoticComponent, type ReactElement } from 'react'
 import type { IconName } from '../../shared/ui/Icon'
 import type { TenantAccess } from '../../shared/access/tenantAccess'
-import { canOrder, canTakeawayOrders } from '../../features/order/policies/orderAccessPolicy'
+import { canOrder } from '../../features/order/policies/orderAccessPolicy'
 import { OrderGuard } from '../../features/order/components/OrderGuard'
-import { useQrPendingBadge, useTakeawayBadge } from './sectionBadges'
+import { useQrPendingBadge } from './sectionBadges'
+import { LegacyTakeawayRedirect } from './LegacyTakeawayRedirect'
 import { canMenuWorkspace, canRecipe } from '../../features/menu/policies/menuAccessPolicy'
 import { AccessGate } from './AccessGate'
 import { canTable } from '../../features/tables/policies/tableAccessPolicy'
@@ -111,7 +112,6 @@ const StaffPage = lazyPage(() => import('../../features/staff/pages/StaffPage'),
 const SettingsPage = lazyPage(() => import('../../features/settings/pages/SettingsPage'), 'SettingsPage')
 const CashierPosPage = lazyPage(() => import('../../features/order/pages/CashierPosPage'), 'CashierPosPage')
 const OrderListPage = lazyPage(() => import('../../features/order/pages/OrderListPage'), 'OrderListPage')
-const TakeawayOrdersPage = lazyPage(() => import('../../features/order/pages/TakeawayOrdersPage'), 'TakeawayOrdersPage')
 const OrderDetailPage = lazyPage(() => import('../../features/order/pages/OrderDetailPage'), 'OrderDetailPage')
 
 export const appSections: AppSection[] = [
@@ -139,6 +139,9 @@ export const appSections: AppSection[] = [
     routes: [
       { path: 'orders', element: <OrderListPage /> },
       { path: 'orders/:orderId', element: <OrderDetailPage /> },
+      // The app's separate Đơn mang đi tab is the `Mang đi` filter of Đơn hàng on the web.
+      { path: 'takeaway', element: <LegacyTakeawayRedirect /> },
+      { path: 'takeaway/:orderId', element: <LegacyTakeawayRedirect /> },
     ],
     useBadge: useQrPendingBadge,
   },
@@ -154,22 +157,6 @@ export const appSections: AppSection[] = [
     fullScreen: true,
     routes: [{ path: 'order-create', element: <CashierPosPage /> }],
   },
-  {
-    id: 'takeaway-orders',
-    label: 'Đơn mang đi',
-    icon: 'takeaway',
-    group: 'operations',
-    path: 'takeaway',
-    status: 'ready',
-    canSee: canTakeawayOrders,
-    guard: <OrderGuard permission="ORDER_VIEW" />,
-    routes: [
-      { path: 'takeaway', element: <TakeawayOrdersPage /> },
-      { path: 'takeaway/:orderId', element: <OrderDetailPage /> },
-    ],
-    useBadge: useTakeawayBadge,
-  },
-
   // ── Bếp ─────────────────────────────────────────────
   {
     id: 'kitchen-display',

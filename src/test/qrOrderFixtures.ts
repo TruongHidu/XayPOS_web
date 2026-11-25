@@ -9,6 +9,7 @@ export const qrIds = {
   item: '22222222-2222-4222-8222-222222222222',
   request: '55555555-5555-4555-8555-555555555555',
   line: '66666666-6666-4666-8666-666666666666',
+  orderLine: '77777777-7777-4777-8777-777777777777',
   restaurant: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   table: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
 }
@@ -54,6 +55,7 @@ export function qrReceipt(entry = tableEntry, patch: Partial<QrReceipt> = {}): Q
     estimatedAmount: 90000,
     approvedAmount: null,
     approvedOrderCode: null,
+    rejectionReason: null,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 900000).toISOString(),
     items: [
@@ -70,6 +72,7 @@ export function qrReceipt(entry = tableEntry, patch: Partial<QrReceipt> = {}): Q
         approvedUnitPrice: null,
         approvedLineTotal: null,
         status: null,
+        rejectionReason: null,
       },
     ],
     ...patch,

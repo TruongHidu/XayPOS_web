@@ -1,5 +1,5 @@
 import { qrReviewDetailSchema, qrReviewSummarySchema } from '../features/qr-order-review/schemas'
-import type { QrReviewDetail, QrReviewSummary } from '../features/qr-order-review/types'
+import type { QrQuoteLine, QrReviewDetail, QrReviewSummary } from '../features/qr-order-review/types'
 import { ids, makeOrder } from './orderFixtures'
 export const reviewId = '88888888-8888-4888-8888-888888888888'
 export const reviewHash = 'a'.repeat(64)
@@ -42,16 +42,34 @@ export function reviewSummary(patch: Partial<QrReviewSummary> = {}) {
         lineTotal: 100000,
         note: 'Không hành',
         approvedOrderItemId: null,
+        rejectedAt: null,
+        rejectionReason: null,
       },
     ],
     ...patch,
   })
 }
+/** Today's quote of a request line (available, same price) — override per test. */
+export function quoteLine(item: QrReviewSummary['items'][number], patch: Partial<QrQuoteLine> = {}): QrQuoteLine {
+  return {
+    requestItemId: item.id,
+    itemId: item.itemId,
+    itemName: item.itemName,
+    unit: item.unit,
+    quantity: item.quantity,
+    note: item.note,
+    unitPrice: item.unitPrice,
+    lineTotal: item.lineTotal,
+    available: true,
+    unavailableReason: null,
+    ...patch,
+  }
+}
 export function reviewDetail(patch: Partial<QrReviewDetail> = {}): QrReviewDetail {
   const request = patch.request ?? reviewSummary()
   return qrReviewDetailSchema.parse({
     request,
-    currentQuote: { currencyCode: 'VND', amount: 100000, lines: request.items },
+    currentQuote: { currencyCode: 'VND', amount: 100000, lines: request.items.map((item) => quoteLine(item)) },
     reviewContextHash: reviewHash,
     canApprove: true,
     reasonCode: null,

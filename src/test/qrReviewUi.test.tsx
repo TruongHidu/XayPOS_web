@@ -9,7 +9,7 @@ import { queryClient } from '../shared/api/queryClient'
 import { OrderListPage } from '../features/order/pages/OrderListPage'
 import { QrReviewModal } from '../features/qr-order-review/components/QrReviewModal'
 import { base, failure, ids, orderHandlers, page, resetOrderTest, seedOrderAccess } from './orderFixtures'
-import { reviewApproval, reviewDetail, reviewHash, reviewId, reviewSummary } from './qrReviewFixtures'
+import { quoteLine, reviewApproval, reviewDetail, reviewHash, reviewId, reviewSummary } from './qrReviewFixtures'
 
 function mount(ui = <OrderListPage />) {
   return render(
@@ -58,7 +58,7 @@ describe('Cashier QR request inbox and decisions', () => {
     expect(await within(pending).findByText('Phở khách gọi QR', { exact: false })).toBeInTheDocument()
     await user.click(within(pending).getByRole('button', { name: 'Xem và xác nhận' }))
     const modal = await screen.findByRole('dialog')
-    expect(await within(modal).findByText('Giá xác nhận hiện tại')).toBeInTheDocument()
+    expect(await within(modal).findByText('Tạm tính các món được nhận (1/1 món)')).toBeInTheDocument()
     expect(within(modal).getByText(/mở phiên bàn mới/)).toBeInTheDocument()
     await user.click(within(modal).getByRole('button', { name: 'Xác nhận yêu cầu' }))
     expect(await screen.findByText('Đã xác nhận yêu cầu QR vào đơn OD-QR-001.')).toBeInTheDocument()
@@ -176,7 +176,7 @@ describe('Cashier QR request inbox and decisions', () => {
                   currentQuote: {
                     currencyCode: 'VND',
                     amount: 120000,
-                    lines: [{ ...reviewSummary().items[0], unitPrice: 60000, lineTotal: 120000 }],
+                    lines: [quoteLine(reviewSummary().items[0], { unitPrice: 60000, lineTotal: 120000 })],
                   },
                 }
               : {},
@@ -196,7 +196,7 @@ describe('Cashier QR request inbox and decisions', () => {
     const onDone = vi.fn()
     mount(<QrReviewModal requestId={reviewId} onClose={() => {}} onDone={onDone} />)
     await user.click(await screen.findByRole('button', { name: 'Xác nhận yêu cầu' }))
-    expect(await screen.findByText(/Giá món hoặc phiên bàn đã thay đổi/)).toBeInTheDocument()
+    expect(await screen.findByText(/Giá, tình trạng món hoặc phiên bàn đã thay đổi/)).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Xác nhận yêu cầu' })).toBeDisabled()
     expect(calls).toBe(1)
     await user.click(screen.getByRole('button', { name: 'Đọc lại yêu cầu' }))

@@ -36,3 +36,13 @@ export const qrCancellationLabels: Record<string, string> = {
   SESSION_TRANSFERRED: 'Hủy do khách chuyển bàn',
 }
 export const qrCancellationLabel = (code: string) => qrCancellationLabels[code] ?? `Lý do khác (${code})`
+/** Why a quote line can no longer be served (backend `unavailableReason`), for staff. */
+export const qrUnavailableLabels: Record<string, string> = {
+  ITEM_OUT_OF_STOCK: 'Hết hàng',
+  ITEM_NOT_SELLABLE: 'Ngừng bán',
+  MENU_ITEM_NOT_FOUND: 'Không còn trong thực đơn',
+}
+export const qrUnavailableLabel = (code: string | null) =>
+  (code && qrUnavailableLabels[code]) ?? `Không còn bán${code ? ` (${code})` : ''}`
+/** `reasonCode` when every line is unavailable: only rejecting is left. */
+export const isAllLinesUnavailable = (reasonCode: string | null) => !!reasonCode && reasonCode in qrUnavailableLabels

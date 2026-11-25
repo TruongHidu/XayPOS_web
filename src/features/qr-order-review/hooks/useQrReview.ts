@@ -8,7 +8,7 @@ import { canTables } from '../../order/policies/orderAccessPolicy'
 import { qrReviewApi } from '../api/qrReviewApi'
 import { qrReviewKeys } from '../api/qrReviewKeys'
 import { canApproveQr, canRejectQr } from '../policies/qrReviewPolicy'
-import type { QrReviewCriteria, QrReviewDetail } from '../types'
+import type { QrExcludedItem, QrReviewCriteria, QrReviewDetail } from '../types'
 import { useRealtimeStatus } from '../../../shared/realtime/RealtimeContext'
 import { cacheOrderSnapshot } from '../../order/api/orderSnapshot'
 import { isOrderAcceptanceRefusal } from '../../order/utils/orderErrors'
@@ -55,7 +55,9 @@ export function useQrReviewTable(id: string | null) {
     retry: false,
   })
 }
-type Decision = { detail: QrReviewDetail } & ({ kind: 'approve' } | { kind: 'reject'; reason: string })
+type Decision = { detail: QrReviewDetail } & (
+  { kind: 'approve'; excludedItems?: QrExcludedItem[] } | { kind: 'reject'; reason: string }
+)
 export function useQrReviewDecision() {
   const { scope } = useOrderAccess()
   const client = useQueryClient()
@@ -75,10 +77,15 @@ export function useQrReviewDecision() {
         throw new Error('QR_REVIEW_REQUIRED')
       if (decision.kind === 'approve') {
         if (!canApproveQr(access, detail)) throw new Error('QR_REVIEW_REQUIRED')
+        // Left-out lines must belong to the quote staff reviewed.
+        const quoted = new Set(detail.currentQuote?.lines.map((line) => line.requestItemId))
+        if (decision.excludedItems?.some((item) => !quoted.has(item.requestItemId)))
+          throw new Error('QR_REVIEW_REQUIRED')
         return qrReviewApi.approve(scope, detail.request.requestId, {
           expectedRequestVersion: detail.request.version,
           expectedReviewContextHash: detail.reviewContextHash!,
           targetSessionId: detail.request.entryType === 'TABLE' ? detail.reviewContext!.currentSessionId : null,
+          ...(decision.excludedItems?.length ? { excludedItems: decision.excludedItems } : {}),
         })
       }
       if (!canRejectQr(access, detail.request)) throw new Error('QR_REVIEW_REQUIRED')

@@ -149,8 +149,38 @@ describe('Public QR order API', () => {
     server.use(http.post(qrBase + '/public/qr-order/requests', () => HttpResponse.json({})))
     await expect(publicQrOrderApi.submit(tableEntry, 'guest', body, 'key')).rejects.toThrow('INVALID_QR_RESPONSE')
   })
+  it('partially approved receipt stops polling once accepted lines are served and parses reasons', () => {
+    const base = qrReceipt(tableEntry, { status: 'APPROVED', version: 1, approvedAmount: 90000 })
+    const excluded = {
+      ...base.items[0],
+      requestItemId: '66666666-6666-4666-8666-000000000002',
+      itemName: 'Bún chả',
+      rejectionReason: 'Món đã hết',
+    }
+    const accepted = {
+      ...base.items[0],
+      approvedOrderItemId: qrIds.orderLine,
+      approvedUnitPrice: 45000,
+      approvedLineTotal: 90000,
+      status: 'COOKING' as const,
+    }
+    const partial = { ...base, items: [accepted, excluded] }
+    expect(receiptLabel(partial)).toBe('Nhà hàng đã nhận một phần yêu cầu')
+    expect(receiptNeedsPolling(partial)).toBe(true)
+    expect(receiptNeedsPolling({ ...partial, items: [{ ...accepted, status: 'SERVED' }, excluded] })).toBe(false)
+    const parsed = qrReceiptSchema.parse(partial)
+    expect(parsed.items.map((line) => line.rejectionReason)).toEqual([null, 'Món đã hết'])
+    const legacy: Record<string, unknown> = { ...qrReceipt(), items: [{ ...qrReceipt().items[0] }] }
+    delete legacy.rejectionReason
+    delete (legacy.items as Record<string, unknown>[])[0].rejectionReason
+    const legacyParsed = qrReceiptSchema.parse(legacy)
+    expect([legacyParsed.rejectionReason, legacyParsed.items[0].rejectionReason]).toEqual([null, null])
+    const rejected = qrReceiptSchema.parse({ ...qrReceipt(), status: 'REJECTED', rejectionReason: 'Bếp đã đóng' })
+    expect(rejected.rejectionReason).toBe('Bếp đã đóng')
+  })
   it('status takes precedence over deadline; approved item updates need polling even at same version', () => {
     const approved = qrReceipt(tableEntry, { status: 'APPROVED', expired: true })
+    approved.items = [{ ...approved.items[0], approvedOrderItemId: qrIds.orderLine }]
     expect(receiptLabel(approved)).toBe('Nhà hàng đã nhận yêu cầu')
     expect(receiptNeedsPolling(approved)).toBe(true)
     expect(receiptNeedsPolling({ ...approved, items: [{ ...approved.items[0], status: 'SERVED' }] })).toBe(false)

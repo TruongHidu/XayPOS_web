@@ -127,7 +127,8 @@ Query keys menu có entryType + token + filter; query receipt có guest scope ri
 - POST thành công chuyển đến requestId server trả về. Hiển thị theo status thực tế của response, không tự ép PENDING; replay có thể đã APPROVED/REJECTED/CANCELLED.
 - PENDING chưa hết hạn: “Đang chờ nhà hàng xác nhận”. Giỏ local được tách khỏi receipt đã gửi; receipt chỉ đọc. Không dùng thông báo “Đã vào bếp”, “Đã tính vào hóa đơn” hoặc “Bàn đã được mở”.
 - APPROVED: “Nhà hàng đã nhận yêu cầu”, mã đơn chứa các món, approvedAmount và các trạng thái món riêng của yêu cầu. Giá chốt có thể khác estimatedAmount; hiển thị chênh lệch rõ ràng mà không sửa snapshot dự kiến.
-- REJECTED: thông báo chung “Nhà hàng chưa thể nhận yêu cầu này. Vui lòng liên hệ nhân viên.” Receipt public không có lý do từ chối, không dựng field/message từ API staff.
+- REJECTED: thông báo chung “Nhà hàng chưa thể nhận yêu cầu này. Vui lòng liên hệ nhân viên.” Không dựng field/message từ API staff.
+- Receipt có `rejectionReason` ở cấp yêu cầu (chỉ khi REJECTED, hiện “Lý do: …”) và ở từng dòng (khi APPROVED nhưng nhân viên không nhận dòng đó: `approvedOrderItemId`/giá chốt/status đều null, dòng hiện gạch ngang, “Không nhận”, lý do, giá “—”, không cộng vào approvedAmount và không cần poll).
 - CANCELLED: “Yêu cầu không còn hiệu lực”; không gắn nút hủy cho khách hoặc suy một lý do cụ thể nếu response không cung cấp.
 - Chỉ hiển thị hết hạn chờ duyệt khi `status === 'PENDING' && expired === true`. APPROVED vẫn là đã duyệt dù expired=true. Hiển thị thời hạn từ expiresAt, không hardcode 15 phút hoặc 60 phút.
 - “Yêu cầu của bạn” chỉ liệt kê requestId đã biết thuộc guest hiện tại, gồm ID đã gửi thành công hoặc đã GET thành công bằng token gốc. Khôi phục danh sách này sau reload cùng tab; backend tiếp tục kiểm tra quyền sở hữu mỗi receipt. Không có API lịch sử public toàn nhà hàng; không tự tạo GET list hoặc tìm các request của người khác.
@@ -194,6 +195,7 @@ type QrOrderReceipt = {
   estimatedAmount: number
   approvedAmount: number | null
   approvedOrderCode: string | null
+  rejectionReason: string | null // chỉ khi REJECTED
   createdAt: string
   expiresAt: string
   items: Array<{
@@ -209,13 +211,14 @@ type QrOrderReceipt = {
     approvedUnitPrice: number | null
     approvedLineTotal: number | null
     status: 'PENDING' | 'COOKING' | 'READY' | 'SERVED' | 'CANCELLED' | null
+    rejectionReason: string | null // dòng bị bỏ khi duyệt một phần
   }>
 }
 ```
 
 GuestAccess validate mapping TABLE/DINE_IN/QR_TABLE có table; RESTAURANT/TAKEAWAY/QR_STATIC có table=null. Receipt chỉ validate bộ entryType/serviceType/sourceChannel tương ứng, không yêu cầu field table. Validate UUID, số tiền/quantity finite đúng precision, timestamps ISO và version số nguyên an toàn không âm. Không decode guestToken như JWT.
 
-Receipt không có customerName/customerPhone/note chung, rejectionReason, approvedOrderId, sessionId hoặc toàn bộ bill. Nếu cần hiển thị thông tin khách đã nhập, chỉ dùng bản local cùng scope và ghi đúng nguồn; không thêm field vào schema response hoặc suy ra từ orderCode.
+Receipt không có customerName/customerPhone/note chung, approvedOrderId, sessionId hoặc toàn bộ bill. Nếu cần hiển thị thông tin khách đã nhập, chỉ dùng bản local cùng scope và ghi đúng nguồn; không thêm field vào schema response hoặc suy ra từ orderCode.
 
 Trước duyệt, giá/status approved của từng dòng đều có thể null. Sau duyệt cũng xử lý trường hợp giá/status dòng null; hiển thị thông tin chưa có thay vì lấy giá dự kiến làm giá chốt. estimatedAmount/estimatedLineTotal và approvedAmount/approvedLineTotal lấy từ response, không join menu mới để thay snapshot.
 

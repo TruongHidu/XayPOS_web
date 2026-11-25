@@ -124,6 +124,7 @@ try {
     ),
     approvedAmount: approved ? 45000 : null,
     approvedOrderCode: approved ? 'OD-QR-001' : null,
+    rejectionReason: null,
     createdAt: new Date().toISOString(),
     expiresAt: new Date(Date.now() + 900000).toISOString(),
     items: (submitted?.items ?? []).map((line, index) => ({
@@ -139,6 +140,7 @@ try {
       approvedUnitPrice: approved ? 45000 : null,
       approvedLineTotal: approved ? 45000 * line.quantity : null,
       status: approved ? 'READY' : null,
+      rejectionReason: null,
     })),
   })
   const cors = [

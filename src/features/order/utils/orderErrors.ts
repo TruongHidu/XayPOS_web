@@ -6,7 +6,11 @@ const messages: Record<string, string> = {
   INVALID_QR_REVIEW_RESPONSE:
     'Dữ liệu xác nhận QR chưa hợp lệ. Đọc lại yêu cầu để kiểm tra kết quả trước khi thao tác tiếp.',
   QR_REVIEW_REQUIRED: 'Cần đọc lại yêu cầu và kiểm tra quyền xác nhận trước khi tiếp tục.',
-  QR_REVIEW_CONTEXT_CHANGED: 'Giá món hoặc phiên bàn đã thay đổi. Đọc lại yêu cầu và kiểm tra trước khi xác nhận.',
+  QR_REVIEW_CONTEXT_CHANGED:
+    'Giá, tình trạng món hoặc phiên bàn đã thay đổi. Đọc lại yêu cầu và kiểm tra trước khi xác nhận.',
+  QR_LINE_UNAVAILABLE: 'Có món vừa hết hàng. Đọc lại yêu cầu; món hết sẽ được bỏ chọn.',
+  QR_APPROVAL_EMPTY: 'Đã bỏ hết các món. Hãy từ chối yêu cầu thay vì xác nhận.',
+  QR_EXCLUDED_ITEM_INVALID: 'Danh sách món bỏ không khớp yêu cầu. Đọc lại yêu cầu rồi chọn lại.',
   CONCURRENT_QR_REQUEST_UPDATE: 'Yêu cầu vừa được nhân viên khác xử lý. Đọc lại để kiểm tra trạng thái mới.',
   QR_ORDER_REQUEST_EXPIRED: 'Yêu cầu gọi món đã hết hạn. Vui lòng đề nghị khách gửi yêu cầu mới.',
   QR_ORDER_REQUEST_NOT_FOUND: 'Không tìm thấy yêu cầu QR trong nhà hàng này.',

@@ -458,6 +458,26 @@
   font-size: 14px;
   color: #70502f;
 }
+.qr-order-receipt-line.is-excluded {
+  opacity: 0.72;
+}
+.qr-order-receipt-line.is-excluded > div > strong,
+.qr-order-receipt-line.is-excluded > strong {
+  text-decoration: line-through;
+  color: #927e69;
+}
+.qr-order-receipt-line .qr-order-line-reason {
+  color: #a34832;
+}
+.qr-order-receipt-status .qr-order-rejection-reason {
+  margin-top: 12px;
+  background: #fff1e4;
+  color: #955617;
+  border: 1px solid #f2d3ae;
+  border-radius: 12px;
+  padding: 10px 14px;
+  overflow-wrap: anywhere;
+}
 .qr-order-item-status {
   background: #fff2dc;
   color: #a06f2e;

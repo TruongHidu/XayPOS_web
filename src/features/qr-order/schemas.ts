@@ -69,6 +69,7 @@ export const qrReceiptSchema = z
     estimatedAmount: moneySchema,
     approvedAmount: moneySchema.nullable(),
     approvedOrderCode: z.string().nullable(),
+    rejectionReason: z.string().nullable().default(null),
     createdAt: timestampSchema,
     expiresAt: timestampSchema,
     items: z
@@ -86,6 +87,7 @@ export const qrReceiptSchema = z
           approvedUnitPrice: moneySchema.nullable(),
           approvedLineTotal: moneySchema.nullable(),
           status: z.enum(['PENDING', 'COOKING', 'READY', 'SERVED', 'CANCELLED']).nullable(),
+          rejectionReason: z.string().nullable().default(null),
         }),
       )
       .min(1)

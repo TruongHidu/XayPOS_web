@@ -380,7 +380,7 @@ describe('Picker and QR review without recipe/inventory administration', () => {
         }),
       )
       mount(<QrReviewModal requestId={reviewId} onClose={() => {}} onDone={onDone} />)
-      await screen.findByText('Giá xác nhận hiện tại')
+      await screen.findByText(/^Tạm tính các món được nhận/)
       await user.click(screen.getByText('Từ chối yêu cầu'))
       await user.type(screen.getByLabelText('Lý do từ chối'), 'lý do đang nhập')
       await user.click(screen.getByRole('button', { name: 'Xác nhận yêu cầu' }))

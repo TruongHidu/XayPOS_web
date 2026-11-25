@@ -16,7 +16,15 @@ const shortageSchema = z.object({
       unit: z.string(),
       sharesIngredientWithOtherLines: z.boolean().optional(),
       shortIngredients: z
-        .array(z.object({ ingredientId: z.string(), name: z.string(), unit: z.string(), availableQuantity: z.number(), requiredQuantity: z.number() }))
+        .array(
+          z.object({
+            ingredientId: z.string(),
+            name: z.string(),
+            unit: z.string(),
+            availableQuantity: z.number(),
+            requiredQuantity: z.number(),
+          }),
+        )
         .nullable()
         .optional(),
     }),
@@ -26,6 +34,8 @@ const shortageSchema = z.object({
 export type ShortageVerdict = 'reduce' | 'soldOut' | 'unknown'
 export interface ShortageDish {
   key: string
+  /** Menu item of the refused lines, when the server named it (QR review leaves these lines out). */
+  menuItemId: string | null
   name: string
   unit: string
   requested: number
@@ -37,7 +47,8 @@ export interface ShortageDish {
 
 /** Reads the shortage details from an API error, or null when the error is something else. */
 export function stockShortageOf(error: unknown): ShortageDish[] | null {
-  const data = (error as { response?: { status?: number; data?: { code?: string; details?: unknown } } })?.response?.data
+  const data = (error as { response?: { status?: number; data?: { code?: string; details?: unknown } } })?.response
+    ?.data
   if (data?.code !== 'INSUFFICIENT_AVAILABLE_STOCK') return null
   const parsed = shortageSchema.safeParse(data.details)
   if (!parsed.success || parsed.data.lines.length === 0) return null
@@ -59,10 +70,16 @@ export function stockShortageOf(error: unknown): ShortageDish[] | null {
     const ingredients = new Map<string, ShortageDish['ingredients'][number]>()
     for (const line of lines)
       for (const short of line.shortIngredients ?? [])
-        ingredients.set(short.ingredientId, { name: short.name, unit: short.unit, available: short.availableQuantity, required: short.requiredQuantity })
+        ingredients.set(short.ingredientId, {
+          name: short.name,
+          unit: short.unit,
+          available: short.availableQuantity,
+          required: short.requiredQuantity,
+        })
     const canMake = capacities.length ? round3(Math.min(requested, ...capacities)) : undefined
     return {
       key,
+      menuItemId: lines[0].menuItemId ?? null,
       name: lines[0].itemName,
       unit: lines[0].unit,
       requested,

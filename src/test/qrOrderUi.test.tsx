@@ -254,7 +254,15 @@ describe('Public customer QR ordering UI', () => {
       approvedAmount: 100000,
       approvedOrderCode: 'OD-QR-01',
     })
-    approved.items = [{ ...approved.items[0], approvedUnitPrice: 50000, approvedLineTotal: 100000, status: 'SERVED' }]
+    approved.items = [
+      {
+        ...approved.items[0],
+        approvedOrderItemId: qrIds.orderLine,
+        approvedUnitPrice: 50000,
+        approvedLineTotal: 100000,
+        status: 'SERVED',
+      },
+    ]
     server.use(
       http.post(qrBase + '/public/qr-order/requests', async ({ request }) => {
         calls.push({ key: request.headers.get('Idempotency-Key'), body: await request.json() })
@@ -340,6 +348,7 @@ describe('Public customer QR ordering UI', () => {
           {
             ...receipt.items[0],
             status: gets > 1 ? 'SERVED' : 'COOKING',
+            approvedOrderItemId: qrIds.orderLine,
             approvedUnitPrice: 45000,
             approvedLineTotal: 90000,
           },
@@ -358,6 +367,59 @@ describe('Public customer QR ordering UI', () => {
       await vi.advanceTimersByTimeAsync(22000)
     })
     expect(gets).toBe(2)
+  })
+  it('partially approved receipt strikes excluded lines with reason and totals only accepted lines', async () => {
+    seedQrOrder(tableEntry, true)
+    const receipt = qrReceipt(tableEntry, {
+      status: 'APPROVED',
+      version: 1,
+      estimatedAmount: 150000,
+      approvedAmount: 90000,
+      approvedOrderCode: 'OD-QR-02',
+    })
+    receipt.items = [
+      {
+        ...receipt.items[0],
+        approvedOrderItemId: qrIds.orderLine,
+        approvedUnitPrice: 45000,
+        approvedLineTotal: 90000,
+        status: 'SERVED',
+      },
+      {
+        ...receipt.items[0],
+        requestItemId: '66666666-6666-4666-8666-000000000002',
+        itemName: 'Bún chả',
+        quantity: 1,
+        estimatedUnitPrice: 60000,
+        estimatedLineTotal: 60000,
+        note: null,
+        rejectionReason: 'Món đã hết',
+      },
+    ]
+    server.use(http.get(qrBase + '/public/qr-order/requests/:id', () => HttpResponse.json(receipt)))
+    mount(entryPath(tableEntry) + '/requests/' + qrIds.request)
+    expect(await screen.findByRole('heading', { name: 'Nhà hàng đã nhận một phần yêu cầu' })).toBeInTheDocument()
+    expect(screen.getByText('Nhà hàng đã nhận 1/2 món. Món không nhận có ghi lý do bên dưới.')).toBeInTheDocument()
+    const line = screen.getByText('Bún chả').closest('article')!
+    expect(line).toHaveClass('is-excluded')
+    expect(within(line).getByText('Không nhận')).toHaveClass('qr-order-item-status', 'is-cancelled')
+    expect(within(line).getByText('Lý do: Món đã hết')).toBeInTheDocument()
+    expect(within(line).getByText('—')).toBeInTheDocument()
+    expect(
+      within(screen.getByText('Giá chốt cho yêu cầu này').parentElement!).getByText('90.000 VND'),
+    ).toBeInTheDocument()
+    expect(screen.queryByText(/Giá được nhà hàng xác nhận khác giá dự kiến/)).not.toBeInTheDocument()
+  })
+  it('rejected receipt shows the staff reason', async () => {
+    seedQrOrder(tableEntry, true)
+    server.use(
+      http.get(qrBase + '/public/qr-order/requests/:id', () =>
+        HttpResponse.json(qrReceipt(tableEntry, { status: 'REJECTED', version: 1, rejectionReason: 'Bếp đã đóng' })),
+      ),
+    )
+    mount(entryPath(tableEntry) + '/requests/' + qrIds.request)
+    expect(await screen.findByRole('heading', { name: 'Nhà hàng chưa thể nhận yêu cầu' })).toBeInTheDocument()
+    expect(screen.getByText('Lý do: Bếp đã đóng')).toBeInTheDocument()
   })
   it('receipt pauses in background and respects Retry-After before polling resumes', async () => {
     vi.useFakeTimers()

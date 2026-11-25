@@ -1,6 +1,6 @@
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import type { QrReceipt } from '../types'
-import { receiptLabel } from '../policies/qrOrderPolicy'
+import { isExcludedLine, receiptLabel } from '../policies/qrOrderPolicy'
 const lineLabels = {
   PENDING: 'Chờ chế biến',
   COOKING: 'Đang chế biến',
@@ -10,6 +10,9 @@ const lineLabels = {
 }
 export function QrOrderReceipt({ receipt }: { receipt: QrReceipt }) {
   const approved = receipt.status === 'APPROVED'
+  const acceptedLines = approved ? receipt.items.filter((item) => !isExcludedLine(item)) : receipt.items
+  const partial = approved && acceptedLines.length < receipt.items.length
+  const acceptedEstimate = acceptedLines.reduce((sum, item) => sum + moneyMinor(item.estimatedLineTotal), 0n)
   return (
     <article className="qr-order-receipt">
       <header className={'qr-order-receipt-status is-' + receipt.status.toLowerCase()}>
@@ -19,12 +22,17 @@ export function QrOrderReceipt({ receipt }: { receipt: QrReceipt }) {
         <span className="qr-order-eyebrow">YÊU CẦU GỌI MÓN</span>
         <h1>{receiptLabel(receipt)}</h1>
         <p>
-          {approved
-            ? 'Các món dưới đây đã được nhà hàng nhận vào đơn.'
-            : receipt.status === 'PENDING' && !receipt.expired
-              ? 'Nhân viên sẽ kiểm tra và xác nhận món bạn chọn.'
-              : 'Vui lòng liên hệ nhân viên nếu cần hỗ trợ.'}
+          {partial
+            ? `Nhà hàng đã nhận ${acceptedLines.length}/${receipt.items.length} món. Món không nhận có ghi lý do bên dưới.`
+            : approved
+              ? 'Các món dưới đây đã được nhà hàng nhận vào đơn.'
+              : receipt.status === 'PENDING' && !receipt.expired
+                ? 'Nhân viên sẽ kiểm tra và xác nhận món bạn chọn.'
+                : 'Vui lòng liên hệ nhân viên nếu cần hỗ trợ.'}
         </p>
+        {receipt.status === 'REJECTED' && receipt.rejectionReason && (
+          <p className="qr-order-rejection-reason">Lý do: {receipt.rejectionReason}</p>
+        )}
       </header>
       <div className="qr-order-receipt-meta">
         <span>{receipt.serviceType === 'TAKEAWAY' ? 'Mang đi · Nhận tại quầy' : 'Tại bàn'}</span>
@@ -43,34 +51,48 @@ export function QrOrderReceipt({ receipt }: { receipt: QrReceipt }) {
         </p>
       )}
       <div className="qr-order-receipt-lines">
-        {receipt.items.map((item) => (
-          <article className="qr-order-receipt-line" key={item.requestItemId}>
-            <div>
-              <strong>{item.itemName}</strong>
-              <span className={'qr-order-item-status is-' + (item.status?.toLowerCase() ?? 'waiting')}>
-                {item.status ? lineLabels[item.status] : approved ? 'Đang cập nhật món' : 'Chờ xác nhận'}
-              </span>
-            </div>
-            <p>
-              {item.quantity} {item.unit} ×{' '}
-              {formatMinor(
-                moneyMinor(
-                  approved && item.approvedUnitPrice !== null ? item.approvedUnitPrice : item.estimatedUnitPrice,
-                ),
-                receipt.currencyCode,
-              )}
-              {approved && item.approvedUnitPrice === null ? ' (giá dự kiến)' : ''}
-            </p>
-            {item.note && <p className="qr-order-muted">Ghi chú: {item.note}</p>}
-            <strong>
-              {approved
-                ? item.approvedLineTotal === null
-                  ? 'Chưa có giá chốt'
-                  : formatMinor(moneyMinor(item.approvedLineTotal), receipt.currencyCode)
-                : formatMinor(moneyMinor(item.estimatedLineTotal), receipt.currencyCode)}
-            </strong>
-          </article>
-        ))}
+        {receipt.items.map((item) =>
+          approved && isExcludedLine(item) ? (
+            <article className="qr-order-receipt-line is-excluded" key={item.requestItemId}>
+              <div>
+                <strong>{item.itemName}</strong>
+                <span className="qr-order-item-status is-cancelled">Không nhận</span>
+              </div>
+              <p>
+                {item.quantity} {item.unit}
+              </p>
+              {item.rejectionReason && <p className="qr-order-line-reason">Lý do: {item.rejectionReason}</p>}
+              <strong>—</strong>
+            </article>
+          ) : (
+            <article className="qr-order-receipt-line" key={item.requestItemId}>
+              <div>
+                <strong>{item.itemName}</strong>
+                <span className={'qr-order-item-status is-' + (item.status?.toLowerCase() ?? 'waiting')}>
+                  {item.status ? lineLabels[item.status] : approved ? 'Đang cập nhật món' : 'Chờ xác nhận'}
+                </span>
+              </div>
+              <p>
+                {item.quantity} {item.unit} ×{' '}
+                {formatMinor(
+                  moneyMinor(
+                    approved && item.approvedUnitPrice !== null ? item.approvedUnitPrice : item.estimatedUnitPrice,
+                  ),
+                  receipt.currencyCode,
+                )}
+                {approved && item.approvedUnitPrice === null ? ' (giá dự kiến)' : ''}
+              </p>
+              {item.note && <p className="qr-order-muted">Ghi chú: {item.note}</p>}
+              <strong>
+                {approved
+                  ? item.approvedLineTotal === null
+                    ? 'Chưa có giá chốt'
+                    : formatMinor(moneyMinor(item.approvedLineTotal), receipt.currencyCode)
+                  : formatMinor(moneyMinor(item.estimatedLineTotal), receipt.currencyCode)}
+              </strong>
+            </article>
+          ),
+        )}
       </div>
       <dl className="qr-order-receipt-totals">
         <div>
@@ -88,7 +110,7 @@ export function QrOrderReceipt({ receipt }: { receipt: QrReceipt }) {
           </div>
         )}
       </dl>
-      {approved && receipt.approvedAmount !== null && receipt.approvedAmount !== receipt.estimatedAmount && (
+      {approved && receipt.approvedAmount !== null && moneyMinor(receipt.approvedAmount) !== acceptedEstimate && (
         <p className="qr-order-notice">
           Giá được nhà hàng xác nhận khác giá dự kiến lúc gửi. Vui lòng hỏi nhân viên nếu cần làm rõ.
         </p>

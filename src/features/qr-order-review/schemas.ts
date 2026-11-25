@@ -12,15 +12,38 @@ import { orderSchema, orderStatusSchema, paymentStatusSchema } from '../order/sc
 
 export const qrReviewEntrySchema = z.enum(['TABLE', 'RESTAURANT'])
 export const qrReviewStatusSchema = z.enum(['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED'])
-const quoteLineSchema = z.object({
+const baseLineSchema = z.object({
   itemId: resourceId,
   itemName: z.string(),
   unit: z.string(),
   quantity: quantitySchema,
-  unitPrice: moneySchema,
-  lineTotal: moneySchema,
   note: z.string().nullable(),
 })
+/** What the guest sent (prices as quoted then); a line left out at approval keeps its reason. */
+const requestItemSchema = baseLineSchema.extend({
+  id: resourceId,
+  unitPrice: moneySchema,
+  lineTotal: moneySchema,
+  approvedOrderItemId: resourceId.nullable(),
+  rejectedAt: timestampSchema.nullable().default(null),
+  rejectionReason: z.string().nullable().default(null),
+})
+/**
+ * Current quote of one request line. An unavailable line (out of stock, not
+ * sellable, gone from the menu) has no price and must be left out on approval.
+ * `unavailableReason` stays a string so a new backend code never breaks the review.
+ */
+export const quoteLineSchema = baseLineSchema
+  .extend({
+    requestItemId: resourceId,
+    available: z.boolean(),
+    unavailableReason: z.string().nullable(),
+    unitPrice: moneySchema.nullable(),
+    lineTotal: moneySchema.nullable(),
+  })
+  .refine((line) => !line.available || (line.unitPrice !== null && line.lineTotal !== null), {
+    message: 'An available quote line needs its current price.',
+  })
 export const qrReviewSummarySchema = z.object({
   requestId: resourceId,
   entryType: qrReviewEntrySchema,
@@ -48,7 +71,7 @@ export const qrReviewSummarySchema = z.object({
   cancellationReason: z.string().nullable(),
   createdAt: timestampSchema,
   expiresAt: timestampSchema,
-  items: z.array(quoteLineSchema.extend({ id: resourceId, approvedOrderItemId: resourceId.nullable() })),
+  items: z.array(requestItemSchema),
 })
 export const qrReviewDetailSchema = z.object({
   request: qrReviewSummarySchema,
@@ -94,6 +117,16 @@ export const qrReviewApproveSchema = z
     expectedRequestVersion: versionSchema,
     expectedReviewContextHash: z.string().regex(/^[a-f0-9]{64}$/),
     targetSessionId: resourceId.nullable(),
+    /** Lines left out of the order; the guest reads each reason. Absent = approve every line. */
+    excludedItems: z
+      .array(
+        z
+          .object({ requestItemId: resourceId, reason: z.string().trim().min(1, 'Nhập lý do bỏ món.').max(500) })
+          .strict(),
+      )
+      .min(1)
+      .max(20)
+      .optional(),
   })
   .strict()
 export const qrReviewRejectSchema = z
@@ -112,6 +145,7 @@ export const qrReviewApprovalSchema = z.object({
   approvedBy: resourceId,
   approvedAt: timestampSchema,
   approvedAmount: moneySchema,
+  /** Accepted lines only: never pair it with `items[]` by position. */
   approvedOrderItemIds: z.array(resourceId),
   replay: z.boolean(),
   order: orderSchema,

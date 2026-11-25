@@ -157,9 +157,9 @@ export const page = <T>(content: T[], index = 0, pages = content.length ? 1 : 0)
   totalElements: content.length,
   totalPages: pages,
 })
-export const failure = (code: string, status = 409) =>
+export const failure = (code: string, status = 409, details?: unknown) =>
   HttpResponse.json(
-    { success: false, code, message: 'server', fieldErrors: {}, timestamp: dates.createdAt },
+    { success: false, code, message: 'server', fieldErrors: {}, details, timestamp: dates.createdAt },
     { status },
   )
 export function seedOrderAccess(permissions = allPermissions, features = allFeatures) {

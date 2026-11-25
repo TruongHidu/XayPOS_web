@@ -66,6 +66,7 @@ Phase 2 (đã xong):
   - Nút "Nguyên liệu" ở từng dòng món: công thức đã chốt và hàng hóa đã giữ/tiêu thụ.
 - **Gọi món**: POS web đã gộp chọn bàn (lưới bàn đang phục vụ), mang đi và chọn món trong một màn; hộp yêu cầu QR nằm ở Đơn hàng (badge). Không thêm màn chọn ngữ cảnh riêng như app để tránh thêm một bước bấm.
 - **QR gọi món của khách** (`/qr/:token`, `/menu/:token`): menu đọc `orderingEnabled`; khi nhà hàng tắt kênh thì menu chỉ xem (ẩn giỏ, nút gọi món), gặp 401/403 QR thì tải lại menu, trang theo dõi yêu cầu báo "Nhà hàng đã tạm ngưng gọi món qua QR". Hộp yêu cầu QR của nhân viên hiện lý do hủy bằng chữ (vd. "Hủy do nhà hàng tắt QR gọi món"). App Flutter chưa có phần này.
+- **Duyệt yêu cầu QR một phần**: hộp yêu cầu QR có ô "Nhận món" từng dòng; món hết hàng bị bỏ chọn và khóa, mỗi món bỏ cần lý do cho khách; tạm tính chỉ cộng món được nhận; bỏ hết thì chuyển sang từ chối (lý do hiện cho khách). Thiếu nguyên liệu khi duyệt thì tự bỏ chọn món thiếu để duyệt phần còn lại. App Flutter chưa có phần này.
 
 Phase 1 (đã xong):
 

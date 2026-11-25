@@ -9,6 +9,11 @@ import { qrOrderError } from '../../features/qr-order/utils/qrOrderErrors'
 import { publicEntrySchema } from '../../features/qr-order/schemas'
 import { resourceId } from '../../shared/api/tenantSchemas'
 import { QrMenuHeader } from '../../features/qr-menu/components/QrMenuHeader'
+import { usePublicQrMenuContext } from '../../features/qr-menu/hooks/usePublicQrMenuContext'
+
+const PAUSED_TITLE = 'Nhà hàng đã tạm ngưng gọi món qua QR'
+const PAUSED_MESSAGE =
+  'Yêu cầu chưa được nhân viên xác nhận đã bị huỷ; món đã xác nhận vẫn được phục vụ. Vui lòng liên hệ nhân viên nếu cần.'
 export function QrRequestPage() {
   const entry = useQrEntry()
   const { requestId = '' } = useParams<{ requestId: string }>()
@@ -16,6 +21,10 @@ export function QrRequestPage() {
   const query = useQrOrderReceipt(requestId)
   const valid = publicEntrySchema.safeParse(entry).success && resourceId.safeParse(requestId).success
   const sameEntry = access.entry?.entryType === entry.entryType && access.entry?.token === entry.token
+  // A revoked or refused guest may mean staff turned QR ordering off: ask the menu (never re-mint).
+  const lost = valid && sameEntry && (access.invalid || access.unavailable)
+  const menu = usePublicQrMenuContext(entry.token, entry.entryType, lost)
+  const paused = lost && menu.data?.orderingEnabled === false
   return (
     <main className="qr-menu-page qr-order-page">
       <div className="qr-menu-container qr-order-receipt-container">
@@ -32,14 +41,18 @@ export function QrRequestPage() {
           <section className="qr-order-receipt qr-order-empty">
             <span aria-hidden="true">🔒</span>
             <h1>
-              {sameEntry && access.invalid
-                ? 'Lượt gọi món đã hết hạn hoặc bị thu hồi'
-                : 'Chưa có quyền xem yêu cầu này'}
+              {paused
+                ? PAUSED_TITLE
+                : sameEntry && access.invalid
+                  ? 'Lượt gọi món đã hết hạn hoặc bị thu hồi'
+                  : 'Chưa có quyền xem yêu cầu này'}
             </h1>
             <p>
-              {sameEntry && access.invalid
-                ? 'Không thể khôi phục quyền xem khi lượt gọi món không còn hiệu lực. Vui lòng liên hệ nhân viên để kiểm tra yêu cầu đã gửi.'
-                : 'Hãy mở yêu cầu trong đúng tab trình duyệt đã gọi món. Link yêu cầu không tự cấp quyền xem; nếu đã đóng tab hoặc xóa dữ liệu phiên, vui lòng liên hệ nhân viên.'}
+              {paused
+                ? PAUSED_MESSAGE
+                : sameEntry && access.invalid
+                  ? 'Không thể khôi phục quyền xem khi lượt gọi món không còn hiệu lực. Vui lòng liên hệ nhân viên để kiểm tra yêu cầu đã gửi.'
+                  : 'Hãy mở yêu cầu trong đúng tab trình duyệt đã gọi món. Link yêu cầu không tự cấp quyền xem; nếu đã đóng tab hoặc xóa dữ liệu phiên, vui lòng liên hệ nhân viên.'}
             </p>
           </section>
         ) : (
@@ -50,11 +63,18 @@ export function QrRequestPage() {
                 Trình duyệt chưa lưu được lượt gọi món. Tải lại hoặc đóng tab có thể làm mất quyền theo dõi yêu cầu.
               </p>
             )}
-            {access.invalid && (
-              <p className="qr-order-notice" role="alert">
-                Lượt truy cập đã hết hạn hoặc bị thu hồi. Liên hệ nhân viên để kiểm tra; kết quả đã tải dưới đây có thể
-                chưa cập nhật.
-              </p>
+            {paused ? (
+              <div className="qr-order-paused" role="alert">
+                <strong>{PAUSED_TITLE}.</strong>
+                <span>{PAUSED_MESSAGE}</span>
+              </div>
+            ) : (
+              access.invalid && (
+                <p className="qr-order-notice" role="alert">
+                  Lượt truy cập đã hết hạn hoặc bị thu hồi. Liên hệ nhân viên để kiểm tra; kết quả đã tải dưới đây có
+                  thể chưa cập nhật.
+                </p>
+              )
             )}
             {access.waitSeconds > 0 && (
               <p className="qr-order-notice" role="status">
@@ -89,7 +109,7 @@ export function QrRequestPage() {
                 Làm mới yêu cầu
               </button>
               <Link className="qr-order-button qr-order-primary" to={entryPath(entry)}>
-                {entry.entryType === 'TABLE' ? 'Chọn món / Gọi thêm' : 'Đặt thêm món'}
+                {paused ? 'Xem thực đơn' : entry.entryType === 'TABLE' ? 'Chọn món / Gọi thêm' : 'Đặt thêm món'}
               </Link>
             </div>
             {entry.entryType === 'RESTAURANT' && (

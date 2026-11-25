@@ -1,4 +1,4 @@
-import { hasPermission, tenantAccess, type TenantAccess } from '../../../shared/access/tenantAccess'
+import { hasFeature, hasPermission, tenantAccess, type TenantAccess } from '../../../shared/access/tenantAccess'
 
 /**
  * Mirrors the Cài đặt screen of the app (settings_screen.dart): each section
@@ -12,4 +12,10 @@ export const canManageMenuLink = canUpdateRestaurantProfile
 /** The receiving account decides where customers' money goes (AccessPolicy.canManageTransferAccount). */
 export const canManageTransferAccount = canUpdateRestaurantProfile
 export const canViewTransferAccount = (a: TenantAccess) => canViewRestaurantProfile(a) || canManageTransferAccount(a)
+/** QR gọi món switches: read with RESTAURANT_PROFILE_VIEW, change with RESTAURANT_PROFILE_UPDATE. */
+export const canViewQrOrdering = canViewRestaurantProfile
+export const canUpdateQrOrdering = canUpdateRestaurantProfile
+/** The package must include the channel's QR feature for its switch to mean anything. */
+export const qrChannelEntitled = (a: TenantAccess, channel: 'TABLE' | 'TAKEAWAY') =>
+  hasFeature(a, channel === 'TABLE' ? 'QR_TABLE_ORDER' : 'QR_STATIC_ORDER')
 export const canViewPackage = (a: TenantAccess) => hasPermission(a, 'SUBSCRIPTION_VIEW')

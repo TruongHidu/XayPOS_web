@@ -21,6 +21,7 @@ const contextResponse = {
     { id: '11111111-1111-4111-8111-111111111111', name: 'Món chính', displayOrder: 0 },
     { id: '22222222-2222-4222-8222-222222222222', name: 'Tráng miệng', displayOrder: 1 },
   ],
+  orderingEnabled: true,
 }
 
 const menuItem1 = {

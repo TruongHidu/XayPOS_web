@@ -36,6 +36,7 @@ export function QrMenuPage() {
   const [selectedItem, setSelectedItem] = useState<PublicMenuItem | null>(null)
   const [groupRecoveryCount, setGroupRecoveryCount] = useState(0)
   const prevTokenRef = useRef(entryKey)
+  const accessFlagsRef = useRef({ invalid: access.invalid, unavailable: access.unavailable })
 
   const filters = useQrMenuFilters(entryKey)
   const contextQuery = usePublicQrMenuContext(qrToken, entry.entryType)
@@ -59,6 +60,17 @@ export function QrMenuPage() {
       setAdded(null)
     }
   }, [entryKey])
+
+  // A revoked guest (401) or refused ordering (403) may mean staff turned QR
+  // ordering off: re-read the menu so `orderingEnabled` decides read-only mode.
+  // Nothing is re-minted or re-sent here; a new ordering turn stays the guest's choice.
+  useEffect(() => {
+    const previous = accessFlagsRef.current
+    accessFlagsRef.current = { invalid: access.invalid, unavailable: access.unavailable }
+    if ((access.invalid && !previous.invalid) || (access.unavailable && !previous.unavailable))
+      void contextQuery.refetch()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [access.invalid, access.unavailable])
 
   // Handle group_not_found recovery (limit to 2 attempts)
   useEffect(() => {
@@ -140,6 +152,8 @@ export function QrMenuPage() {
 
   const context = contextQuery.data
   if (!context) return null
+  const readOnly = context.orderingEnabled === false
+  const activePanel = readOnly && panel === 'cart' ? 'menu' : panel
 
   // === ITEMS ERROR ===
   const itemsError = itemsQuery.error && !isCancelledError(itemsQuery.error) ? mapQrMenuError(itemsQuery.error) : null
@@ -160,26 +174,37 @@ export function QrMenuPage() {
       <div className="qr-menu-container">
         <QrMenuHeader restaurant={context.restaurant} table={context.table} />
 
-        <nav className="qr-order-navigation" aria-label="Gọi món của bạn">
-          <button type="button" aria-pressed={panel === 'menu'} onClick={() => setPanel('menu')}>
-            Thực đơn
-          </button>
-          <button type="button" aria-pressed={panel === 'cart'} onClick={() => setPanel('cart')}>
-            Giỏ món <span>{draft.lines.length}</span>
-          </button>
-          <button type="button" aria-pressed={panel === 'requests'} onClick={() => setPanel('requests')}>
-            Yêu cầu của bạn {access.requestIds.length > 0 && <span>{access.requestIds.length}</span>}
-          </button>
-        </nav>
+        {readOnly && (
+          <div className="qr-order-paused" role="status">
+            <strong>Nhà hàng tạm ngưng nhận gọi món qua QR.</strong>
+            <span>Bạn vẫn có thể xem thực đơn. Vui lòng gọi nhân viên để gọi món.</span>
+          </div>
+        )}
+
+        {(!readOnly || access.requestIds.length > 0) && (
+          <nav className="qr-order-navigation" aria-label="Gọi món của bạn">
+            <button type="button" aria-pressed={activePanel === 'menu'} onClick={() => setPanel('menu')}>
+              Thực đơn
+            </button>
+            {!readOnly && (
+              <button type="button" aria-pressed={activePanel === 'cart'} onClick={() => setPanel('cart')}>
+                Giỏ món <span>{draft.lines.length}</span>
+              </button>
+            )}
+            <button type="button" aria-pressed={activePanel === 'requests'} onClick={() => setPanel('requests')}>
+              Yêu cầu của bạn {access.requestIds.length > 0 && <span>{access.requestIds.length}</span>}
+            </button>
+          </nav>
+        )}
         {added && (
           <p className="qr-order-added" role="status">
             {added}
           </p>
         )}
-        {panel === 'requests' ? (
+        {activePanel === 'requests' ? (
           <QrOrderHistory />
         ) : (
-          <div className="qr-order-workspace" data-panel={panel}>
+          <div className="qr-order-workspace" data-panel={activePanel} data-readonly={readOnly || undefined}>
             <section className="qr-order-catalog" aria-label="Thực đơn nhà hàng">
               <QrMenuFilters
                 groups={context.groups}
@@ -225,11 +250,11 @@ export function QrMenuPage() {
                 </>
               )}
             </section>
-            <QrOrderCart currencyCode={context.restaurant.currencyCode} />
+            {!readOnly && <QrOrderCart currencyCode={context.restaurant.currencyCode} />}
           </div>
         )}
 
-        {panel === 'menu' && draft.lines.length > 0 && (
+        {!readOnly && activePanel === 'menu' && draft.lines.length > 0 && (
           <button type="button" className="qr-order-mobile-cart qr-order-primary" onClick={() => setPanel('cart')}>
             <span>Xem giỏ · {draft.lines.length} món</span>
             <strong>
@@ -248,21 +273,25 @@ export function QrMenuPage() {
             currencyCode={context.restaurant.currencyCode}
             onClose={() => setSelectedItem(null)}
           >
-            <QrOrderLineEditor
-              disabled={
-                qrDraftFrozen(draft) ||
-                access.invalid ||
-                access.unavailable ||
-                draft.lines.length >= 20 ||
-                selectedItem.availabilityStatus !== 'AVAILABLE'
-              }
-              onApply={(quantity, note) => {
-                if (draft.add(selectedItem, quantity, note)) {
-                  setAdded('Đã thêm ' + selectedItem.name + ' vào giỏ.')
-                  setSelectedItem(null)
+            {readOnly ? (
+              <p className="qr-order-muted">Đang tạm ngưng gọi món qua QR.</p>
+            ) : (
+              <QrOrderLineEditor
+                disabled={
+                  qrDraftFrozen(draft) ||
+                  access.invalid ||
+                  access.unavailable ||
+                  draft.lines.length >= 20 ||
+                  selectedItem.availabilityStatus !== 'AVAILABLE'
                 }
-              }}
-            />
+                onApply={(quantity, note) => {
+                  if (draft.add(selectedItem, quantity, note)) {
+                    setAdded('Đã thêm ' + selectedItem.name + ' vào giỏ.')
+                    setSelectedItem(null)
+                  }
+                }}
+              />
+            )}
           </MenuItemDetail>
         )}
       </div>

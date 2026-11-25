@@ -64,6 +64,22 @@ describe('Public QR order API', () => {
       'RESTAURANT',
     )
   })
+  it('reads orderingEnabled from the menu and keeps ordering on when the field is absent', async () => {
+    server.use(
+      http.get(qrBase + '/public/menu/restaurants/:token', () =>
+        HttpResponse.json({ restaurant: { name: 'A', currencyCode: 'VND' }, groups: [], orderingEnabled: false }),
+      ),
+      http.get(qrBase + '/public/menu/tables/:token', () =>
+        HttpResponse.json({
+          restaurant: { name: 'A', currencyCode: 'VND' },
+          table: { code: 'B1', name: 'Bàn 1' },
+          groups: [],
+        }),
+      ),
+    )
+    expect((await fetchQrMenuContext(takeawayEntry.token, undefined, 'RESTAURANT')).orderingEnabled).toBe(false)
+    expect((await fetchQrMenuContext(tableEntry.token, undefined, 'TABLE')).orderingEnabled).toBe(true)
+  })
   it('POST/GET receipt headers, replay 200, exact body and terminal replay', async () => {
     const approved = qrReceipt(tableEntry, {
       status: 'APPROVED',

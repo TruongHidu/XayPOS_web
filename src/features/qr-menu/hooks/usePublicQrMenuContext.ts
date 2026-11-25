@@ -10,8 +10,9 @@ import type { PublicQrMenuContext } from '../types'
 export function usePublicQrMenuContext(
   qrToken: string | undefined,
   entryType: 'TABLE' | 'RESTAURANT' = 'TABLE',
+  active = true,
 ): UseQueryResult<PublicQrMenuContext> {
-  const enabled = Boolean(qrToken && /^[A-Za-z0-9_-]{43}$/.test(qrToken))
+  const enabled = active && Boolean(qrToken && /^[A-Za-z0-9_-]{43}$/.test(qrToken))
   return useQuery({
     queryKey: qrMenuKeys.context(qrToken ?? '', entryType),
     queryFn: ({ signal }) => fetchQrMenuContext(qrToken!, signal, entryType),

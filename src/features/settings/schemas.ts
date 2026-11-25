@@ -37,6 +37,10 @@ export const menuLinkSchema = z.object({
 })
 export type MenuLink = z.infer<typeof menuLinkSchema>
 
+/** /restaurants/me/qr-ordering: per-channel QR ordering switches (PUT always sends both). */
+export const qrOrderingSchema = z.object({ tableEnabled: z.boolean(), takeawayEnabled: z.boolean() })
+export type QrOrdering = z.infer<typeof qrOrderingSchema>
+
 /** /restaurants/me/transfer-account — `{configured:false}` when none. */
 export const transferAccountSchema = z.union([
   z.object({ configured: z.literal(false) }),

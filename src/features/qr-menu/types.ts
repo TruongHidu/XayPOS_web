@@ -22,6 +22,8 @@ export interface PublicQrMenuContext {
   restaurant: PublicRestaurant
   table?: PublicTable
   groups: PublicMenuGroup[]
+  /** False: show the menu read-only (no cart, no ordering). */
+  orderingEnabled: boolean
 }
 
 /** Item group embedded in menu item response (nullable). */

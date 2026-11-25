@@ -14,6 +14,7 @@ import { useAuthStore } from '../features/auth/store/authStore'
 import { queryClient } from '../shared/api/queryClient'
 import {
   qrBase,
+  qrContext,
   qrHandlers,
   qrIds,
   qrItem,
@@ -181,6 +182,68 @@ describe('Public customer QR ordering UI', () => {
     expect(screen.getByRole('button', { name: 'Gửi yêu cầu gọi món' })).toBeDisabled()
     await user.click(screen.getByRole('button', { name: 'Thực đơn' }))
     expect(screen.getByRole('button', { name: 'Xem chi tiết: Phở bò' })).toBeInTheDocument()
+  })
+  it('a paused channel shows the menu read-only with no cart or ordering', async () => {
+    server.use(
+      http.get(qrBase + '/public/menu/tables/:token', () =>
+        HttpResponse.json({ ...qrContext, orderingEnabled: false }),
+      ),
+    )
+    const user = userEvent.setup()
+    mount()
+    expect(await screen.findByText('Nhà hàng tạm ngưng nhận gọi món qua QR.')).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Xem chi tiết: Phở bò' }))
+    const dialog = screen.getByRole('dialog')
+    expect(within(dialog).queryByRole('button', { name: 'Thêm vào giỏ' })).not.toBeInTheDocument()
+    expect(within(dialog).getByText('Đang tạm ngưng gọi món qua QR.')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Giỏ món/ })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Gửi yêu cầu gọi món' })).not.toBeInTheDocument()
+  })
+  it('403 guest-access re-reads the menu and turns read-only when staff paused ordering', async () => {
+    let menus = 0
+    let mints = 0
+    server.use(
+      http.get(qrBase + '/public/menu/tables/:token', () =>
+        HttpResponse.json({ ...qrContext, orderingEnabled: ++menus === 1 }),
+      ),
+      http.post(qrBase + '/public/qr-order/tables/:token/guest-access', () => {
+        mints++
+        return qrFailure('QR_ORDER_UNAVAILABLE', 403)
+      }),
+    )
+    const user = userEvent.setup()
+    mount()
+    await addDish(user)
+    await user.click(screen.getByRole('button', { name: 'Gửi yêu cầu gọi món' }))
+    expect(await screen.findByText('Nhà hàng tạm ngưng nhận gọi món qua QR.')).toBeInTheDocument()
+    expect(menus).toBe(2)
+    expect(mints).toBe(1)
+    expect(screen.queryByRole('button', { name: /^Giỏ món/ })).not.toBeInTheDocument()
+  })
+  it('401 on submit re-reads the menu without minting or sending again', async () => {
+    let menus = 0
+    let mints = 0
+    let posts = 0
+    server.use(
+      http.get(qrBase + '/public/menu/tables/:token', () =>
+        HttpResponse.json({ ...qrContext, orderingEnabled: ++menus === 1 }),
+      ),
+      http.post(qrBase + '/public/qr-order/tables/:token/guest-access', () => {
+        mints++
+        return HttpResponse.json(qrGuest(), { status: 201 })
+      }),
+      http.post(qrBase + '/public/qr-order/requests', () => {
+        posts++
+        return qrFailure('QR_GUEST_ACCESS_INVALID', 401)
+      }),
+    )
+    const user = userEvent.setup()
+    mount()
+    await addDish(user)
+    await user.click(screen.getByRole('button', { name: 'Gửi yêu cầu gọi món' }))
+    expect(await screen.findByText('Nhà hàng tạm ngưng nhận gọi món qua QR.')).toBeInTheDocument()
+    expect(menus).toBe(2)
+    expect([mints, posts]).toEqual([1, 1])
   })
   it('network retry keeps frozen body/key and terminal replay status instead of forcing PENDING', async () => {
     const calls: { key: string | null; body: unknown }[] = []

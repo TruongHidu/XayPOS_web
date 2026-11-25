@@ -1,2 +1,24 @@
-.settings-page { max-width: 820px; }
-.settings-features { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
+.settings-page {
+  max-width: 820px;
+}
+.settings-qr-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+.settings-qr-row > span {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+.settings-qr-row small {
+  color: var(--pos-text-muted);
+  font-size: 13px;
+}
+.settings-features {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}

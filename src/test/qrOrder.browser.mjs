@@ -169,6 +169,7 @@ try {
           : {
               restaurant,
               groups: [],
+              orderingEnabled: true,
               ...(path.includes('/tables/') ? { table: { code: table.code, name: table.name } } : {}),
             }
       } else if (path.endsWith('/guest-access')) {

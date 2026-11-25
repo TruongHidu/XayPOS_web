@@ -79,5 +79,6 @@ registerTenantErrors({
   PUBLIC_MENU_LINK_NOT_INITIALIZED: 'Chưa tạo link menu cho khách mang đi.',
   CONCURRENT_MENU_LINK_UPDATE: 'Link menu vừa được đổi ở nơi khác. Tải lại để xem link mới.',
   PUBLIC_MENU_TOKEN_CONFLICT: 'Không tạo được link mới, vui lòng thử lại.',
+  RESTAURANT_NOT_FOUND: 'Không tìm thấy nhà hàng.',
   INVALID_TRANSFER_ACCOUNT: 'Thông tin tài khoản nhận chuyển khoản chưa hợp lệ.',
 })

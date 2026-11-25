@@ -21,10 +21,14 @@ export const publicQrMenuContextSchema = z.object({
   restaurant: publicRestaurantSchema,
   table: publicTableSchema,
   groups: z.array(publicMenuGroupSchema),
+  /** Channel switch on and package entitled. A display hint only: the backend still enforces it. */
+  orderingEnabled: z.boolean().default(true),
 })
 export const publicRestaurantMenuContextSchema = z.object({
   restaurant: publicRestaurantSchema,
   groups: z.array(publicMenuGroupSchema),
+  /** Channel switch on and package entitled. A display hint only: the backend still enforces it. */
+  orderingEnabled: z.boolean().default(true),
 })
 
 export const publicMenuItemGroupSchema = z.object({

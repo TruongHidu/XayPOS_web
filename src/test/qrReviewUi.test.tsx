@@ -247,6 +247,25 @@ describe('Cashier QR request inbox and decisions', () => {
     expect(await screen.findByRole('button', { name: 'Xác nhận yêu cầu' })).toBeDisabled()
     expect(screen.queryByText('Từ chối yêu cầu', { selector: 'summary' })).not.toBeInTheDocument()
   })
+  it('names the reason when staff turning QR ordering off cancelled a request', async () => {
+    server.use(
+      http.get(base + '/qr-order-requests/:id', () =>
+        HttpResponse.json(
+          reviewDetail({
+            request: reviewSummary({
+              status: 'CANCELLED',
+              cancelledAt: new Date().toISOString(),
+              cancellationReason: 'QR_ORDERING_DISABLED',
+            }),
+            canApprove: false,
+            reasonCode: 'QR_ORDER_UNAVAILABLE',
+          }),
+        ),
+      ),
+    )
+    mount(<QrReviewModal requestId={reviewId} onClose={() => {}} onDone={() => {}} />)
+    expect(await screen.findByText('Lý do hủy: Hủy do nhà hàng tắt QR gọi món')).toBeInTheDocument()
+  })
   it('keeps decisions blocked when a manual reread fails, even with a cached quote', async () => {
     const user = userEvent.setup()
     let failing = false

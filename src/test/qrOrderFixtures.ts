@@ -26,6 +26,7 @@ export const qrContext = {
   restaurant: { name: 'Nhà hàng QR Demo', currencyCode: 'VND' },
   table: { code: 'B01', name: 'Bàn 1' },
   groups: [],
+  orderingEnabled: true,
 }
 export const qrPage = { content: [qrItem], page: 0, size: 20, totalElements: 1, totalPages: 1 }
 export function qrGuest(entry = tableEntry): GuestAccess {
@@ -83,7 +84,7 @@ export function qrFailure(code: string, status: number, headers?: Record<string,
 export const qrHandlers = [
   http.get(qrBase + '/public/menu/tables/:token', () => HttpResponse.json(qrContext)),
   http.get(qrBase + '/public/menu/restaurants/:token', () =>
-    HttpResponse.json({ restaurant: qrContext.restaurant, groups: [] }),
+    HttpResponse.json({ restaurant: qrContext.restaurant, groups: [], orderingEnabled: true }),
   ),
   http.get(qrBase + '/public/menu/:entry/:token/items', () => HttpResponse.json(qrPage)),
   http.post(qrBase + '/public/qr-order/tables/:token/guest-access', () =>

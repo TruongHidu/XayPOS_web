@@ -6,7 +6,7 @@ import { sameOrderScope } from '../../order/policies/orderAccessPolicy'
 import { useAuthStore } from '../../auth/store/authStore'
 import { formatMinor, moneyMinor } from '../../../shared/utils/scaledDecimal'
 import { useQrReviewDecision, useQrReviewDetail } from '../hooks/useQrReview'
-import { canApproveQr, canRejectQr, qrReviewStatusLabels } from '../policies/qrReviewPolicy'
+import { canApproveQr, canRejectQr, qrCancellationLabel, qrReviewStatusLabels } from '../policies/qrReviewPolicy'
 import { qrReviewRejectSchema } from '../schemas'
 import { orderError } from '../../order/utils/orderErrors'
 import type { QrReviewDetail } from '../types'
@@ -234,7 +234,7 @@ function QrReviewForm({
         </p>
       )}
       {request.rejectionReason && <p>Lý do từ chối: {request.rejectionReason}</p>}
-      {request.cancellationReason && <p>Lý do hủy: {request.cancellationReason}</p>}
+      {request.cancellationReason && <p>Lý do hủy: {qrCancellationLabel(request.cancellationReason)}</p>}
       {error ? <OrderFeedback error={error} /> : null}
       {mustReview && (
         <p className="qr-review-warning">

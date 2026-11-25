@@ -49,8 +49,26 @@
   gap: 26px;
   align-items: start;
 }
+.qr-order-workspace[data-readonly] {
+  grid-template-columns: minmax(0, 1fr);
+}
 .qr-order-catalog {
   min-width: 0;
+}
+.qr-order-paused {
+  display: grid;
+  gap: 2px;
+  margin: 0 0 14px;
+  padding: 12px 14px;
+  border: 1px solid #f2d3ae;
+  border-radius: 12px;
+  background: #fff1e4;
+  color: #955617;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.qr-order-paused strong {
+  font-size: 14px;
 }
 .qr-order-page .qr-menu-item-grid {
   grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));

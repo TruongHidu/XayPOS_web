@@ -23,3 +23,16 @@ export const qrReviewStatusLabels = {
   REJECTED: 'Đã từ chối',
   CANCELLED: 'Đã hủy',
 }
+/** Why the system cancelled a pending QR request (backend `cancellationReason`). */
+export const qrCancellationLabels: Record<string, string> = {
+  QR_ORDERING_DISABLED: 'Hủy do nhà hàng tắt QR gọi món',
+  RESTAURANT_MENU_TOKEN_ROTATED: 'Hủy do đổi link QR menu mang đi',
+  CHECKOUT_STARTED: 'Hủy do bàn bắt đầu thanh toán',
+  TABLE_DISABLED: 'Hủy do bàn ngừng sử dụng',
+  TABLE_DELETED: 'Hủy do bàn bị xóa',
+  TABLE_QR_ROTATED: 'Hủy do đổi mã QR của bàn',
+  SESSION_CLOSED: 'Hủy do phiên bàn đã đóng',
+  SESSION_CANCELLED: 'Hủy do phiên bàn bị hủy',
+  SESSION_TRANSFERRED: 'Hủy do khách chuyển bàn',
+}
+export const qrCancellationLabel = (code: string) => qrCancellationLabels[code] ?? `Lý do khác (${code})`

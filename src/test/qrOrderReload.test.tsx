@@ -14,6 +14,7 @@ import {
   qrFailure,
   qrGuest,
   qrHandlers,
+  qrContext,
   qrIds,
   qrReceipt,
   resetQrOrder,
@@ -238,6 +239,21 @@ describe('Public QR request recovery after a browser reload', () => {
     await screen.findByText(/Lượt truy cập đã hết hạn hoặc bị thu hồi|Lượt gọi món đã hết hạn/)
     expect(revokedReads).toBe(1)
     expect(mints).toBe(1)
+  })
+
+  it('a guest revoked because staff paused QR ordering is told so and sent back to the menu', async () => {
+    const user = userEvent.setup()
+    mount()
+    await sendDish(user)
+    server.use(
+      http.get(qrBase + '/public/qr-order/requests/:id', () => qrFailure('QR_GUEST_ACCESS_INVALID', 401)),
+      http.get(qrBase + '/public/menu/tables/:token', () =>
+        HttpResponse.json({ ...qrContext, orderingEnabled: false }),
+      ),
+    )
+    await reload(tableEntry, qrIds.request)
+    expect(await screen.findByText(/Nhà hàng đã tạm ngưng gọi món qua QR/)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Xem thực đơn' })).toBeInTheDocument()
   })
 
   it('reload restores an uncertain POST frozen and retries only after an explicit click with the same guest, body and key', async () => {

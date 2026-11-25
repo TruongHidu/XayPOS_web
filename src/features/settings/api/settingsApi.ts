@@ -1,10 +1,18 @@
 import { tenantBlob, tenantGet, tenantGetOptional, tenantSend, tenantSendVoid } from '../../../shared/api/tenantApi'
 import { tenantKeys } from '../../../shared/api/tenantKeys'
-import { menuLinkSchema, restaurantProfileSchema, transferAccountSchema, type ProfileForm } from '../schemas'
+import {
+  menuLinkSchema,
+  qrOrderingSchema,
+  restaurantProfileSchema,
+  transferAccountSchema,
+  type ProfileForm,
+  type QrOrdering,
+} from '../schemas'
 
 const CODE = 'INVALID_SETTINGS_RESPONSE'
 const MENU_LINK = '/restaurants/me/menu-link'
 const TRANSFER = '/restaurants/me/transfer-account'
+const QR_ORDERING = '/restaurants/me/qr-ordering'
 
 export const settingsKeys = {
   root: (scope: string | null) => tenantKeys.module(scope, 'settings'),
@@ -12,6 +20,7 @@ export const settingsKeys = {
   menuLink: (scope: string | null) => [...settingsKeys.root(scope), 'menu-link'] as const,
   menuLinkImage: (scope: string | null, token: string) => [...settingsKeys.menuLink(scope), 'image', token] as const,
   transferAccount: (scope: string | null) => [...settingsKeys.root(scope), 'transfer-account'] as const,
+  qrOrdering: (scope: string | null) => [...settingsKeys.root(scope), 'qr-ordering'] as const,
 }
 
 export const settingsApi = {
@@ -41,4 +50,10 @@ export const settingsApi = {
   saveTransferAccount: (scope: string, body: { bankBin: string; accountNumber: string; accountName: string }) =>
     tenantSend(scope, 'put', TRANSFER, body, transferAccountSchema, { code: CODE }),
   removeTransferAccount: (scope: string) => tenantSendVoid(scope, 'delete', TRANSFER),
+
+  qrOrdering: (scope: string, signal?: AbortSignal) =>
+    tenantGet(scope, QR_ORDERING, qrOrderingSchema, { signal, code: CODE }),
+  /** Both switches are required; turning a channel off cancels its pending QR requests. */
+  saveQrOrdering: (scope: string, body: QrOrdering) =>
+    tenantSend(scope, 'put', QR_ORDERING, body, qrOrderingSchema, { code: CODE }),
 }

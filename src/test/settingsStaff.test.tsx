@@ -68,6 +68,7 @@ describe('settings', () => {
       ),
       http.get(base + '/restaurants/me/menu-link/qr/image', () => new HttpResponse(new Uint8Array([137, 80, 78, 71]).buffer, { headers: { 'Content-Type': 'image/png' } })),
       http.get(base + '/restaurants/me/transfer-account', () => HttpResponse.json({ configured: false })),
+      http.get(base + '/restaurants/me/qr-ordering', () => HttpResponse.json({ tableEnabled: true, takeawayEnabled: true })),
     )
     const user = userEvent.setup()
     renderPage(<SettingsPage />, { path: '/app/settings' })

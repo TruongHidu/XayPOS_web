@@ -4,13 +4,16 @@ import { PageTitle, Panel, StatusBadge } from '../../../shared/ui/Display'
 import { useAuthStore } from '../../auth/store/authStore'
 import { roleLabel } from '../../../shared/utils/roleLabels'
 import { MenuLinkSection } from '../components/MenuLinkSection'
+import { QrOrderingSection } from '../components/QrOrderingSection'
 import { RestaurantProfileSection } from '../components/RestaurantProfileSection'
 import { TransferAccountSection } from '../components/TransferAccountSection'
 import {
   canManageMenuLink,
   canManageTransferAccount,
+  canUpdateQrOrdering,
   canUpdateRestaurantProfile,
   canViewPackage,
+  canViewQrOrdering,
   canViewRestaurantProfile,
   canViewTransferAccount,
 } from '../policies/settingsAccessPolicy'
@@ -27,8 +30,12 @@ export function SettingsPage() {
   const navigate = useNavigate()
   return (
     <div className="ui-page settings-page">
-      <PageTitle title="Cài đặt" description="Thông tin nhà hàng, QR menu, nhận chuyển khoản và gói dịch vụ." />
+      <PageTitle
+        title="Cài đặt"
+        description="Thông tin nhà hàng, gọi món qua QR, QR menu, nhận chuyển khoản và gói dịch vụ."
+      />
       {canViewRestaurantProfile(access) && <RestaurantProfileSection canEdit={canUpdateRestaurantProfile(access)} />}
+      {canViewQrOrdering(access) && <QrOrderingSection canEdit={canUpdateQrOrdering(access)} />}
       {canManageMenuLink(access) && <MenuLinkSection />}
       {canViewTransferAccount(access) && <TransferAccountSection canEdit={canManageTransferAccount(access)} />}
       {canViewPackage(access) && entitlement && (

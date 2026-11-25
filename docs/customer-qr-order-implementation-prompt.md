@@ -281,7 +281,7 @@ Body POST giới hạn 32 KiB: kiểm bằng UTF-8 bytes của JSON body cuối 
 | Gọi món TABLE             | QR_MENU_VIEW + QR_TABLE_ORDER + ORDER_MANAGEMENT + TABLE_MANAGEMENT |
 | Gọi món RESTAURANT        | QR_MENU_VIEW + QR_STATIC_ORDER + ORDER_MANAGEMENT                   |
 
-Khách không có permission của nhân viên. Backend quyết định entitlement từ subscription snapshot; menu context hiện không cung cấp feature flags để frontend tự suy ordering. Xử lý guest-access/order error đúng code, không gọi `/me/entitlements` hoặc suy từ tên Basic/Pro. POS_QUICK_ORDER thuộc luồng staff mang đi, không phải gate QR_STATIC.
+Khách không có permission của nhân viên. Backend quyết định entitlement từ subscription snapshot; menu context chỉ có `orderingEnabled` (công tắc kênh đang bật và gói có tính năng QR tương ứng) làm gợi ý hiển thị: `false` thì menu chỉ xem, ẩn giỏ và nút gọi món. Gặp `403 QR_ORDER_UNAVAILABLE` hoặc `401 QR_GUEST_ACCESS_INVALID` thì tải lại menu để biết có chuyển sang chỉ xem không; không tự mint guest mới hay gửi lại. Xử lý guest-access/order error đúng code, không gọi `/me/entitlements` hoặc suy từ tên Basic/Pro. POS_QUICK_ORDER thuộc luồng staff mang đi, không phải gate QR_STATIC.
 
 Yêu cầu chờ duyệt chỉ vào order sau khi nhân viên review và approve qua luồng staff. Staff có thể tạo phiên tại bàn trống hoặc append vào đơn phù hợp; frontend khách không thao tác các bước này. Khi kiểm thử end-to-end cần một nhân viên/fixture staff duyệt request để khách thấy APPROVED. Nếu UI inbox nhân viên chưa có, báo phụ thuộc này riêng; không tự triển khai inbox ngoài phạm vi hoặc auto-approve từ phía khách.
 

@@ -183,6 +183,12 @@ describe('Public customer QR ordering UI', () => {
     await user.click(screen.getByRole('button', { name: 'Thực đơn' }))
     expect(screen.getByRole('button', { name: 'Xem chi tiết: Phở bò' })).toBeInTheDocument()
   })
+  it('opens the table menu from the path the backend prints on table QR codes', async () => {
+    mount('/menu/qr/' + tableEntry.token)
+    expect(await screen.findByRole('button', { name: 'Xem chi tiết: Phở bò' })).toBeInTheDocument()
+    expect(useQrGuestStore.getState().entry).toEqual(tableEntry)
+    expect(entryPath(tableEntry)).toBe('/menu/qr/' + tableEntry.token)
+  })
   it('a paused channel shows the menu read-only with no cart or ordering', async () => {
     server.use(
       http.get(qrBase + '/public/menu/tables/:token', () =>

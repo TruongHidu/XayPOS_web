@@ -30,4 +30,4 @@ export function receiptNeedsPolling(receipt?: QrReceipt) {
         receipt.items.some((item) => !isExcludedLine(item) && !['SERVED', 'CANCELLED'].includes(item.status ?? ''))
 }
 export const entryPath = (entry: PublicEntry) =>
-  (entry.entryType === 'TABLE' ? '/qr/' : '/menu/') + encodeURIComponent(entry.token)
+  (entry.entryType === 'TABLE' ? '/menu/qr/' : '/menu/') + encodeURIComponent(entry.token)

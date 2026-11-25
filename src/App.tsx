@@ -89,6 +89,9 @@ export default function App({ realtimeRuntime }: { realtimeRuntime?: RealtimeRun
 
       {/* === PUBLIC QR MENU — outside AuthBootstrap === */}
       <Route element={<QrMenuLayout />}>
+        {/* Table QR: the backend prints /menu/qr/{token} (TableQrResponse.qrPath); /qr/{token} is the older link. */}
+        <Route path="/menu/qr/:qrToken" element={<QrMenuPage />} />
+        <Route path="/menu/qr/:qrToken/requests/:requestId" element={<QrRequestPage />} />
         <Route path="/qr/:qrToken" element={<QrMenuPage />} />
         <Route path="/menu/:menuToken" element={<QrMenuPage />} />
         <Route path="/qr/:qrToken/requests/:requestId" element={<QrRequestPage />} />

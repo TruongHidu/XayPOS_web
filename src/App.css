@@ -45,7 +45,7 @@
 .button-primary { background: #0863be; color: #fff; }
 .button-primary:hover { background: #064f98; }
 .button-ghost { color: inherit; background: transparent; border: 1px solid currentColor; }
-.button:disabled { cursor: wait; opacity: .6; }
+.button:disabled { cursor: not-allowed; opacity: .6; }
 .status-page { min-height: 100vh; display: grid; place-items: center; padding: 24px; background: #f5f7fb; }
 .status-card { max-width: 520px; text-align: center; padding: 40px; }
 .status-icon { width: 52px; height: 52px; border-radius: 16px; background: #fff3c4; color: #8d5b00; margin: 0 auto 18px; display: grid; place-items: center; font-size: 22px; font-weight: 900; }

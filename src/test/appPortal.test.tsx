@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react'
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { HttpResponse, http } from 'msw'
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom'
@@ -159,6 +159,29 @@ describe('restaurant portal routes', () => {
     expect(within(nav).getByRole('link', { name: /Thực đơn/ })).toHaveAttribute('href', '/app/menu')
     expect(within(nav).getByRole('link', { name: /Sơ đồ bàn/ })).toHaveAttribute('href', '/app/tables')
     expect(within(nav).queryByRole('link', { name: /Màn hình bếp/ })).not.toBeInTheDocument()
+  })
+
+  it('on a phone the menu is a drawer that opens from the top bar and closes after navigating', async () => {
+    const original = window.matchMedia
+    window.matchMedia = ((query: string) => ({
+      matches: query === '(max-width: 767px)',
+      media: query,
+      addEventListener: () => {},
+      removeEventListener: () => {},
+    })) as unknown as typeof window.matchMedia
+    try {
+      const { container } = renderApp('/app/orders')
+      const toggle = await screen.findByRole('button', { name: 'Hiện thanh menu' })
+      const shell = container.querySelector('.app-shell')!
+      expect(shell).not.toHaveClass('sidebar-drawer-open')
+      fireEvent.click(toggle)
+      expect(shell).toHaveClass('sidebar-drawer-open')
+      expect(screen.getByRole('button', { name: 'Ẩn thanh menu' })).toHaveAttribute('aria-expanded', 'true')
+      fireEvent.click(within(screen.getByRole('navigation', { name: 'Chức năng' })).getByRole('link', { name: /Gọi món/ }))
+      await waitFor(() => expect(shell).not.toHaveClass('sidebar-drawer-open'))
+    } finally {
+      window.matchMedia = original
+    }
   })
 
   it('sends an account without operational permissions to its settings page', async () => {

@@ -17,6 +17,7 @@ export function QrReviewQuoteLines({
   selection,
   onChange,
   editable,
+  hideReasons = false,
   disabled,
   currencyCode,
 }: {
@@ -25,6 +26,8 @@ export function QrReviewQuoteLines({
   selection: Selection
   onChange: (selection: Selection) => void
   editable: boolean
+  /** All lines are left out and the reason moves to the rejection form. */
+  hideReasons?: boolean
   disabled: boolean
   currencyCode: string
 }) {
@@ -62,7 +65,7 @@ export function QrReviewQuoteLines({
                 </small>
               )}
               {line.note && <small>{line.note}</small>}
-              {editable && !choice.accept && (
+              {editable && !choice.accept && !hideReasons && (
                 <label className="qr-review-line-reason">
                   <span>Lý do cho khách (khách sẽ thấy)</span>
                   <input

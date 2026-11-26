@@ -4,7 +4,7 @@ import { fmtQty, type ShortageDish } from '../../order/utils/stockShortage'
  * INSUFFICIENT_AVAILABLE_STOCK while approving a QR request: the request stays
  * pending, the short dishes are already left out, staff re-read and approve the rest.
  */
-export function QrStockShortage({ dishes }: { dishes: ShortageDish[] }) {
+export function QrStockShortage({ dishes, allLeftOut }: { dishes: ShortageDish[]; allLeftOut: boolean }) {
   return (
     <div className="qr-review-warning" role="alert">
       <strong>Không đủ nguyên liệu cho một số món.</strong>
@@ -21,7 +21,9 @@ export function QrStockShortage({ dishes }: { dishes: ShortageDish[] }) {
         ))}
       </ul>
       <p>
-        Đã bỏ chọn các món này. Đọc lại yêu cầu rồi xác nhận phần còn lại, hoặc từ chối nếu không nhận được món nào.
+        {allLeftOut
+          ? 'Không còn món nào để nhận. Hãy từ chối và báo khách.'
+          : 'Đã bỏ chọn các món này. Bấm "Kiểm tra lại yêu cầu" rồi xác nhận các món còn lại.'}
       </p>
     </div>
   )

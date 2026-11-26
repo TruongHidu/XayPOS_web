@@ -86,3 +86,9 @@ export function priceChanged(line: QrQuoteLine, items: QrRequestItem[]) {
   const sent = items.find((item) => item.id === line.requestItemId)
   return !!sent && line.unitPrice !== null && moneyMinor(line.unitPrice) !== moneyMinor(sent.unitPrice) ? sent : null
 }
+
+/** Rejection reason pre-filled from the lines staff left out ("Món đã hết", ...), within the 1000-char limit. */
+export function rejectReasonFrom(lines: QrQuoteLine[], selection: Selection) {
+  const reasons = [...new Set((excludedItemsOf(lines, selection) ?? []).map((item) => item.reason).filter(Boolean))]
+  return (reasons.join('; ') || DEFAULT_LEAVE_OUT_REASON).slice(0, 1000)
+}

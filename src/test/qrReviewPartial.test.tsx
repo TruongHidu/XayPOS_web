@@ -155,15 +155,71 @@ describe('QR review partial approval', () => {
   })
 
   it('turns into a rejection when every line is left out', async () => {
-    server.use(http.get(base + '/qr-order-requests/:id', () => HttpResponse.json(detailWith(soldOut))))
+    let rejectBody: unknown
+    server.use(
+      http.get(base + '/qr-order-requests/:id', () => HttpResponse.json(detailWith(soldOut))),
+      http.post(base + '/qr-order-requests/:id/reject', async ({ request }) => {
+        rejectBody = await request.json()
+        return HttpResponse.json(twoLineRequest({ status: 'REJECTED', version: 3, rejectionReason: 'Món đã hết' }))
+      }),
+    )
     const user = userEvent.setup()
-    mount()
+    const onDone = mount()
     await user.click(await screen.findByRole('checkbox', { name: 'Nhận món Phở' }))
     expect(screen.queryByRole('button', { name: /^Xác nhận (yêu cầu|\d)/ })).not.toBeInTheDocument()
-    expect(screen.getByText('Không còn món nào được nhận. Hãy từ chối yêu cầu.')).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Chuyển sang từ chối' }))
-    expect(screen.getByRole('textbox', { name: 'Lý do từ chối' })).toHaveValue('Món đã hết')
+    expect(screen.getByText('Không nhận món nào')).toBeInTheDocument()
+    // One reason, in the rejection form; the per-line reason boxes step aside.
+    expect(screen.queryByRole('textbox', { name: /^Lý do bỏ/ })).not.toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Lý do gửi khách' })).toHaveValue('Món đã hết')
     expect(screen.getByText('Khách sẽ thấy lý do này.')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Từ chối và báo khách' }))
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(rejectBody).toEqual({ expectedRequestVersion: 2, reason: 'Món đã hết' })
+  })
+
+  it('a single dish short of stock: one notice and rejecting needs no re-check', async () => {
+    const request = twoLineRequest()
+    const single = reviewSummary({ estimatedAmount: 100000, items: [request.items[0]] })
+    let rejectBody: unknown
+    server.use(
+      http.get(base + '/qr-order-requests/:id', () =>
+        HttpResponse.json(
+          reviewDetail({
+            request: single,
+            currentQuote: { currencyCode: 'VND', amount: 100000, lines: [quoteLine(single.items[0])] },
+          }),
+        ),
+      ),
+      http.post(base + '/qr-order-requests/:id/approve', () =>
+        failure('INSUFFICIENT_AVAILABLE_STOCK', 409, {
+          lines: [
+            {
+              orderItemId: '99999999-9999-4999-8999-999999999999',
+              menuItemId: phoItem,
+              itemName: 'Phở',
+              requestedQuantity: 2,
+              maxAvailableQuantity: 0,
+              unit: 'tô',
+              sharesIngredientWithOtherLines: false,
+            },
+          ],
+        }),
+      ),
+      http.post(base + '/qr-order-requests/:id/reject', async ({ request }) => {
+        rejectBody = await request.json()
+        return HttpResponse.json(reviewSummary({ status: 'REJECTED', version: 3, rejectionReason: 'Món đã hết' }))
+      }),
+    )
+    const user = userEvent.setup()
+    const onDone = mount()
+    await user.click(await screen.findByRole('button', { name: 'Xác nhận yêu cầu' }))
+    expect(await screen.findByText(/Không còn món nào để nhận. Hãy từ chối và báo khách./)).toBeInTheDocument()
+    expect(screen.queryByText(/Kiểm tra lại trước khi quyết định/)).not.toBeInTheDocument()
+    expect(screen.queryByText(/Xác nhận sẽ tạo/)).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Chuyển sang từ chối' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Từ chối và báo khách' }))
+    await waitFor(() => expect(onDone).toHaveBeenCalled())
+    expect(rejectBody).toEqual({ expectedRequestVersion: 2, reason: 'Món đã hết' })
   })
 
   it('only offers rejection when every line is unavailable', async () => {
@@ -220,7 +276,7 @@ describe('QR review partial approval', () => {
     const alert = await screen.findByRole('alert')
     expect(within(alert).getByText(/Trà đá: đã hết/)).toBeInTheDocument()
     expect(screen.getByRole('checkbox', { name: 'Nhận món Trà đá' })).not.toBeChecked()
-    await user.click(screen.getByRole('button', { name: 'Đọc lại yêu cầu' }))
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra lại yêu cầu' }))
     await user.click(await screen.findByRole('button', { name: 'Xác nhận 1/2 món' }))
     await waitFor(() => expect(onDone).toHaveBeenCalled())
     expect(approveBody).toMatchObject({ excludedItems: [{ requestItemId: tea, reason: 'Món đã hết' }] })
@@ -243,7 +299,7 @@ describe('QR review partial approval', () => {
     mount()
     await user.click(await screen.findByRole('button', { name: 'Xác nhận yêu cầu' }))
     expect(await screen.findByText(/Có món vừa hết hàng/)).toBeInTheDocument()
-    await user.click(screen.getByRole('button', { name: 'Đọc lại yêu cầu' }))
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra lại yêu cầu' }))
     await waitFor(() => expect(screen.getByRole('checkbox', { name: 'Nhận món Trà đá' })).toBeDisabled())
     expect(screen.getByRole('checkbox', { name: 'Nhận món Trà đá' })).not.toBeChecked()
   })

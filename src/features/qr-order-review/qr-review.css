@@ -130,13 +130,6 @@
   margin: 6px 0;
   padding-left: 18px;
 }
-.qr-review-all-left-out {
-  display: grid;
-  gap: 8px;
-}
-.qr-review-all-left-out p {
-  margin: 0;
-}
 .qr-review-amount {
   display: flex;
   justify-content: space-between;
@@ -170,24 +163,60 @@
   height: 18px;
   flex: 0 0 auto;
 }
-.qr-review-approve-action > button {
+.qr-review-decision {
+  display: grid;
+  gap: 10px;
+  border-top: 1px solid #e2e8f0;
+  padding-top: 14px;
+}
+.qr-review-main-action {
   width: 100%;
+  min-height: 46px;
+  font-size: 15px;
+}
+.qr-review-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+}
+.qr-review-link {
+  border: 0;
+  background: none;
+  padding: 6px 0;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  color: #475569;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.qr-review-link-danger {
+  color: #b91c1c;
+}
+.qr-review-link:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .qr-review-reject {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 12px;
+  display: grid;
+  gap: 6px;
 }
-.qr-review-reject summary {
-  color: #b91c1c;
-  cursor: pointer;
+.qr-review-reject h4 {
+  margin: 0;
+  font-size: 15px;
+  color: #991b1b;
 }
 .qr-review-reject label {
   display: grid;
-  gap: 8px;
-  margin: 12px 0;
+  gap: 6px;
+  margin: 4px 0 0;
+  font-weight: 600;
+  font-size: 14px;
 }
 .qr-review-reject-hint {
-  margin: -6px 0 12px;
+  margin: 0 0 4px;
   font-size: 12px;
 }
 .qr-review-reject textarea {

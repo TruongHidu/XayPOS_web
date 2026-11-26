@@ -417,23 +417,26 @@ describe('Event to REST snapshots and action safety', () => {
     await mountConnected(<QrReviewModal requestId={reviewId} onClose={() => {}} onDone={() => {}} />)
     const approve = await screen.findByRole('button', { name: 'Xác nhận yêu cầu' })
     await waitFor(() => expect(approve).toBeEnabled())
-    await user.click(screen.getByText('Từ chối yêu cầu'))
-    await user.type(screen.getByLabelText('Lý do từ chối'), 'đang nhập lý do')
+    await user.click(screen.getByRole('button', { name: 'Từ chối cả yêu cầu' }))
+    await user.type(screen.getByLabelText('Lý do gửi khách'), 'đang nhập lý do')
     hash = 'b'.repeat(64)
     act(() => fake.latest.emit('orders', orderEvent()))
-    await waitFor(() => expect(approve).toBeDisabled())
+    // Changed elsewhere: even rejecting waits for a re-check.
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Từ chối và báo khách' })).toBeDisabled())
     await waitFor(() =>
       expect(
         queryClient.getQueryData<{ reviewContextHash: string }>(qrReviewKeys.detail(scope, reviewId))
           ?.reviewContextHash,
       ).toBe(hash),
     )
-    expect(screen.getByLabelText('Lý do từ chối')).toHaveValue('đang nhập lý do')
-    await user.click(approve)
+    expect(screen.getByLabelText('Lý do gửi khách')).toHaveValue('đang nhập lý do')
+    await user.click(screen.getByRole('button', { name: 'Quay lại xác nhận' }))
+    expect(screen.queryByRole('button', { name: 'Xác nhận yêu cầu' })).not.toBeInTheDocument()
     expect(decisions).toBe(0)
-    await user.click(screen.getByRole('button', { name: 'Đọc lại yêu cầu' }))
-    await waitFor(() => expect(approve).toBeEnabled())
-    expect(screen.getByLabelText('Lý do từ chối')).toHaveValue('đang nhập lý do')
+    await user.click(screen.getByRole('button', { name: 'Kiểm tra lại yêu cầu' }))
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Xác nhận yêu cầu' })).toBeEnabled())
+    await user.click(screen.getByRole('button', { name: 'Từ chối cả yêu cầu' }))
+    expect(screen.getByLabelText('Lý do gửi khách')).toHaveValue('đang nhập lý do')
   })
   it('QR decision in flight retains form and REST decides completion exactly once', async () => {
     const user = userEvent.setup()
@@ -449,9 +452,9 @@ describe('Event to REST snapshots and action safety', () => {
     )
     await mountConnected(<QrReviewModal requestId={reviewId} onClose={() => {}} onDone={onDone} />)
     await screen.findByText(/^Tạm tính các món được nhận/)
-    await user.click(screen.getByText('Từ chối yêu cầu'))
-    await user.type(screen.getByLabelText('Lý do từ chối'), 'hết món')
-    await user.click(screen.getByRole('button', { name: 'Xác nhận từ chối' }))
+    await user.click(screen.getByRole('button', { name: 'Từ chối cả yêu cầu' }))
+    await user.type(screen.getByLabelText('Lý do gửi khách'), 'hết món')
+    await user.click(screen.getByRole('button', { name: 'Từ chối và báo khách' }))
     await waitFor(() => expect(calls).toBe(1))
     act(() =>
       fake.latest.emit(
@@ -460,7 +463,7 @@ describe('Event to REST snapshots and action safety', () => {
       ),
     )
     expect(onDone).not.toHaveBeenCalled()
-    expect(screen.getByLabelText('Lý do từ chối')).toHaveValue('hết món')
+    expect(screen.getByLabelText('Lý do gửi khách')).toHaveValue('hết món')
     gate.resolve()
     await waitFor(() => expect(onDone).toHaveBeenCalledTimes(1))
     expect(calls).toBe(1)

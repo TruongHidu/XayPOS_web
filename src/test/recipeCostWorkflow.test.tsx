@@ -381,8 +381,9 @@ describe('Picker and QR review without recipe/inventory administration', () => {
       )
       mount(<QrReviewModal requestId={reviewId} onClose={() => {}} onDone={onDone} />)
       await screen.findByText(/^Tạm tính các món được nhận/)
-      await user.click(screen.getByText('Từ chối yêu cầu'))
-      await user.type(screen.getByLabelText('Lý do từ chối'), 'lý do đang nhập')
+      await user.click(screen.getByRole('button', { name: 'Từ chối cả yêu cầu' }))
+      await user.type(screen.getByLabelText('Lý do gửi khách'), 'lý do đang nhập')
+      await user.click(screen.getByRole('button', { name: 'Quay lại xác nhận' }))
       await user.click(screen.getByRole('button', { name: 'Xác nhận yêu cầu' }))
       await waitFor(() =>
         expect(screen.getByRole('alert')).toHaveTextContent(
@@ -392,12 +393,14 @@ describe('Picker and QR review without recipe/inventory administration', () => {
       expect(
         queryClient.getQueryData<ReturnType<typeof reviewDetail>>(qrReviewKeys.detail(scope, reviewId))?.request.status,
       ).toBe('PENDING')
-      expect(screen.getByLabelText('Lý do từ chối')).toHaveValue('lý do đang nhập')
-      expect(screen.getByRole('button', { name: 'Xác nhận yêu cầu' })).toBeDisabled()
+      expect(screen.queryByRole('button', { name: 'Xác nhận yêu cầu' })).not.toBeInTheDocument()
+      await user.click(screen.getByRole('button', { name: 'Từ chối cả yêu cầu' }))
+      expect(screen.getByLabelText('Lý do gửi khách')).toHaveValue('lý do đang nhập')
+      await user.click(screen.getByRole('button', { name: 'Quay lại xác nhận' }))
       expect(body).toEqual({ expectedRequestVersion: 2, expectedReviewContextHash: reviewHash, targetSessionId: null })
       expect(posts).toBe(1)
       expect(onDone).not.toHaveBeenCalled()
-      await user.click(screen.getByRole('button', { name: 'Đọc lại yêu cầu' }))
+      await user.click(screen.getByRole('button', { name: 'Kiểm tra lại yêu cầu' }))
       await waitFor(() => expect(screen.getByRole('button', { name: 'Xác nhận yêu cầu' })).toBeEnabled())
       expect(posts).toBe(1)
     },

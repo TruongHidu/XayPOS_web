@@ -25,6 +25,7 @@ import {
   initialSelection,
   missingReason,
   priceChanged,
+  rejectReasonFrom,
   untickMenuItems,
 } from '../utils/qrReviewSelection'
 import { QrReviewTableLabel } from './QrReviewQueue'
@@ -89,7 +90,8 @@ function QrReviewForm({
   const lock = useRef(false)
   const [now, setNow] = useState(() => Date.now())
   const [confirmedGroup, setConfirmedGroup] = useState(false)
-  const [reason, setReason] = useState('')
+  // null = untouched: the form shows a reason pre-filled from the left-out lines.
+  const [reason, setReason] = useState<string | null>(null)
   const [error, setError] = useState<unknown>(null)
   const [needsReview, setNeedsReview] = useState(false)
   const [baseline, setBaseline] = useState(() => ({ detail: incoming, revision }))
@@ -117,10 +119,11 @@ function QrReviewForm({
   const accepted = editable ? acceptedLines(quoteLines, selection).length : quoteLines.length
   const allLeftOut = editable && accepted === 0
   const reasonMissing = editable && missingReason(quoteLines, selection)
-  const openReject = () => {
-    setRejectOpen(true)
-    setReason((current) => (current.trim() ? current : DEFAULT_LEAVE_OUT_REASON))
-  }
+  // Nothing left to take (staff left every line out, or every line is unavailable): rejecting is the only move.
+  const onlyReject = allLeftOut || (!detail.canApprove && isAllLinesUnavailable(detail.reasonCode))
+  const rejectShown = onlyReject || rejectOpen
+  const rejectReason =
+    reason ?? (onlyReject ? (editable ? rejectReasonFrom(quoteLines, selection) : DEFAULT_LEAVE_OUT_REASON) : '')
   const reviewAgain = async () => {
     if (busy) return
     setConfirmedGroup(false)
@@ -135,17 +138,22 @@ function QrReviewForm({
     }
   }
   const decide = async (kind: 'approve' | 'reject') => {
+    // Approving needs a fresh review after any failure (prices or stock may have moved). Rejecting only
+    // waits when the request changed elsewhere; the backend still checks the version it was shown at.
     if (
       lock.current ||
       refreshing ||
       readFailed ||
-      mustReview ||
-      (kind === 'approve' && (!canApprove || (sessionId && !confirmedGroup) || allLeftOut || reasonMissing))
+      (kind === 'approve' &&
+        (mustReview || !canApprove || (sessionId && !confirmedGroup) || allLeftOut || reasonMissing)) ||
+      (kind === 'reject' && (remotelyChanged || !canReject))
     )
       return
-    if (kind === 'reject' && !canReject) return
     if (kind === 'reject') {
-      const validated = qrReviewRejectSchema.safeParse({ expectedRequestVersion: request.version, reason })
+      const validated = qrReviewRejectSchema.safeParse({
+        expectedRequestVersion: request.version,
+        reason: rejectReason,
+      })
       if (!validated.success) {
         setError(validated.error)
         return
@@ -157,7 +165,7 @@ function QrReviewForm({
       const result = await mutation.mutateAsync(
         kind === 'approve'
           ? { kind, detail, excludedItems: editable ? excludedItemsOf(quoteLines, selection) : undefined }
-          : { kind, detail, reason },
+          : { kind, detail, reason: rejectReason },
       )
       if (!sameOrderScope(scope, useAuthStore.getState())) return
       if ('order' in result) onDone(`Đã xác nhận yêu cầu QR vào đơn ${result.order.orderCode}.`, result.approvedOrderId)
@@ -173,7 +181,7 @@ function QrReviewForm({
         const menuItemIds = short.flatMap((dish) => (dish.menuItemId ? [dish.menuItemId] : []))
         setSelection((current) => untickMenuItems(current, quoteLines, menuItemIds))
       }
-      if (orderError(failure).code === 'QR_APPROVAL_EMPTY') openReject()
+      if (orderError(failure).code === 'QR_APPROVAL_EMPTY') setRejectOpen(true)
     } finally {
       lock.current = false
     }
@@ -215,6 +223,7 @@ function QrReviewForm({
           selection={selection}
           onChange={setSelection}
           editable={editable}
+          hideReasons={allLeftOut}
           disabled={busy || refreshing}
           currencyCode={request.currencyCode}
         />
@@ -228,15 +237,19 @@ function QrReviewForm({
       {request.status === 'PENDING' && detail.currentQuote && (
         <div className="qr-review-amount">
           <span>
-            {editable
-              ? `Tạm tính các món được nhận (${accepted}/${quoteLines.length} món)`
-              : 'Giá hiện tại các món còn bán'}
+            {allLeftOut
+              ? 'Không nhận món nào'
+              : editable
+                ? `Tạm tính các món được nhận (${accepted}/${quoteLines.length} món)`
+                : 'Giá hiện tại các món còn bán'}
           </span>
           <strong>
-            {formatMinor(
-              editable ? acceptedTotal(quoteLines, selection) : moneyMinor(detail.currentQuote.amount),
-              detail.currentQuote.currencyCode,
-            )}
+            {allLeftOut
+              ? '—'
+              : formatMinor(
+                  editable ? acceptedTotal(quoteLines, selection) : moneyMinor(detail.currentQuote.amount),
+                  detail.currentQuote.currencyCode,
+                )}
           </strong>
         </div>
       )}
@@ -245,7 +258,7 @@ function QrReviewForm({
           Giá đã thay đổi so với lúc khách gửi. Kiểm tra với khách trước khi xác nhận.
         </p>
       )}
-      {request.entryType === 'TABLE' && detail.canApprove && (
+      {request.entryType === 'TABLE' && detail.canApprove && !allLeftOut && (
         <div className="qr-review-seating">
           {sessionId ? (
             <>
@@ -279,7 +292,7 @@ function QrReviewForm({
           )}
         </div>
       )}
-      {request.entryType === 'RESTAURANT' && detail.canApprove && (
+      {request.entryType === 'RESTAURANT' && detail.canApprove && !allLeftOut && (
         <p className="qr-review-seating">Xác nhận sẽ tạo một đơn mang đi riêng cho yêu cầu này.</p>
       )}
       {!detail.canApprove && detail.reasonCode && (
@@ -292,69 +305,30 @@ function QrReviewForm({
       )}
       {request.rejectionReason && <p>Lý do từ chối: {request.rejectionReason}</p>}
       {request.cancellationReason && <p>Lý do hủy: {qrCancellationLabel(request.cancellationReason)}</p>}
-      {shortage ? <QrStockShortage dishes={shortage} /> : error ? <OrderFeedback error={error} /> : null}
-      {mustReview && (
-        <p className="qr-review-warning">
-          Kết quả hoặc dữ liệu đã thay đổi. Đọc lại yêu cầu trước khi quyết định tiếp; hệ thống không tự gửi lại thao
-          tác.
+      {/* One notice: the specific error if there is one, otherwise why a re-check is needed. */}
+      {shortage ? (
+        <QrStockShortage dishes={shortage} allLeftOut={allLeftOut} />
+      ) : error ? (
+        <OrderFeedback error={error} />
+      ) : mustReview ? (
+        <p className="qr-review-warning" role="status">
+          Yêu cầu vừa thay đổi. Kiểm tra lại trước khi quyết định; hệ thống không tự gửi lại thao tác.
         </p>
-      )}
-      <button
-        type="button"
-        className="button button-ghost"
-        disabled={busy || refreshing}
-        onClick={() => void reviewAgain()}
-      >
-        {refreshing ? 'Đang kiểm tra...' : 'Đọc lại yêu cầu'}
-      </button>
-      {request.status === 'PENDING' && (
-        <>
-          {allLeftOut ? (
-            <div className="qr-review-approve-action qr-review-all-left-out">
-              <p className="order-muted">Không còn món nào được nhận. Hãy từ chối yêu cầu.</p>
-              {canReject && (
-                <button type="button" className="button button-ghost" disabled={busy} onClick={openReject}>
-                  Chuyển sang từ chối
-                </button>
-              )}
-            </div>
-          ) : (
-            <div className="qr-review-approve-action">
-              <button
-                type="button"
-                className="button button-primary"
-                disabled={
-                  busy || refreshing || mustReview || !canApprove || reasonMissing || (!!sessionId && !confirmedGroup)
-                }
-                onClick={() => void decide('approve')}
-              >
-                {busy
-                  ? 'Đang xử lý...'
-                  : editable && accepted < quoteLines.length
-                    ? `Xác nhận ${accepted}/${quoteLines.length} món`
-                    : 'Xác nhận yêu cầu'}
-              </button>
-            </div>
-          )}
-          {!canApprove && !detail.reasonCode && (
-            <p className="order-muted">Bạn chưa có đủ quyền xác nhận yêu cầu này.</p>
-          )}
-          {canReject && (
-            <details
-              className="qr-review-reject"
-              open={rejectOpen}
-              onToggle={(event) => setRejectOpen(event.currentTarget.open)}
-            >
-              <summary>Từ chối yêu cầu</summary>
+      ) : null}
+      {request.status === 'PENDING' ? (
+        <div className="qr-review-decision">
+          {rejectShown && canReject ? (
+            <section className="qr-review-reject" aria-label="Từ chối yêu cầu">
+              <h4>Từ chối yêu cầu</h4>
               <label>
-                Lý do từ chối
+                Lý do gửi khách
                 <textarea
                   aria-describedby="qr-review-reject-hint"
-                  value={reason}
+                  value={rejectReason}
                   onChange={(event) => setReason(event.target.value)}
                   maxLength={1000}
                   disabled={busy}
-                  rows={3}
+                  rows={2}
                   placeholder="VD: Bếp đã đóng, xin lỗi bạn"
                 />
               </label>
@@ -363,15 +337,90 @@ function QrReviewForm({
               </p>
               <button
                 type="button"
-                className="button button-ghost"
-                disabled={busy || refreshing || mustReview || !reason.trim()}
+                className="button button-danger-solid qr-review-main-action"
+                disabled={busy || refreshing || remotelyChanged || !rejectReason.trim()}
                 onClick={() => void decide('reject')}
               >
-                Xác nhận từ chối
+                {busy ? 'Đang xử lý...' : 'Từ chối và báo khách'}
               </button>
-            </details>
+              <div className="qr-review-secondary-actions">
+                {!onlyReject && (
+                  <button type="button" className="qr-review-link" disabled={busy} onClick={() => setRejectOpen(false)}>
+                    Quay lại xác nhận
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="qr-review-link"
+                  disabled={busy || refreshing}
+                  onClick={() => void reviewAgain()}
+                >
+                  {refreshing ? 'Đang kiểm tra...' : 'Kiểm tra lại yêu cầu'}
+                </button>
+              </div>
+            </section>
+          ) : (
+            <>
+              {mustReview ? (
+                <button
+                  type="button"
+                  className="button button-primary qr-review-main-action"
+                  disabled={busy || refreshing}
+                  onClick={() => void reviewAgain()}
+                >
+                  {refreshing ? 'Đang kiểm tra...' : 'Kiểm tra lại yêu cầu'}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className="button button-primary qr-review-main-action"
+                  disabled={busy || refreshing || !canApprove || reasonMissing || (!!sessionId && !confirmedGroup)}
+                  onClick={() => void decide('approve')}
+                >
+                  {busy
+                    ? 'Đang xử lý...'
+                    : editable && accepted < quoteLines.length
+                      ? `Xác nhận ${accepted}/${quoteLines.length} món`
+                      : 'Xác nhận yêu cầu'}
+                </button>
+              )}
+              {!canApprove && !detail.reasonCode && (
+                <p className="order-muted">Bạn chưa có đủ quyền xác nhận yêu cầu này.</p>
+              )}
+              <div className="qr-review-secondary-actions">
+                {canReject && (
+                  <button
+                    type="button"
+                    className="qr-review-link qr-review-link-danger"
+                    disabled={busy}
+                    onClick={() => setRejectOpen(true)}
+                  >
+                    Từ chối cả yêu cầu
+                  </button>
+                )}
+                {!mustReview && (
+                  <button
+                    type="button"
+                    className="qr-review-link"
+                    disabled={busy || refreshing}
+                    onClick={() => void reviewAgain()}
+                  >
+                    {refreshing ? 'Đang kiểm tra...' : 'Kiểm tra lại yêu cầu'}
+                  </button>
+                )}
+              </div>
+            </>
           )}
-        </>
+        </div>
+      ) : (
+        <button
+          type="button"
+          className="button button-ghost"
+          disabled={busy || refreshing}
+          onClick={() => void reviewAgain()}
+        >
+          {refreshing ? 'Đang kiểm tra...' : 'Kiểm tra lại yêu cầu'}
+        </button>
       )}
     </>
   )

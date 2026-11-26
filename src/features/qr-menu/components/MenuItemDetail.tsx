@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { useEffect, useRef, useState, type PointerEvent, type ReactNode } from 'react'
 import type { PublicMenuItem } from '../types'
 import { formatMenuPrice } from '../utils/formatMenuPrice'
 
@@ -6,26 +6,32 @@ interface MenuItemDetailProps {
   item: PublicMenuItem
   currencyCode: string
   onClose: () => void
+  /** The ordering controls; rendered in the sheet's footer so they never scroll away. */
   children?: ReactNode
 }
 
-const PLACEHOLDER_IMAGE =
-  'data:image/svg+xml,' +
-  encodeURIComponent(
-    '<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="#f0f4f8" width="400" height="300"/><text fill="#9fb3c8" font-family="sans-serif" font-size="60" text-anchor="middle" x="200" y="170">🍽</text></svg>',
-  )
+/** Pulling the sheet down this far (px) closes it. */
+const SWIPE_CLOSE = 90
 
+/**
+ * Dish sheet: a bottom sheet on phones, a dialog on wider screens. It closes on
+ * a tap outside, Esc, the close button, or by swiping the top part down; the
+ * ordering controls stay pinned at the bottom.
+ */
 export function MenuItemDetail({ item, currencyCode, onClose, children }: MenuItemDetailProps) {
   const dialogRef = useRef<HTMLDivElement>(null)
+  const drag = useRef<{ startY: number; dy: number } | null>(null)
+  const [offset, setOffset] = useState(0)
   const [imgError, setImgError] = useState(false)
   const isOutOfStock = item.availabilityStatus === 'OUT_OF_STOCK'
-  const imgSrc = item.imageUrl && !imgError ? item.imageUrl : PLACEHOLDER_IMAGE
+  const showImage = !!item.imageUrl && !imgError
 
   useEffect(() => {
     const previous = document.activeElement as HTMLElement | null
-    // Focus the close button
-    const closeBtn = dialogRef.current?.querySelector<HTMLElement>('[data-close-btn]')
-    closeBtn?.focus()
+    dialogRef.current?.querySelector<HTMLElement>('[data-close-btn]')?.focus()
+    // Keep the menu behind the sheet from scrolling.
+    const overflow = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -52,9 +58,28 @@ export function MenuItemDetail({ item, currencyCode, onClose, children }: MenuIt
     document.addEventListener('keydown', onKeyDown)
     return () => {
       document.removeEventListener('keydown', onKeyDown)
+      document.body.style.overflow = overflow
       previous?.focus()
     }
   }, [onClose])
+
+  const startDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    drag.current = { startY: event.clientY, dy: 0 }
+    event.currentTarget.setPointerCapture?.(event.pointerId)
+  }
+  const moveDrag = (event: PointerEvent<HTMLDivElement>) => {
+    if (!drag.current) return
+    drag.current.dy = Math.max(0, event.clientY - drag.current.startY)
+    setOffset(drag.current.dy)
+  }
+  const endDrag = () => {
+    if (!drag.current) return
+    const { dy } = drag.current
+    drag.current = null
+    if (dy > SWIPE_CLOSE) onClose()
+    else setOffset(0)
+  }
 
   return (
     <div
@@ -70,39 +95,41 @@ export function MenuItemDetail({ item, currencyCode, onClose, children }: MenuIt
         aria-modal="true"
         aria-labelledby="qr-menu-detail-title"
         ref={dialogRef}
+        style={offset ? { transform: `translateY(${offset}px)`, transition: 'none' } : undefined}
       >
-        <div className="qr-menu-detail-header">
-          <h2 id="qr-menu-detail-title">{item.name}</h2>
-          <button className="qr-menu-detail-close" type="button" onClick={onClose} aria-label="Đóng" data-close-btn>
-            ×
-          </button>
+        <button className="qr-menu-detail-close" type="button" onClick={onClose} aria-label="Đóng" data-close-btn>
+          <span aria-hidden="true">✕</span>
+        </button>
+        <div
+          className="qr-menu-detail-drag"
+          onPointerDown={startDrag}
+          onPointerMove={moveDrag}
+          onPointerUp={endDrag}
+          onPointerCancel={endDrag}
+        >
+          <span className="qr-menu-detail-grabber" aria-hidden="true" />
+          {showImage && (
+            <img
+              className="qr-menu-detail-img"
+              src={item.imageUrl!}
+              alt={item.name}
+              referrerPolicy="no-referrer"
+              draggable={false}
+              onError={() => setImgError(true)}
+            />
+          )}
         </div>
         <div className="qr-menu-detail-body">
-          <img
-            className="qr-menu-detail-img"
-            src={imgSrc}
-            alt={item.name}
-            referrerPolicy="no-referrer"
-            onError={() => setImgError(true)}
-          />
-          <div className="qr-menu-detail-info">
-            <div className="qr-menu-detail-price">
-              {formatMenuPrice(item.salePrice, currencyCode)}
-              {item.baseUnit && <span className="qr-menu-detail-unit">/{item.baseUnit}</span>}
-            </div>
-
+          <h2 id="qr-menu-detail-title">{item.name}</h2>
+          <div className="qr-menu-detail-price">
+            {formatMenuPrice(item.salePrice, currencyCode)}
+            {item.baseUnit && <span className="qr-menu-detail-unit">/{item.baseUnit}</span>}
             {isOutOfStock && <span className="qr-menu-item-badge-oos qr-menu-detail-oos-badge">Hết hàng</span>}
-
-            {item.group && (
-              <div className="qr-menu-detail-group">
-                <span className="qr-menu-detail-label">Nhóm:</span> {item.group.name}
-              </div>
-            )}
-
-            {item.description && <p className="qr-menu-detail-desc">{item.description}</p>}
-            {children}
           </div>
+          {item.group && <div className="qr-menu-detail-group">{item.group.name}</div>}
+          {item.description && <p className="qr-menu-detail-desc">{item.description}</p>}
         </div>
+        {children && <div className="qr-menu-detail-footer">{children}</div>}
       </div>
     </div>
   )

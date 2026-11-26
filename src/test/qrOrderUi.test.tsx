@@ -1,6 +1,6 @@
 import { StrictMode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { act, cleanup, render, screen, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -189,6 +189,31 @@ describe('Public customer QR ordering UI', () => {
     expect(useQrGuestStore.getState().entry).toEqual(tableEntry)
     expect(entryPath(tableEntry)).toBe('/menu/qr/' + tableEntry.token)
   })
+  it('quick + adds one more portion to the same cart line and marks the card', async () => {
+    const user = userEvent.setup()
+    mount()
+    const plus = await screen.findByRole('button', { name: 'Thêm 1 Phở bò vào giỏ' })
+    await user.click(plus)
+    await user.click(plus)
+    expect(useQrDraftStore.getState().lines).toHaveLength(1)
+    expect(useQrDraftStore.getState().lines[0].quantity).toBe('2')
+    expect(screen.getByLabelText('Đã chọn 2')).toBeInTheDocument()
+    expect(screen.getByRole('status')).toHaveTextContent('Đã thêm Phở bò vào giỏ.')
+  })
+  it('the dish sheet closes on a tap outside and on Escape, and shows the line total', async () => {
+    const user = userEvent.setup()
+    mount()
+    await user.click(await screen.findByRole('button', { name: 'Xem chi tiết: Phở bò' }))
+    const dialog = screen.getByRole('dialog')
+    await user.click(within(dialog).getByRole('button', { name: 'Tăng số lượng' }))
+    expect(within(dialog).getByRole('button', { name: 'Thêm vào giỏ' })).toHaveTextContent(/90\.000/)
+    fireEvent.mouseDown(dialog.parentElement!)
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Xem chi tiết: Phở bò' }))
+    await user.keyboard('{Escape}')
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(useQrDraftStore.getState().lines).toEqual([])
+  })
   it('a paused channel shows the menu read-only with no cart or ordering', async () => {
     server.use(
       http.get(qrBase + '/public/menu/tables/:token', () =>
@@ -204,6 +229,7 @@ describe('Public customer QR ordering UI', () => {
     expect(within(dialog).getByText('Đang tạm ngưng gọi món qua QR.')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /^Giỏ món/ })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Gửi yêu cầu gọi món' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: /^Thêm 1 / })).not.toBeInTheDocument()
   })
   it('403 guest-access re-reads the menu and turns read-only when staff paused ordering', async () => {
     let menus = 0

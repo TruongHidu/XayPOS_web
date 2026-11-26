@@ -1,5 +1,5 @@
 import { describe, expect, it, beforeEach, vi } from 'vitest'
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { MemoryRouter, Route, Routes } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
@@ -101,8 +101,14 @@ describe('QR Menu', () => {
     let refreshCalled = false
     let entitlementCalled = false
     server.use(
-      http.post(`${API_BASE}/auth/refresh`, () => { refreshCalled = true; return HttpResponse.json({}, { status: 401 }) }),
-      http.get(`${API_BASE}/me/entitlements`, () => { entitlementCalled = true; return HttpResponse.json({}) }),
+      http.post(`${API_BASE}/auth/refresh`, () => {
+        refreshCalled = true
+        return HttpResponse.json({}, { status: 401 })
+      }),
+      http.get(`${API_BASE}/me/entitlements`, () => {
+        entitlementCalled = true
+        return HttpResponse.json({})
+      }),
     )
     renderQrMenu(VALID_TOKEN)
     await screen.findByText('Nhà hàng Demo')
@@ -248,17 +254,21 @@ describe('QR Menu', () => {
   // 14. Null/broken image doesn't break UI
   it('handles null and broken image URLs gracefully', async () => {
     renderQrMenu(VALID_TOKEN)
-    await screen.findByText('Phở bò')
-    const images = screen.getAllByRole('img')
-    // All images should render without error
-    images.forEach(img => expect(img).toBeInTheDocument())
+    const noImage = await screen.findByRole('button', { name: 'Xem chi tiết: Phở bò' })
+    // No image: a lettered placeholder instead of a broken picture.
+    expect(noImage.querySelector('.qr-menu-item-img-placeholder')).toHaveTextContent('P')
+    // Broken image: falls back to the same placeholder.
+    const withImage = screen.getByRole('button', { name: 'Xem chi tiết: Nước chanh (Hết hàng)' })
+    const img = withImage.querySelector('img')!
+    expect(img).toHaveAttribute('src', 'https://example.com/nuocchanh.jpg')
+    fireEvent.error(img)
+    expect(withImage.querySelector('img')).toBeNull()
+    expect(withImage.querySelector('.qr-menu-item-img-placeholder')).toHaveTextContent('N')
   })
 
   // 15. Empty menu is different from no search results
   it('shows "Nhà hàng chưa có món" when menu is empty without filters', async () => {
-    server.use(
-      http.get(`${API_BASE}/public/menu/tables/:qrToken/items`, () => HttpResponse.json(emptyItemsResponse)),
-    )
+    server.use(http.get(`${API_BASE}/public/menu/tables/:qrToken/items`, () => HttpResponse.json(emptyItemsResponse)))
     renderQrMenu(VALID_TOKEN)
     expect(await screen.findByText('Nhà hàng chưa có món để hiển thị.')).toBeInTheDocument()
   })
@@ -291,13 +301,16 @@ describe('QR Menu', () => {
   it('shows terminal error for QR_MENU_NOT_FOUND and hides menu', async () => {
     server.use(
       http.get(`${API_BASE}/public/menu/tables/:qrToken`, () =>
-        HttpResponse.json({
-          success: false,
-          code: 'QR_MENU_NOT_FOUND',
-          message: 'Menu QR không còn khả dụng.',
-          details: {},
-          timestamp: '2026-10-07T00:00:00Z',
-        }, { status: 404 }),
+        HttpResponse.json(
+          {
+            success: false,
+            code: 'QR_MENU_NOT_FOUND',
+            message: 'Menu QR không còn khả dụng.',
+            details: {},
+            timestamp: '2026-10-07T00:00:00Z',
+          },
+          { status: 404 },
+        ),
       ),
     )
     renderQrMenu(VALID_TOKEN)
@@ -308,13 +321,16 @@ describe('QR Menu', () => {
   it('shows terminal error for QR_MENU_UNAVAILABLE', async () => {
     server.use(
       http.get(`${API_BASE}/public/menu/tables/:qrToken`, () =>
-        HttpResponse.json({
-          success: false,
-          code: 'QR_MENU_UNAVAILABLE',
-          message: 'Gói dịch vụ chưa hỗ trợ.',
-          details: {},
-          timestamp: '2026-10-07T00:00:00Z',
-        }, { status: 403 }),
+        HttpResponse.json(
+          {
+            success: false,
+            code: 'QR_MENU_UNAVAILABLE',
+            message: 'Gói dịch vụ chưa hỗ trợ.',
+            details: {},
+            timestamp: '2026-10-07T00:00:00Z',
+          },
+          { status: 403 },
+        ),
       ),
     )
     renderQrMenu(VALID_TOKEN)
@@ -329,13 +345,16 @@ describe('QR Menu', () => {
         itemsCalls++
         const url = new URL(request.url)
         if (url.searchParams.get('groupId')) {
-          return HttpResponse.json({
-            success: false,
-            code: 'PUBLIC_MENU_GROUP_NOT_FOUND',
-            message: 'Nhóm không tồn tại.',
-            details: {},
-            timestamp: '2026-10-07T00:00:00Z',
-          }, { status: 404 })
+          return HttpResponse.json(
+            {
+              success: false,
+              code: 'PUBLIC_MENU_GROUP_NOT_FOUND',
+              message: 'Nhóm không tồn tại.',
+              details: {},
+              timestamp: '2026-10-07T00:00:00Z',
+            },
+            { status: 404 },
+          )
         }
         return HttpResponse.json(itemsResponse)
       }),
@@ -351,9 +370,7 @@ describe('QR Menu', () => {
 
   // 18. Network error shows retry and doesn't redirect
   it('shows retry button for network errors without redirecting to login', async () => {
-    server.use(
-      http.get(`${API_BASE}/public/menu/tables/:qrToken`, () => HttpResponse.error()),
-    )
+    server.use(http.get(`${API_BASE}/public/menu/tables/:qrToken`, () => HttpResponse.error()))
     renderQrMenu(VALID_TOKEN)
     expect(await screen.findByText(/Không thể kết nối máy chủ/)).toBeInTheDocument()
     expect(screen.getByText('Thử lại')).toBeInTheDocument()
@@ -407,13 +424,16 @@ describe('QR Menu', () => {
   it('shows retry for 500 server errors', async () => {
     server.use(
       http.get(`${API_BASE}/public/menu/tables/:qrToken`, () =>
-        HttpResponse.json({
-          success: false,
-          code: 'INTERNAL_ERROR',
-          message: 'Unexpected error',
-          details: {},
-          timestamp: '2026-10-07T00:00:00Z',
-        }, { status: 500 }),
+        HttpResponse.json(
+          {
+            success: false,
+            code: 'INTERNAL_ERROR',
+            message: 'Unexpected error',
+            details: {},
+            timestamp: '2026-10-07T00:00:00Z',
+          },
+          { status: 500 },
+        ),
       ),
     )
     renderQrMenu(VALID_TOKEN)

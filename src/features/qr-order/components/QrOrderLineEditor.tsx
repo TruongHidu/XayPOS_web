@@ -1,21 +1,32 @@
+import { useState } from 'react'
 import { useForm, useWatch } from 'react-hook-form'
 import { qrQuantitySchema } from '../schemas'
-import { quantityMilli } from '../../../shared/utils/scaledDecimal'
+import { formatMinor, previewLine, quantityMilli } from '../../../shared/utils/scaledDecimal'
+
+/**
+ * Quantity stepper, optional kitchen note and the apply button in one row.
+ * With `unitPrice` the button also shows the line total.
+ */
 export function QrOrderLineEditor({
   initialQuantity = '1',
   initialNote = '',
   disabled,
   onApply,
   label = 'Thêm vào giỏ',
+  unitPrice,
+  currencyCode,
 }: {
   initialQuantity?: string
   initialNote?: string
   disabled?: boolean
   onApply: (quantity: string, note: string) => void
   label?: string
+  unitPrice?: number
+  currencyCode?: string
 }) {
   const form = useForm({ defaultValues: { quantity: initialQuantity, note: initialNote } })
   const quantity = useWatch({ control: form.control, name: 'quantity' })
+  const [noteOpen, setNoteOpen] = useState(!!initialNote)
   const change = (step: bigint) => {
     try {
       const value = quantityMilli(quantity) + step
@@ -28,12 +39,39 @@ export function QrOrderLineEditor({
       form.setValue('quantity', '1')
     }
   }
+  let total: string | null = null
+  if (unitPrice !== undefined) {
+    try {
+      total = formatMinor(previewLine(unitPrice, quantity), currencyCode)
+    } catch {
+      total = null
+    }
+  }
   return (
     <form className="qr-order-line-editor" onSubmit={form.handleSubmit((value) => onApply(value.quantity, value.note))}>
       <fieldset disabled={disabled}>
-        <label>
-          Số lượng
-          <span className="qr-order-quantity">
+        {noteOpen ? (
+          <label className="qr-order-note-field">
+            Ghi chú món
+            <textarea
+              maxLength={500}
+              rows={2}
+              placeholder="Ví dụ: ít cay, không hành..."
+              {...form.register('note', { maxLength: 500 })}
+            />
+          </label>
+        ) : (
+          <button type="button" className="qr-order-note-toggle" onClick={() => setNoteOpen(true)}>
+            + Thêm ghi chú cho bếp
+          </button>
+        )}
+        {form.formState.errors.quantity && (
+          <p className="qr-order-field-error" role="alert">
+            {form.formState.errors.quantity.message}
+          </p>
+        )}
+        <div className="qr-order-editor-actions">
+          <span className="qr-order-quantity" role="group" aria-label="Số lượng">
             <button
               type="button"
               aria-label="Giảm số lượng"
@@ -44,6 +82,7 @@ export function QrOrderLineEditor({
             </button>
             <input
               inputMode="decimal"
+              aria-label="Số lượng"
               {...form.register('quantity', {
                 validate: (value) => {
                   try {
@@ -65,24 +104,11 @@ export function QrOrderLineEditor({
               +
             </button>
           </span>
-        </label>
-        {form.formState.errors.quantity && (
-          <p className="qr-order-field-error" role="alert">
-            {form.formState.errors.quantity.message}
-          </p>
-        )}
-        <label>
-          Ghi chú món{' '}
-          <textarea
-            maxLength={500}
-            rows={2}
-            placeholder="Ví dụ: ít cay, không hành..."
-            {...form.register('note', { maxLength: 500 })}
-          />
-        </label>
-        <button className="qr-order-button qr-order-primary" type="submit">
-          {label}
-        </button>
+          <button className="qr-order-button qr-order-primary qr-order-apply" type="submit" aria-label={label}>
+            <span>{label}</span>
+            {total && <span className="qr-order-apply-total">{total}</span>}
+          </button>
+        </div>
       </fieldset>
     </form>
   )

@@ -21,7 +21,12 @@ import { qrDraftFrozen, useQrDraftStore } from '../../features/qr-order/store/qr
 import { QrOrderCart } from '../../features/qr-order/components/QrOrderCart'
 import { QrOrderHistory } from '../../features/qr-order/components/QrOrderHistory'
 import { QrOrderLineEditor } from '../../features/qr-order/components/QrOrderLineEditor'
-import { formatMinor, previewLine } from '../../shared/utils/scaledDecimal'
+import { formatMinor, previewLine, quantityMilli } from '../../shared/utils/scaledDecimal'
+
+/** 1500n milli → "1.5" (the cart keeps quantities as decimal strings). */
+const formatQuantity = (milli: bigint) =>
+  (milli / 1000n).toString() +
+  (milli % 1000n ? '.' + (milli % 1000n).toString().padStart(3, '0').replace(/0+$/, '') : '')
 
 const QR_TOKEN_REGEX = /^[A-Za-z0-9_-]{43}$/
 
@@ -153,6 +158,21 @@ export function QrMenuPage() {
   const context = contextQuery.data
   if (!context) return null
   const readOnly = context.orderingEnabled === false
+  const orderingBlocked = qrDraftFrozen(draft) || access.invalid || access.unavailable
+  const inCart: Record<string, number> = {}
+  for (const line of draft.lines) inCart[line.item.id] = (inCart[line.item.id] ?? 0) + Number(line.quantity)
+  // "+" on a card: one more portion of the same dish (no note) instead of a new cart line.
+  const quickAdd = (item: PublicMenuItem) => {
+    const same = draft.lines.find((line) => line.item.id === item.id && !line.note)
+    let done = false
+    if (same) {
+      const next = quantityMilli(same.quantity) + 1000n
+      if (next > 20000n) return
+      draft.edit(same.id, formatQuantity(next), '')
+      done = true
+    } else done = draft.add(item)
+    if (done) setAdded('Đã thêm ' + item.name + ' vào giỏ.')
+  }
   const activePanel = readOnly && panel === 'cart' ? 'menu' : panel
 
   // === ITEMS ERROR ===
@@ -238,6 +258,9 @@ export function QrMenuPage() {
                         items={itemsQuery.data.content}
                         currencyCode={context.restaurant.currencyCode}
                         onItemClick={setSelectedItem}
+                        onQuickAdd={readOnly ? undefined : quickAdd}
+                        quickAddDisabled={orderingBlocked}
+                        inCart={inCart}
                       />
                       <QrMenuPagination
                         page={itemsQuery.data.page}
@@ -274,15 +297,13 @@ export function QrMenuPage() {
             onClose={() => setSelectedItem(null)}
           >
             {readOnly ? (
-              <p className="qr-order-muted">Đang tạm ngưng gọi món qua QR.</p>
+              <p className="qr-order-muted qr-menu-detail-note">Đang tạm ngưng gọi món qua QR.</p>
             ) : (
               <QrOrderLineEditor
+                unitPrice={selectedItem.salePrice}
+                currencyCode={context.restaurant.currencyCode}
                 disabled={
-                  qrDraftFrozen(draft) ||
-                  access.invalid ||
-                  access.unavailable ||
-                  draft.lines.length >= 20 ||
-                  selectedItem.availabilityStatus !== 'AVAILABLE'
+                  orderingBlocked || draft.lines.length >= 20 || selectedItem.availabilityStatus !== 'AVAILABLE'
                 }
                 onApply={(quantity, note) => {
                   if (draft.add(selectedItem, quantity, note)) {

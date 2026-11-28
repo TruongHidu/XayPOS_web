@@ -42,6 +42,8 @@ npm run dev
 
 Vite chạy tại `http://localhost:3000`. API mặc định là `http://localhost:8080/api/v1`; đổi bằng `VITE_API_BASE_URL`. Backend cần cho phép CORS từ `http://localhost:3000`.
 
+Trang đăng ký có CAPTCHA Cloudflare Turnstile khi `VITE_TURNSTILE_SITE_KEY` có giá trị; token được gửi trong header `X-Captcha-Token`. `.env.example` dùng site key test `1x00000000000000000000AA` (luôn qua, chạy được trên localhost), đi cùng secret test `1x0000000000000000000000000000000AA` ở backend. Để trống thì đăng ký không cần CAPTCHA. Chi tiết backend: `docs/auth-captcha.md` trong repo `XayPOS_be`.
+
 ```bash
 npm run lint
 npm run lint:eslint

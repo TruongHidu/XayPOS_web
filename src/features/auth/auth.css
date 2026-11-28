@@ -12,6 +12,8 @@
 .auth-group-title { margin: 22px 0 10px; color: var(--brand-muted); font-size: 12px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
 .auth-group-title:first-of-type { margin-top: 0; }
 .auth-optional { color: var(--brand-muted); font-weight: 400; }
+/* Turnstile's managed widget is 65px tall; reserving it avoids a layout jump when it loads. */
+.captcha-widget { min-height: 65px; margin: 4px 0 16px; }
 
 @media (max-width: 860px) {
   .auth-page { grid-template-columns: 1fr; }

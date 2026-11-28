@@ -6,4 +6,6 @@ export const env = {
   enableQrApi: readBoolean(import.meta.env.VITE_ENABLE_QR_API),
   realtimeEnabled: readBoolean(import.meta.env.VITE_REALTIME_ENABLED),
   realtimeUrl: import.meta.env.VITE_REALTIME_URL || undefined,
+  /** Cloudflare Turnstile site key (public). Empty: registration renders no CAPTCHA and sends no token. */
+  turnstileSiteKey: (import.meta.env.VITE_TURNSTILE_SITE_KEY as string | undefined) || undefined,
 }

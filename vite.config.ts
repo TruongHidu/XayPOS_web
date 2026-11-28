@@ -9,5 +9,12 @@ export default defineConfig({
   cacheDir: `node_modules/.vite-${userInfo().username.replace(/[^a-zA-Z0-9_-]/g, '_')}`,
   plugins: [react(), tailwindcss()],
   server: { port: 3000 },
-  test: { environment: 'jsdom', setupFiles: './src/test/setup.ts', globals: true, include: ['src/**/*.test.{ts,tsx}'] },
+  test: {
+    environment: 'jsdom',
+    setupFiles: './src/test/setup.ts',
+    globals: true,
+    include: ['src/**/*.test.{ts,tsx}'],
+    // Tests never load Cloudflare's script, whatever a local .env sets; CAPTCHA tests mock the widget.
+    env: { VITE_TURNSTILE_SITE_KEY: '' },
+  },
 })

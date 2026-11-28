@@ -9,7 +9,12 @@ import { PasswordField } from '../components/PasswordField'
 import { generateRestaurantCode } from '../utils/restaurantCode'
 import { packageSelection } from '../../onboarding/utils/packageSelection'
 import { normalizeApiError } from '../../../shared/errors/normalizeApiError'
+import { TurnstileWidget } from '../../../shared/captcha/TurnstileWidget'
+import { useCaptcha } from '../../../shared/captcha/useCaptcha'
 import type { RegisterRestaurantRequest } from '../../../shared/types/auth'
+
+/** Must match AuthCaptchaRequests.REGISTER_ACTION on the backend. */
+const CAPTCHA_ACTION = 'register'
 
 const DEFAULT_TIMEZONE = 'Asia/Ho_Chi_Minh'
 const DEFAULT_CURRENCY = 'VND'
@@ -34,6 +39,15 @@ export function RegisterPage() {
   const [searchParams] = useSearchParams()
   const packageCode = searchParams.get('package')
   const signUp = useAuthStore((state) => state.signUp)
+  const {
+    required: captchaRequired,
+    token: captchaToken,
+    failed: captchaFailed,
+    reset: resetCaptcha,
+    refresh: refreshCaptcha,
+    widgetRef: captchaWidgetRef,
+    widgetProps: captchaWidgetProps,
+  } = useCaptcha(CAPTCHA_ACTION)
   const [generalError, setGeneralError] = useState<string | null>(null)
   const [uncertainResult, setUncertainResult] = useState(false)
   const {
@@ -53,19 +67,26 @@ export function RegisterPage() {
   const onSubmit = async (values: RegisterFormValues) => {
     setGeneralError(null)
     setUncertainResult(false)
+    if (captchaRequired && !captchaToken) {
+      showError(normalizeApiError(new Error('CAPTCHA_REQUIRED')))
+      return
+    }
     try {
-      await signUp(toRequest(values))
+      await signUp(toRequest(values), captchaToken ?? undefined)
     } catch (error) {
       const normalized = normalizeApiError(error)
       if (normalized.code === 'RESTAURANT_CODE_EXISTS') {
         try {
-          await signUp(toRequest(values))
+          // The first token was spent by the rejected request: the retry needs a fresh one.
+          await signUp(toRequest(values), captchaRequired ? await refreshCaptcha() : undefined)
           return
         } catch (retryError) {
+          resetCaptcha()
           showError(normalizeApiError(retryError))
           return
         }
       }
+      resetCaptcha()
       showError(normalized)
     }
   }
@@ -119,7 +140,9 @@ export function RegisterPage() {
           {errors.ownerPhone && <span id="ownerPhone-error" className="field-error">{errors.ownerPhone.message}</span>}
         </div>
         <PasswordField id="password" label="Mật khẩu" autoComplete="new-password" error={errors.password?.message} {...register('password')} />
-        <button className="brand-button brand-button-primary brand-button-block brand-button-large" type="submit" disabled={isSubmitting}>{isSubmitting ? 'Đang tạo tài khoản…' : 'Tạo tài khoản'}</button>
+        {captchaWidgetProps && <TurnstileWidget ref={captchaWidgetRef} {...captchaWidgetProps} />}
+        {captchaFailed && <span className="field-error" role="alert">Không tải được bước xác minh. Vui lòng tải lại trang.</span>}
+        <button className="brand-button brand-button-primary brand-button-block brand-button-large" type="submit" disabled={isSubmitting || (captchaRequired && !captchaToken)}>{isSubmitting ? 'Đang tạo tài khoản…' : 'Tạo tài khoản'}</button>
       </form>
       <p className="auth-switch">Đã có tài khoản? <Link to="/login">Đăng nhập</Link></p>
     </AuthLayout>

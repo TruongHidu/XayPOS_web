@@ -23,7 +23,7 @@ interface AuthState {
   entitlementState: EntitlementState
   lastError: string | null
   signIn: (body: LoginRequest) => Promise<AuthResponse>
-  signUp: (body: RegisterRestaurantRequest) => Promise<AuthResponse>
+  signUp: (body: RegisterRestaurantRequest, captchaToken?: string) => Promise<AuthResponse>
   refreshSession: () => Promise<AuthResponse>
   bootstrap: () => Promise<void>
   loadEntitlement: () => Promise<void>
@@ -67,8 +67,8 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     await get().loadEntitlement()
     return response
   },
-  signUp: async (body) => {
-    const response = await authApi.registerRestaurant(body)
+  signUp: async (body, captchaToken) => {
+    const response = await (captchaToken ? authApi.registerRestaurant(body, captchaToken) : authApi.registerRestaurant(body))
     set({ sessionRevision: get().sessionRevision + 1 })
     applyAuthResponse(response)
     await get().loadEntitlement()

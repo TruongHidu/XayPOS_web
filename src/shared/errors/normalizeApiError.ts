@@ -25,6 +25,10 @@ const messages: Record<string, string> = {
   INVALID_REQUEST_BODY: 'Dữ liệu gửi lên không đúng định dạng.',
   INTERNAL_ERROR: 'Máy chủ gặp lỗi, vui lòng thử lại.',
   FORBIDDEN: 'Bạn không có quyền thực hiện thao tác này.',
+  CAPTCHA_REQUIRED: 'Vui lòng xác nhận bạn không phải robot.',
+  CAPTCHA_INVALID: 'Xác minh không thành công, vui lòng thử lại.',
+  CAPTCHA_UNAVAILABLE: 'Chưa xác minh được lúc này, vui lòng thử lại sau ít phút.',
+  TOO_MANY_REQUESTS: 'Bạn thao tác quá nhanh, vui lòng thử lại sau.',
   ...subscriptionErrorMessages,
 }
 
